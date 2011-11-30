@@ -1,0 +1,48 @@
+From: Guillaume Delacour <gui@iroqwa.org>
+Subject: Disable rpath build option in modules
+Last-Update: 2011-11-14
+
+--- a/src/modules/extra/m_mysql.cpp
++++ b/src/modules/extra/m_mysql.cpp
+@@ -28,7 +28,7 @@
+ 
+ /* $ModDesc: SQL Service Provider module for all other m_sql* modules */
+ /* $CompileFlags: exec("mysql_config --include") */
+-/* $LinkerFlags: exec("mysql_config --libs_r") rpath("mysql_config --libs_r") */
++/* $LinkerFlags: exec("mysql_config --libs_r") */
+ 
+ /* THE NONBLOCKING MYSQL API!
+  *
+--- a/src/modules/extra/m_regex_pcre.cpp
++++ b/src/modules/extra/m_regex_pcre.cpp
+@@ -18,7 +18,7 @@
+ /* $ModDesc: Regex Provider Module for PCRE */
+ /* $ModDep: m_regex.h */
+ /* $CompileFlags: exec("pcre-config --cflags") */
+-/* $LinkerFlags: exec("pcre-config --libs") rpath("pcre-config --libs") -lpcre */
++/* $LinkerFlags: exec("pcre-config --libs") -lpcre */
+ 
+ #ifdef WINDOWS
+ # pragma comment(lib, "libpcre.lib")
+--- a/src/modules/extra/m_regex_tre.cpp
++++ b/src/modules/extra/m_regex_tre.cpp
+@@ -18,7 +18,7 @@
+ 
+ /* $ModDesc: Regex Provider Module for TRE Regular Expressions */
+ /* $CompileFlags: pkgconfincludes("tre","tre/regex.h","") */
+-/* $LinkerFlags: pkgconflibs("tre","/libtre.so","-ltre") rpath("pkg-config --libs tre") */
++/* $LinkerFlags: pkgconflibs("tre","/libtre.so","-ltre") */
+ /* $ModDep: m_regex.h */
+ 
+ class TRERegexException : public ModuleException
+--- a/src/modules/extra/m_ssl_gnutls.cpp
++++ b/src/modules/extra/m_ssl_gnutls.cpp
+@@ -20,7 +20,7 @@
+ 
+ /* $ModDesc: Provides SSL support for clients */
+ /* $CompileFlags: pkgconfincludes("gnutls","/gnutls/gnutls.h","") */
+-/* $LinkerFlags: rpath("pkg-config --libs gnutls") pkgconflibs("gnutls","/libgnutls.so","-lgnutls") */
++/* $LinkerFlags: pkgconflibs("gnutls","/libgnutls.so","-lgnutls") */
+ 
+ enum issl_status { ISSL_NONE, ISSL_HANDSHAKING_READ, ISSL_HANDSHAKING_WRITE, ISSL_HANDSHAKEN, ISSL_CLOSING, ISSL_CLOSED };
+ 
