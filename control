@@ -15,8 +15,8 @@ Build-Depends: debhelper (>= 8.0.0), perl-modules, libgnutls-dev, pkg-config,
                libtre-dev, hardening-wrapper
 Standards-Version: 3.9.2
 Homepage: http://www.inspircd.org/
-Vcs-Svn: svn://svn.debian.org/pkg-irc/packages/inspircd/trunk/
-Vcs-Browser: http://svn.debian.org/wsvn/pkg-irc/packages/inspircd/trunk/
+Vcs-Svn: svn://svn.debian.org/pkg-irc/packages/inspircd2/trunk/
+Vcs-Browser: http://svn.debian.org/wsvn/pkg-irc/packages/inspircd2/trunk/
 
 Package: inspircd
 Architecture: any
