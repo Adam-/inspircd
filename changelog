@@ -1,5 +1,6 @@
-inspircd (2.0.5-1) unstable; urgency=low
+inspircd (2.0.5-0.1) unstable; urgency=low
 
+  [ Guillaume Delacour ]
   * Add myself to uploaders.
   * Remove Mario Iseli to uploaders (officially MIA)
   * New upstream release (Closes: #545233, #519910, #620960, #641299)
@@ -54,7 +55,15 @@ inspircd (2.0.5-1) unstable; urgency=low
     upstream changes (tags security, performance and log), line break to 80
     and load absolute path for /etc/inspircd/inspircd.{motd,rules}
 
- -- Guillaume Delacour <gui@iroqwa.org>  Mon, 14 Nov 2011 22:05:55 +0100
+  [ Jonathan Wiltshire ]
+  * Non-maintainer upload.
+    This is really sponsorship with an added patch, but technically still 
+    an NMU.
+  * Patch 03_CVE-2012-1836: protect against buffer overflow vulnerability
+    in src/dns.cpp (merge from upstream)
+    Closes: #667914 CVE-2012-1836
+
+ -- Jonathan Wiltshire <jmw@debian.org>  Sat, 07 Apr 2012 22:25:39 +0100
 
 inspircd (1.1.22+dfsg-4) unstable; urgency=low
 
