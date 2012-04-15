@@ -1,0 +1,18 @@
+Subject: FTBFS on kfreebsd-{amd64,i386}
+Author: Christoph Egger <christoph@debian.org>
+Bug-Debian: http://bugs.debian.org/668689
+Last-Update: 2012-04-14
+Forwarded: https://github.com/inspircd/inspircd/issues/64
+
+--- a/make/template/main.mk
++++ b/make/template/main.mk
+@@ -38,6 +38,9 @@
+ @IFEQ $(SYSTEM) linux
+   LDLIBS += -ldl -lrt
+ @ENDIF
++@IFEQ $(SYSTEM) gnukfreebsd
++  LDLIBS += -ldl -lrt
++@ENDIF
+ @IFEQ $(SYSTEM) solaris
+   LDLIBS += -lsocket -lnsl -lrt -lresolv
+ @ENDIF

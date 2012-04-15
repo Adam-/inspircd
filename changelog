@@ -1,3 +1,13 @@
+inspircd (2.0.5-1) unstable; urgency=low
+
+  * debian/patches/04_FTBFS_kfreebsd.diff: Fix FTBFS on kfreebsd,
+    thanks Christoph Egger (Closes: #668689)
+  * debian/patches/05_FTBFS_gcc-4.7.diff: Fix FTBFS with gcc-4.7,
+    include <unistd.h>
+  * debian/watch: Update to github since upstream has moved the project
+
+ -- Guillaume Delacour <gui@iroqwa.org>  Sun, 15 Apr 2012 17:35:01 +0200
+
 inspircd (2.0.5-0.1) unstable; urgency=low
 
   [ Guillaume Delacour ]
