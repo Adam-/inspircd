@@ -3,3 +3,4 @@
 03_CVE-2012-1836.diff
 04_FTBFS_kfreebsd.diff
 05_FTBFS_gcc-4.7.diff
+06_FTBFS-hurd.diff

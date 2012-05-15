@@ -1,3 +1,11 @@
+inspircd (2.0.5-2) unstable; urgency=low
+
+  * debian/patches/06_FTBFS-hurd.diff: Fix FTBFS on Hurd (Closes: #669176)
+    thanks Jonathan Wiltshire
+  * Bump to Standards-Version 3.9.3 (no changes needed)
+
+ -- Guillaume Delacour <gui@iroqwa.org>  Sat, 12 May 2012 07:52:49 +0200
+
 inspircd (2.0.5-1) unstable; urgency=low
 
   * debian/patches/04_FTBFS_kfreebsd.diff: Fix FTBFS on kfreebsd,
