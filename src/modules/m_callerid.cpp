@@ -48,11 +48,8 @@ class callerid_data
 			}
 
 			User *u = ServerInstance->FindNick(tok);
-			if (!u)
-			{
-				continue;
-			}
-			accepting.insert(u);
+			if ((u) && (u->registered == REG_ALL) && (!u->quitting) && (!IS_SERVER(u)))
+				accepting.insert(u);
 		}
 	}
 
@@ -164,18 +161,12 @@ public:
 				tok.erase(0, 1); // Remove the dash.
 			}
 			User* u = ServerInstance->FindNick(tok);
-			if (u)
-			{
-				if (dash)
-					out.append("-");
-				out.append(u->uuid);
-			}
-			else
-			{
-				if (dash)
-					out.append("-");
-				out.append(tok);
-			}
+			if ((!u) || (u->registered != REG_ALL) || (u->quitting) || (IS_SERVER(u)))
+				continue;
+
+			if (dash)
+				out.append("-");
+			out.append(u->uuid);
 		}
 		parameter = out;
 	}
@@ -194,7 +185,7 @@ public:
 
 		std::string tok = parameters[0];
 
-		if (tok == "*")
+		if (tok.empty() || tok == "*")
 		{
 			if (IS_LOCAL(user))
 				ListAccept(user);
@@ -211,7 +202,7 @@ public:
 		else
 		{
 			User* whotoadd = ServerInstance->FindNick(tok[0] == '+' ? tok.substr(1) : tok);
-			if (whotoadd)
+			if ((whotoadd) && (whotoadd->registered == REG_ALL) && (!whotoadd->quitting) && (!IS_SERVER(whotoadd)))
 				return (AddAccept(user, whotoadd, false) ? CMD_SUCCESS : CMD_FAILURE);
 			else
 			{
