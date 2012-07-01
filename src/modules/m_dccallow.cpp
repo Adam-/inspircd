@@ -262,7 +262,9 @@ class ModuleDCCAllow : public Module
 		// remove their DCCALLOW list if they have one
 		if (udl)
 		{
-			RemoveFromUserlist(user);
+			userlist::iterator it = std::find(ul.begin(), ul.end(), user);
+			if (it != ul.end())
+				ul.erase(it);
 		}
 
 		// remove them from any DCCALLOW lists
@@ -369,7 +371,7 @@ class ModuleDCCAllow : public Module
 
 	void Expire()
 	{
-		for (userlist::iterator iter = ul.begin(); iter != ul.end(); ++iter)
+		for (userlist::iterator iter = ul.begin(); iter != ul.end();)
 		{
 			User* u = (User*)(*iter);
 			dl = ext->get(u);
@@ -391,10 +393,11 @@ class ModuleDCCAllow : public Module
 						}
 					}
 				}
+				++iter;
 			}
 			else
 			{
-				RemoveFromUserlist(u);
+				iter = ul.erase(iter);
 			}
 		}
 	}
@@ -402,7 +405,7 @@ class ModuleDCCAllow : public Module
 	void RemoveNick(User* user)
 	{
 		/* Iterate through all DCCALLOW lists and remove user */
-		for (userlist::iterator iter = ul.begin(); iter != ul.end(); ++iter)
+		for (userlist::iterator iter = ul.begin(); iter != ul.end();)
 		{
 			User *u = (User*)(*iter);
 			dl = ext->get(u);
@@ -422,10 +425,11 @@ class ModuleDCCAllow : public Module
 						}
 					}
 				}
+				++iter;
 			}
 			else
 			{
-				RemoveFromUserlist(u);
+				iter = ul.erase(iter);
 			}
 		}
 	}
