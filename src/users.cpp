@@ -1486,7 +1486,8 @@ void User::SendAll(const char* command, const char* text, ...)
 
 	for (std::vector<LocalUser*>::const_iterator i = ServerInstance->Users->local_users.begin(); i != ServerInstance->Users->local_users.end(); i++)
 	{
-		(*i)->Write(fmt);
+		if ((*i)->registered == REG_ALL)
+			(*i)->Write(fmt);
 	}
 }
 
