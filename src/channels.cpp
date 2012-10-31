@@ -700,7 +700,7 @@ int Channel::CountInvisible()
 	int count = 0;
 	for (UserMembIter i = userlist.begin(); i != userlist.end(); i++)
 	{
-		if (!(i->first->IsModeSet('i')))
+		if (!i->first->quitting && !i->first->IsModeSet('i'))
 			count++;
 	}
 
@@ -775,6 +775,8 @@ void Channel::UserList(User *user)
 
 	for (UserMembIter i = userlist.begin(); i != userlist.end(); i++)
 	{
+		if (i->first->quitting)
+			continue;
 		if ((!has_user) && (i->first->IsModeSet('i')))
 		{
 			/*
