@@ -34,6 +34,7 @@
 #include "iohook.h"
 #include <openssl/ssl.h>
 #include <openssl/err.h>
+#include <openssl/rand.h>
 #include "modules/ssl.h"
 
 #ifdef _WIN32
@@ -98,6 +99,14 @@ static int OnVerify(int preverify_ok, X509_STORE_CTX *ctx)
 
 	return 1;
 }
+
+struct RandGen : HandlerBase2<void, char*, size_t>
+{
+	void Call(char* buffer, size_t len) CXX11_OVERRIDE
+	{
+		RAND_bytes(reinterpret_cast<unsigned char *>(buffer), len);
+	}
+};
 
 class OpenSSLIOHook : public SSLIOHook
 {
@@ -463,6 +472,7 @@ class ModuleSSLOpenSSL : public Module
 {
 	std::string sslports;
 	OpenSSLIOHook iohook;
+	RandGen randhandler;
 
  public:
 	ModuleSSLOpenSSL() : iohook(this)
@@ -488,6 +498,8 @@ class ModuleSSLOpenSSL : public Module
 	{
 		SSL_CTX_free(iohook.ctx);
 		SSL_CTX_free(iohook.clictx);
+
+		ServerInstance->GenRandom = &ServerInstance->HandleGenRandom;
 	}
 
 	void init() CXX11_OVERRIDE
@@ -497,6 +509,8 @@ class ModuleSSLOpenSSL : public Module
 		Implementation eventlist[] = { I_On005Numeric, I_OnRehash, I_OnModuleRehash, I_OnHookIO, I_OnUserConnect };
 		ServerInstance->Modules->Attach(eventlist, this, sizeof(eventlist)/sizeof(Implementation));
 		ServerInstance->Modules->AddService(iohook);
+
+		ServerInstance->GenRandom = &randhandler;
 	}
 
 	void OnHookIO(StreamSocket* user, ListenSocket* lsb) CXX11_OVERRIDE
