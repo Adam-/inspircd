@@ -633,7 +633,7 @@ void ModuleSpanningTree::OnChangeName(User* user, const std::string &gecos)
 		return;
 
 	parameterlist params;
-	params.push_back(gecos);
+	params.push_back(":" + gecos);
 	Utils->DoOneToMany(user->uuid,"FNAME",params);
 }
 
