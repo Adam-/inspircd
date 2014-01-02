@@ -32,7 +32,9 @@ override_dh_auto_configure:
 
 # allow parallel build
 override_dh_auto_build:
-	dh_auto_build --parallel
+	# compile binary with debuginfo (make debug) as upstream don't generate
+	# symbols by default. dh_strip generate a -dbg package (see below)
+	dh_auto_build --parallel -- debug
 
 # install
 override_dh_auto_install:

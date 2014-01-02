@@ -9,7 +9,7 @@ Uploaders: Darren Blaber <dmbtech@gmail.com>,
   Giacomo Catenazzi <cate@debian.org>,
   Bradley Smith <bradsmith@debian.org>,
   Guillaume Delacour <gui@iroqwa.org>
-Build-Depends: debhelper (>= 8.0.0), perl-modules, libgnutls-dev, pkg-config,
+Build-Depends: debhelper (>= 9.0.0), perl-modules, libgnutls-dev, pkg-config,
                libldap2-dev, libpcre3-dev, libmysqlclient-dev, libpq-dev,
                libsqlite3-dev, zlib1g-dev, libgeoip-dev,
                libtre-dev, hardening-wrapper
