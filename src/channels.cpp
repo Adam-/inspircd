@@ -381,22 +381,44 @@ void Channel::ForceJoin(User* user, const std::string* privs, bool bursting, boo
 
 bool Channel::IsBanned(User* user)
 {
+	ListModeBase* banlm = static_cast<ListModeBase*>(*ban);
+	unsigned int cachev = banlm->GetCacheV(this);
+
+	Membership *mem = this->GetUser(user);
+	if (mem)
+	{
+		if (mem->bancache && mem->cachev == cachev)
+			return mem->bancache == BANCACHE_HIT;
+
+		mem->cachev = cachev;
+	}
+
 	ModResult result;
 	FIRST_MOD_RESULT(OnCheckChannelBan, result, (user, this));
 
 	if (result != MOD_RES_PASSTHRU)
+	{
+		if (mem)
+			mem->bancache = result == MOD_RES_DENY ? BANCACHE_HIT : BANCACHE_MISS;
 		return (result == MOD_RES_DENY);
+	}
 
-	ListModeBase* banlm = static_cast<ListModeBase*>(*ban);
 	const ListModeBase::ModeList* bans = banlm->GetList(this);
 	if (bans)
 	{
 		for (ListModeBase::ModeList::const_iterator it = bans->begin(); it != bans->end(); it++)
 		{
 			if (CheckBan(user, it->mask))
+			{
+				if (mem)
+					mem->bancache = BANCACHE_HIT;
 				return true;
+			}
 		}
 	}
+
+	if (mem)
+		mem->bancache = BANCACHE_MISS;
 	return false;
 }
 

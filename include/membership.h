@@ -19,6 +19,13 @@
 
 #pragma once
 
+enum
+{
+	BANCACHE_MISS = -1,
+	BANCACHE_NOTCACHED = 0,
+	BANCACHE_HIT = 1
+};
+
 class CoreExport Membership : public Extensible
 {
  public:
@@ -26,11 +33,16 @@ class CoreExport Membership : public Extensible
 	Channel* const chan;
 	// mode list, sorted by prefix rank, higest first
 	std::string modes;
-	Membership(User* u, Channel* c) : user(u), chan(c) {}
+	short bancache;
+	unsigned int cachev;
+
+	Membership(User* u, Channel* c) : user(u), chan(c), bancache(0), cachev(0) {}
+
 	inline bool hasMode(char m) const
 	{
 		return modes.find(m) != std::string::npos;
 	}
+
 	unsigned int getRank();
 
 	/** Add a prefix character to a user.

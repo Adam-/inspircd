@@ -138,6 +138,8 @@ ModeAction ListModeBase::OnModeChange(User* source, User*, Channel* channel, std
 			cd = new ChanData;
 			extItem.set(channel, cd);
 		}
+		else
+			++cd->cachev;
 
 		// Check if the item already exists in the list
 		for (ModeList::iterator it = cd->list.begin(); it != cd->list.end(); it++)
@@ -191,6 +193,7 @@ ModeAction ListModeBase::OnModeChange(User* source, User*, Channel* channel, std
 				if (parameter == it->mask)
 				{
 					cd->list.erase(it);
+					++cd->cachev;
 					return MODEACTION_ALLOW;
 				}
 			}

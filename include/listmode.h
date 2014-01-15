@@ -45,8 +45,10 @@ class CoreExport ListModeBase : public ModeHandler
 	public:
 		ModeList list;
 		int maxitems;
+		/* incremented every time the list is modified */
+		unsigned int cachev;
 
-		ChanData() : maxitems(-1) { }
+		ChanData() : maxitems(-1), cachev(0) { }
 	};
 
 	/** The number of items a listmode's list may contain
@@ -129,6 +131,8 @@ class CoreExport ListModeBase : public ModeHandler
 	 */
 	ModeList* GetList(Channel* channel);
 
+	unsigned int GetCacheV(Channel* channel);
+
 	/** Display the list for this mode
 	 * See mode.h
 	 * @param user The user to send the list to
@@ -203,4 +207,10 @@ inline ListModeBase::ModeList* ListModeBase::GetList(Channel* channel)
 		return NULL;
 
 	return &cd->list;
+}
+
+inline unsigned int ListModeBase::GetCacheV(Channel* channel)
+{
+	ChanData* cd = extItem.get(channel);
+	return cd ? cd->cachev : 0;
 }
