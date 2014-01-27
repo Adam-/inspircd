@@ -50,8 +50,7 @@
 # pragma comment(lib, "gdi32.lib")
 #endif
 
-/* $CompileFlags: pkgconfincludes("gnutls","/gnutls/gnutls.h","") eval("print `libgcrypt-config --cflags | tr -d \r` if `pkg-config --modversion gnutls 2>/dev/null | tr -d \r` lt '2.12'") -Wno-pedantic */
-/* $LinkerFlags: rpath("pkg-config --libs gnutls") pkgconflibs("gnutls","/libgnutls.so","-lgnutls") eval("print `libgcrypt-config --libs | tr -d \r` if `pkg-config --modversion gnutls 2>/dev/null | tr -d \r` lt '2.12'") */
+/* Libraries: GnuTLS */
 
 #ifndef GNUTLS_VERSION_MAJOR
 #define GNUTLS_VERSION_MAJOR LIBGNUTLS_VERSION_MAJOR
