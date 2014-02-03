@@ -118,7 +118,7 @@ void TreeSocket::OnConnected()
 		}
 
 		ServerInstance->SNO->WriteGlobalSno('l', "Connection to \2%s\2[%s] started.", linkID.c_str(),
-			(capab->link->HiddenFromStats ? "<hidden>" : capab->link->IPAddr.c_str()));
+			(ServerInstance->Config->HideServerIPs || capab->link->HiddenFromStats ? "<hidden>" : capab->link->IPAddr.c_str()));
 		this->SendCapabilities(1);
 	}
 }

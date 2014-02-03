@@ -389,7 +389,7 @@ ModResult ModuleSpanningTree::HandleConnect(const std::vector<std::string>& para
 			TreeServer* CheckDupe = Utils->FindServer(x->Name.c_str());
 			if (!CheckDupe)
 			{
-				RemoteMessage(user, "*** CONNECT: Connecting to server: \002%s\002 (%s:%d)",x->Name.c_str(),(x->HiddenFromStats ? "<hidden>" : x->IPAddr.c_str()),x->Port);
+				RemoteMessage(user, "*** CONNECT: Connecting to server: \002%s\002 (%s:%d)",x->Name.c_str(),(ServerInstance->Config->HideServerIPs || x->HiddenFromStats ? "<hidden>" : x->IPAddr.c_str()),x->Port);
 				ConnectServer(x);
 				return MOD_RES_DENY;
 			}

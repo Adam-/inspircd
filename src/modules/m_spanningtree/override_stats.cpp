@@ -31,7 +31,7 @@ ModResult ModuleSpanningTree::OnStats(char statschar, User* user, string_list &r
 		for (std::vector<reference<Link> >::iterator i = Utils->LinkBlocks.begin(); i != Utils->LinkBlocks.end(); ++i)
 		{
 			Link* L = *i;
-			results.push_back("213 "+user->nick+" "+statschar+" *@"+(L->HiddenFromStats ? "<hidden>" : L->IPAddr)+" * "+(*i)->Name.c_str()+" "+ConvToStr(L->Port)+" "+(L->Hook.empty() ? "plaintext" : L->Hook));
+			results.push_back("213 "+user->nick+" "+statschar+" *@"+(ServerInstance->Config->HideServerIPs || L->HiddenFromStats ? "<hidden>" : L->IPAddr)+" * "+(*i)->Name.c_str()+" "+ConvToStr(L->Port)+" "+(L->Hook.empty() ? "plaintext" : L->Hook));
 			if (statschar == 'c')
 				results.push_back("244 "+user->nick+" H * * "+L->Name.c_str());
 		}

@@ -88,9 +88,15 @@ void CommandStats::DoStats(char statschar, User* user, string_list &results)
 			for (std::vector<ListenSocket*>::const_iterator i = ServerInstance->ports.begin(); i != ServerInstance->ports.end(); ++i)
 			{
 				ListenSocket* ls = *i;
-				std::string ip = ls->bind_addr;
-				if (ip.empty())
-					ip.assign("*");
+				std::string ip;
+
+				if (ls->bind_addr.empty())
+					ip = "*";
+				else if (!ServerInstance->Config->HideServerIPs || (IS_LOCAL(user) && user->IsOper()))
+					ip = ls->bind_addr;
+				else
+					ip = "<hidden>";
+
 				std::string type = ls->bind_tag->getString("type", "clients");
 				std::string hook = ls->bind_tag->getString("ssl", "plaintext");
 

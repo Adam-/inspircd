@@ -465,6 +465,10 @@ class CoreExport ServerConfig
 	 */
 	std::string UserStats;
 
+	/** If set, server ips are hidden from everyone except local opers.
+	 */
+	bool HideServerIPs;
+
 	/** Default channel modes
 	 */
 	std::string DefaultModes;

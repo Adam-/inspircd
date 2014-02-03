@@ -1096,7 +1096,10 @@ class ModuleSSLGnuTLS : public Module
 					 * To solve this by default we now only display the first IP:port found and let the user
 					 * configure the exact value for the 005 token, if necessary.
 					 */
-					sslports = portid;
+					if (ServerInstance->Config->HideServerIPs)
+						sslports = ConvToStr(port->bind_port);
+					else
+						sslports = portid;
 					break;
 				}
 			}
