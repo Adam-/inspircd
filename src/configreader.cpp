@@ -64,25 +64,37 @@ static void ValidHost(const std::string& p, const std::string& msg)
 		throw CoreException("The value of "+msg+" is not a valid hostname");
 }
 
-bool ServerConfig::ApplyDisabledCommands(const std::string& data)
+void ServerConfig::ApplyCommands()
 {
-	std::stringstream dcmds(data);
-	std::string thiscmd;
-
-	/* Enable everything first */
+	/* Reset everything first */
 	for (Commandtable::iterator x = ServerInstance->Parser->cmdlist.begin(); x != ServerInstance->Parser->cmdlist.end(); x++)
-		x->second->Disable(false);
-
-	/* Now disable all the ones which the user wants disabled */
-	while (dcmds >> thiscmd)
 	{
-		Commandtable::iterator cm = ServerInstance->Parser->cmdlist.find(thiscmd);
-		if (cm != ServerInstance->Parser->cmdlist.end())
-		{
-			cm->second->Disable(true);
-		}
+		Command *c = x->second;
+		c->LoadTag(NULL);
 	}
-	return true;
+
+	/* Now tie configuration tags with commands */
+	ConfigTagList tags = this->ConfTags("command");
+	for (ConfigIter i = tags.first; i != tags.second; ++i)
+	{
+		ConfigTag* tag = i->second;
+
+		Commandtable::iterator cm = ServerInstance->Parser->cmdlist.find(tag->getString("name"));
+		if (cm == ServerInstance->Parser->cmdlist.end())
+			continue;
+
+		Command *cmd = cm->second;
+		cmd->LoadTag(tag);
+	}
+
+	/* Now disable all the ones which the user wants disabled from the disabled tag */
+	irc::spacesepstream sep = DisabledCommands;
+	for (std::string c; sep.GetToken(c);)
+	{
+		Commandtable::iterator cm = ServerInstance->Parser->cmdlist.find(c);
+		if (cm != ServerInstance->Parser->cmdlist.end())
+			cm->second->Disable(true);
+	}
 }
 
 static void ReadXLine(ServerConfig* conf, const std::string& tag, const std::string& key, XLineFactory* make)
@@ -386,7 +398,7 @@ void ServerConfig::Fill()
 	AdminNick = ConfValue("admin")->getString("nick", "admin");
 	NetBufferSize = ConfValue("performance")->getInt("netbuffersize", 10240, 1024, 65534);
 	dns_timeout = ConfValue("dns")->getInt("timeout", 5);
-	DisabledCommands = ConfValue("disabled")->getString("commands", "");
+	DisabledCommands = ConfValue("disabled")->getString("commands");
 	DisabledDontExist = ConfValue("disabled")->getBool("fakenonexistant");
 	UserStats = security->getString("userstats");
 	CustomVersion = security->getString("customversion");
@@ -785,7 +797,7 @@ void ConfigReaderThread::Finish()
 		ServerInstance->XLines->ApplyLines();
 		ChanModeReference ban(NULL, "ban");
 		static_cast<ListModeBase*>(*ban)->DoRehash();
-		Config->ApplyDisabledCommands(Config->DisabledCommands);
+		Config->ApplyCommands();
 		User* user = ServerInstance->FindNick(TheUserUID);
 
 		ConfigStatus status(user);

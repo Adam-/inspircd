@@ -67,6 +67,8 @@ enum Numerics
 	RPL_ADMINLOC2                   = 258,
 	RPL_ADMINEMAIL                  = 259,
 
+	RPL_LOAD2HI                     = 263,
+
 	RPL_LOCALUSERS                  = 265,
 	RPL_GLOBALUSERS                 = 266,
 

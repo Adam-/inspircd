@@ -156,6 +156,14 @@ class CoreExport CommandBase : public ServiceProvider
 	 */
 	int Penalty;
 
+	/** How often can this command be used globally?
+	 */
+	int throttle;
+	time_t last_used;
+
+	/* <commnad> tag for this command */
+	reference<ConfigTag> ctag;
+
 	/** Create a new command.
 	 * @param me The module which created this command.
 	 * @param cmd Command name. This must be UPPER CASE.
@@ -166,7 +174,7 @@ class CoreExport CommandBase : public ServiceProvider
 	CommandBase(Module* me, const std::string &cmd, int minpara = 0, int maxpara = 0) :
 		ServiceProvider(me, cmd, SERVICE_COMMAND), flags_needed(0), min_params(minpara), max_params(maxpara),
 		use_count(0), disabled(false), works_before_reg(false), allow_empty_last_param(true),
-		Penalty(1)
+		Penalty(1), throttle(0), last_used(0)
 	{
 	}
 
@@ -217,6 +225,8 @@ class CoreExport CommandBase : public ServiceProvider
 	{
 		return works_before_reg;
 	}
+
+	void LoadTag(ConfigTag* tag);
 
 	virtual ~CommandBase();
 };

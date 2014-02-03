@@ -35,6 +35,7 @@ class CommandInfo : public Command
 	CommandInfo(Module* parent) : Command(parent,"INFO")
 	{
 		Penalty = 4;
+		throttle = 1;
 		syntax = "[<servername>]";
 	}
 

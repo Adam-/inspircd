@@ -39,6 +39,7 @@ class CommandList : public Command
 		, privatemode(creator, "private")
 	{
 		Penalty = 5;
+		throttle = 1;
 	}
 
 	/** Handle command.

@@ -187,6 +187,13 @@ void CommandParser::ProcessCommand(LocalUser *user, std::string &cmd)
 	{
 		// If it *doesn't* exist, give it a slightly heftier penalty than normal to deter flooding us crap
 		user->CommandFloodPenalty += handler ? handler->Penalty * 1000 : 2000;
+
+		if (handler && handler->last_used + handler->throttle > ServerInstance->Time())
+		{
+			if (user->registered == REG_ALL)
+				user->WriteNumeric(RPL_LOAD2HI, ":Server load is temporarily too heavy. Please wait a while and try again.");
+			return;
+		}
 	}
 
 	if (!handler)
@@ -212,6 +219,8 @@ void CommandParser::ProcessCommand(LocalUser *user, std::string &cmd)
 			return;
 		}
 	}
+
+	handler->last_used = ServerInstance->Time();
 
 	// If we were given more parameters than max_params then append the excess parameter(s)
 	// to command_p[maxparams-1], i.e. to the last param that is still allowed
@@ -331,6 +340,15 @@ CommandBase::~CommandBase()
 {
 }
 
+void CommandBase::LoadTag(ConfigTag* tag)
+{
+	throttle = tag->getInt("throttle", throttle);
+	Penalty = tag->getInt("penality", Penalty);
+	Disable(tag->getBool("disable"));
+
+	ctag = tag;
+}
+
 Command::~Command()
 {
 	ServerInstance->Parser->RemoveCommand(this);
@@ -352,6 +370,7 @@ bool CommandParser::AddCommand(Command *f)
 	if (cmdlist.find(f->name) == cmdlist.end())
 	{
 		cmdlist[f->name] = f;
+		ServerInstance->Config->ApplyCommands();
 		return true;
 	}
 	return false;

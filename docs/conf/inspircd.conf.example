@@ -960,6 +960,30 @@
         # will be banning 955 or more users.
         trigger="95.5">
 
+#-#-#-#-#-#-#-#-#-#-#- COMMAND OPTIONS -#-#-#-#-#-#-#-#-#-#-#-#-#-#
+#                                                                 #
+# This configuration tag allows configuring command specific      #
+# settings. Currently this is only used to configure flood        #
+# settings, and to disable commands. Multiple command blocks may  #
+# be specified. An example is provided below. Most commands have  #
+# safe defaults, so you probably will not need to modify these    #
+# settings on your server.                                        #
+#                                                                 #
+<command
+	# The command this tag applies to.
+	name="LIST"
+
+	# If set, limits this command so it may only be used once per 'throttle' seconds
+	# globally (from any user on this server).
+	throttle="2"
+
+	# If set, sets the penality for a command. Command penalties prevent the user
+	# from executing any other command for the given number of seconds.
+	#penalty="5"
+
+	# If set, disables the command. This behaves the same was as setting <disable:commands>
+	#disable="true"
+	>
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#- YAWN  -#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 #                                                                     #

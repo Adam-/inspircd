@@ -536,7 +536,7 @@ class CoreExport ServerConfig
 
 	void Fill();
 
-	bool ApplyDisabledCommands(const std::string& data);
+	void ApplyCommands();
 
 	/** Escapes a value for storage in a configuration key.
 	 * @param str The string to escape.
