@@ -77,7 +77,7 @@ CmdResult CommandNick::Handle (const std::vector<std::string>& parameters, User 
 
 	if (user->registered < REG_NICKUSER)
 	{
-		user->registered = (user->registered | REG_NICK);
+		user->registered |= REG_NICK;
 		if (user->registered == REG_NICKUSER)
 		{
 			/* user is registered now, bit 0 = USER command, bit 1 = sent a NICK command */
@@ -86,8 +86,7 @@ CmdResult CommandNick::Handle (const std::vector<std::string>& parameters, User 
 			if (MOD_RESULT == MOD_RES_DENY)
 				return CMD_FAILURE;
 
-			// return early to not penalize new users
-			return CMD_SUCCESS;
+			ServerInstance->AtomicActions.AddAction(&IS_LOCAL(user)->registration);
 		}
 	}
 

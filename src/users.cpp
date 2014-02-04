@@ -85,7 +85,7 @@ User::User(const std::string& uid, Server* srv, int type)
 }
 
 LocalUser::LocalUser(int myfd, irc::sockets::sockaddrs* client, irc::sockets::sockaddrs* servaddr)
-	: User(ServerInstance->UIDGen.GetUID(), ServerInstance->FakeClient->server, USERTYPE_LOCAL), eh(this),
+	: User(ServerInstance->UIDGen.GetUID(), ServerInstance->FakeClient->server, USERTYPE_LOCAL), registration(this), eh(this),
 	bytes_in(0), bytes_out(0), cmds_in(0), cmds_out(0), nping(0), CommandFloodPenalty(0),
 	already_sent(0)
 {
@@ -536,6 +536,13 @@ bool LocalUser::CheckLines(bool doZline)
 	}
 
 	return false;
+}
+
+void LocalUser::RegistrationHandler::Call()
+{
+	if (ServerInstance->Users->AllModulesReportReady(lu))
+		/* User has sent NICK/USER, modules are okay, DNS finished. */
+		lu->FullConnect();
 }
 
 void LocalUser::FullConnect()

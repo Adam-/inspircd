@@ -658,6 +658,13 @@ typedef unsigned int already_sent_t;
 class CoreExport LocalUser : public User, public InviteBase<LocalUser>, public intrusive_list_node<LocalUser>
 {
  public:
+	struct RegistrationHandler : HandlerBase0<void>
+	{
+		LocalUser* const lu;
+		RegistrationHandler(LocalUser* const l) : lu(l) { }
+		void Call() CXX11_OVERRIDE;
+	} registration;
+
 	LocalUser(int fd, irc::sockets::sockaddrs* client, irc::sockets::sockaddrs* server);
 	CullResult cull();
 

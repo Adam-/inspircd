@@ -347,6 +347,17 @@ void UserManager::DoBackgroundUserStuff()
 					curr->nping = ServerInstance->Time() + curr->MyClass->GetPingTime();
 				}
 				break;
+			default:
+				if (ServerInstance->Time() > (curr->age + curr->MyClass->GetRegTimeout()))
+				{
+					/*
+					 * registration timeout -- didnt send USER/NICK/HOST
+					 * in the time specified in their connection class.
+					 */
+					this->QuitUser(curr, "Registration timeout");
+					continue;
+				}
+#if 0
 			case REG_NICKUSER:
 				if (AllModulesReportReady(curr))
 				{
@@ -355,16 +366,9 @@ void UserManager::DoBackgroundUserStuff()
 					continue;
 				}
 				break;
+#endif
 		}
 
-		if (curr->registered != REG_ALL && (ServerInstance->Time() > (curr->age + curr->MyClass->GetRegTimeout())))
-		{
-			/*
-			 * registration timeout -- didnt send USER/NICK/HOST
-			 * in the time specified in their connection class.
-			 */
-			this->QuitUser(curr, "Registration timeout");
-			continue;
-		}
+		FOREACH_MOD(OnBackgroundUserStuff, (curr));
 	}
 }

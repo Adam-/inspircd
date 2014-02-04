@@ -86,6 +86,7 @@ class CommandCAP : public Command
 		else if (subcommand == "END")
 		{
 			reghold.set(user, 0);
+			ServerInstance->AtomicActions.AddAction(&IS_LOCAL(user)->registration);
 		}
 		else if ((subcommand == "LS") || (subcommand == "LIST"))
 		{

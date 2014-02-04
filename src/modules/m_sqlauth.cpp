@@ -53,6 +53,7 @@ class AuthQuery : public SQLQuery
 				ServerInstance->SNO->WriteGlobalSno('a', "Forbidden connection from %s (SQL query returned no matches)", user->GetFullRealHost().c_str());
 			pendingExt.set(user, AUTH_STATE_FAIL);
 		}
+		ServerInstance->AtomicActions.AddAction(&IS_LOCAL(user)->registration);
 	}
 
 	void OnError(SQLerror& error) CXX11_OVERRIDE
@@ -63,6 +64,7 @@ class AuthQuery : public SQLQuery
 		pendingExt.set(user, AUTH_STATE_FAIL);
 		if (verbose)
 			ServerInstance->SNO->WriteGlobalSno('a', "Forbidden connection from %s (SQL query failed: %s)", user->GetFullRealHost().c_str(), error.Str());
+		ServerInstance->AtomicActions.AddAction(&IS_LOCAL(user)->registration);
 	}
 };
 

@@ -124,6 +124,7 @@ class BindInterface : public LDAPInterface
 			// We're done, there are no attributes to check
 			SetVHost(user, DN);
 			authed->set(user, 1);
+			ServerInstance->AtomicActions.AddAction(&IS_LOCAL(user)->registration);
 
 			delete this;
 			return;
@@ -139,6 +140,7 @@ class BindInterface : public LDAPInterface
 
 				SetVHost(user, DN);
 				authed->set(user, 1);
+				ServerInstance->AtomicActions.AddAction(&IS_LOCAL(user)->registration);
 			}
 
 			// Delete this if this is the last ref
@@ -333,6 +335,7 @@ public:
 		if ((!allowpattern.empty()) && (InspIRCd::Match(user->nick,allowpattern)))
 		{
 			ldapAuthed.set(user,1);
+			ServerInstance->AtomicActions.AddAction(&user->registration);
 			return MOD_RES_PASSTHRU;
 		}
 
@@ -341,6 +344,7 @@ public:
 			if (InspIRCd::MatchCIDR(user->GetIPString(), *i, ascii_case_insensitive_map))
 			{
 				ldapAuthed.set(user,1);
+				ServerInstance->AtomicActions.AddAction(&user->registration);
 				return MOD_RES_PASSTHRU;
 			}
 		}

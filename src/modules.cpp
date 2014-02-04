@@ -107,6 +107,7 @@ ModResult	Module::OnKill(User*, User*, const std::string&) { DetachEvent(I_OnKil
 void		Module::OnLoadModule(Module*) { DetachEvent(I_OnLoadModule); }
 void		Module::OnUnloadModule(Module*) { DetachEvent(I_OnUnloadModule); }
 void		Module::OnBackgroundTimer(time_t) { DetachEvent(I_OnBackgroundTimer); }
+void		Module::OnBackgroundUserStuff(LocalUser *) { DetachEvent(I_OnBackgroundUserStuff); }
 ModResult	Module::OnPreCommand(std::string&, std::vector<std::string>&, LocalUser*, bool, const std::string&) { DetachEvent(I_OnPreCommand); return MOD_RES_PASSTHRU; }
 void		Module::OnPostCommand(Command*, const std::vector<std::string>&, LocalUser*, CmdResult, const std::string&) { DetachEvent(I_OnPostCommand); }
 void		Module::OnUserInit(LocalUser*) { DetachEvent(I_OnUserInit); }

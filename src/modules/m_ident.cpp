@@ -311,12 +311,12 @@ class ModuleIdent : public Module
 	 * creating a Timer object and especially better than creating a
 	 * Timer per ident lookup!
 	 */
-	ModResult OnCheckReady(LocalUser *user) CXX11_OVERRIDE
+	void OnBackgroundUserStuff(LocalUser* user)
 	{
 		/* Does user have an ident socket attached at all? */
 		IdentRequestSocket *isock = ext.get(user);
 		if (!isock)
-			return MOD_RES_PASSTHRU;
+			return;
 
 		time_t compare = isock->age;
 		compare += RequestTimeout;
@@ -329,8 +329,8 @@ class ModuleIdent : public Module
 		}
 		else if (!isock->HasResult())
 		{
-			// time still good, no result yet... hold the registration
-			return MOD_RES_DENY;
+			// time still good, no result yet... 
+			return;
 		}
 
 		/* wooo, got a result (it will be good, or bad) */
@@ -348,7 +348,13 @@ class ModuleIdent : public Module
 		user->InvalidateCache();
 		isock->Close();
 		ext.unset(user);
-		return MOD_RES_PASSTHRU;
+
+		ServerInstance->AtomicActions.AddAction(&user->registration);
+	}
+
+	ModResult OnCheckReady(LocalUser *user) CXX11_OVERRIDE
+	{
+		return ext.get(user) ? MOD_RES_DENY : MOD_RES_PASSTHRU;
 	}
 
 	ModResult OnSetConnectClass(LocalUser* user, ConnectClass* myclass) CXX11_OVERRIDE

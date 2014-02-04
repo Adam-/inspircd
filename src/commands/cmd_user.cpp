@@ -43,34 +43,25 @@ class CommandUser : public SplitCommand
 CmdResult CommandUser::HandleLocal(const std::vector<std::string>& parameters, LocalUser *user)
 {
 	/* A user may only send the USER command once */
-	if (!(user->registered & REG_USER))
-	{
-		if (!ServerInstance->IsIdent(parameters[0]))
-		{
-			/*
-			 * RFC says we must use this numeric, so we do. Let's make it a little more nub friendly though. :)
-			 *  -- Craig, and then w00t.
-			 */
-			user->WriteNumeric(ERR_NEEDMOREPARAMS, "USER :Your username is not valid");
-			return CMD_FAILURE;
-		}
-		else
-		{
-			/*
-			 * The ident field is IDENTMAX+2 in size to account for +1 for the optional
-			 * ~ character, and +1 for null termination, therefore we can safely use up to
-			 * IDENTMAX here.
-			 */
-			user->ChangeIdent(parameters[0]);
-			user->fullname.assign(parameters[3].empty() ? "No info" : parameters[3], 0, ServerInstance->Config->Limits.MaxGecos);
-			user->registered = (user->registered | REG_USER);
-		}
-	}
-	else
+	if (user->registered & REG_USER)
 	{
 		user->WriteNumeric(ERR_ALREADYREGISTERED, ":You may not reregister");
 		return CMD_FAILURE;
 	}
+
+	if (!ServerInstance->IsIdent(parameters[0]))
+	{
+		/*
+		 * RFC says we must use this numeric, so we do. Let's make it a little more nub friendly though. :)
+		 *  -- Craig, and then w00t.
+		 */
+		user->WriteNumeric(ERR_NEEDMOREPARAMS, "USER :Your username is not valid");
+		return CMD_FAILURE;
+	}
+
+	user->ChangeIdent(parameters[0]);
+	user->fullname.assign(parameters[3].empty() ? "No info" : parameters[3], 0, ServerInstance->Config->Limits.MaxGecos);
+	user->registered |= REG_USER;
 
 	/* parameters 2 and 3 are local and remote hosts, and are ignored */
 	if (user->registered == REG_NICKUSER)
@@ -82,6 +73,7 @@ CmdResult CommandUser::HandleLocal(const std::vector<std::string>& parameters, L
 		if (MOD_RESULT == MOD_RES_DENY)
 			return CMD_FAILURE;
 
+		ServerInstance->AtomicActions.AddAction(&user->registration);
 	}
 
 	return CMD_SUCCESS;

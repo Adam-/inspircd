@@ -171,7 +171,9 @@ class CGIResolver : public DNS::Request
 			return;
 		int count = waiting.get(them);
 		if (count)
-			waiting.set(them, count - 1);
+			waiting.set(them, --count);
+		if (!count)
+			ServerInstance->AtomicActions.AddAction(&IS_LOCAL(them)->registration);
 	}
 };
 

@@ -257,7 +257,7 @@ enum Implementation
 	I_OnSyncChannel, I_OnDecodeMetaData, I_OnAcceptConnection, I_OnUserInit,
 	I_OnChangeHost, I_OnChangeName, I_OnAddLine, I_OnDelLine, I_OnExpireLine,
 	I_OnUserPostNick, I_OnPreMode, I_On005Numeric, I_OnKill, I_OnLoadModule,
-	I_OnUnloadModule, I_OnBackgroundTimer, I_OnPreCommand, I_OnCheckReady, I_OnCheckInvite,
+	I_OnUnloadModule, I_OnBackgroundTimer, I_OnBackgroundUserStuff, I_OnPreCommand, I_OnCheckReady, I_OnCheckInvite,
 	I_OnRawMode, I_OnCheckKey, I_OnCheckLimit, I_OnCheckBan, I_OnCheckChannelBan, I_OnExtBanCheck,
 	I_OnStats, I_OnChangeLocalUserHost, I_OnPreTopicChange,
 	I_OnPostTopicChange, I_OnEvent, I_OnGlobalOper, I_OnPostConnect,
@@ -778,6 +778,8 @@ class CoreExport Module : public classbase, public usecountbase
 	 * @param curtime The current timer derived from time(2)
 	 */
 	virtual void OnBackgroundTimer(time_t curtime);
+
+	virtual void OnBackgroundUserStuff(LocalUser*);
 
 	/** Called whenever any command is about to be executed.
 	 * This event occurs for all registered commands, wether they are registered in the core,

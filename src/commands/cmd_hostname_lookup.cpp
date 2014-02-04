@@ -96,6 +96,7 @@ class UserResolver : public DNS::Request
 
 				bound_user->WriteNotice("*** There was an internal error resolving your host, using your IP address (" + bound_user->GetIPString() + ") instead.");
 				dl->set(bound_user, 0);
+				ServerInstance->AtomicActions.AddAction(&bound_user->registration);
 			}
 		}
 		else
@@ -122,6 +123,7 @@ class UserResolver : public DNS::Request
 			}
 
 			dl->set(bound_user, 0);
+			ServerInstance->AtomicActions.AddAction(&bound_user->registration);
 
 			if (rev_match)
 			{
@@ -170,6 +172,7 @@ class UserResolver : public DNS::Request
 		{
 			bound_user->WriteNotice("*** Could not resolve your hostname: " + this->manager->GetErrorStr(query->error) + "; using your IP address (" + bound_user->GetIPString() + ") instead.");
 			dl->set(bound_user, 0);
+			ServerInstance->AtomicActions.AddAction(&bound_user->registration);
 			ServerInstance->stats->statsDnsBad++;
 		}
 	}

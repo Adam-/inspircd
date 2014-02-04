@@ -67,6 +67,7 @@ class ModuleWaitPong : public Module
 				if (!parameters.empty() && *pingrpl == parameters[0])
 				{
 					ext.unset(user);
+					ServerInstance->AtomicActions.AddAction(&user->registration);
 					return MOD_RES_DENY;
 				}
 				else

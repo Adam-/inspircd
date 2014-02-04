@@ -70,7 +70,9 @@ class DNSBLResolver : public DNS::Request
 
 		int i = countExt.get(them);
 		if (i)
-			countExt.set(them, i - 1);
+			countExt.set(them, --i);
+		if (!i)
+			ServerInstance->AtomicActions.AddAction(&them->registration);
 
 		// Now we calculate the bitmask: 256*(256*(256*a+b)+c)+d
 
@@ -203,7 +205,9 @@ class DNSBLResolver : public DNS::Request
 
 		int i = countExt.get(them);
 		if (i)
-			countExt.set(them, i - 1);
+			countExt.set(them, --i);
+		if (!i)
+			ServerInstance->AtomicActions.AddAction(&them->registration);
 
 		if (q->error == DNS::ERROR_NO_RECORDS || q->error == DNS::ERROR_DOMAIN_NOT_FOUND)
 			ConfEntry->stats_misses++;
