@@ -30,22 +30,16 @@ struct WhoData
 	std::string matchtext;
 	bool wildcards;
 
-	/* WHOX */
+	std::vector<bool> flags;
+
 	bool whox;
-	bool channel, hop, flags, host, ip, idle, nick, info, server, querytype, user, account, oplevel;
 	std::string querytext;
+	std::vector<bool> whox_flags;
 
-	/* Our options */
-	bool viewopersonly, showrealhost, realname, mode, ident, metadata, port, away, local, far, time;
-
-	WhoData()
+	WhoData() : flags(256), whox_flags(256)
 	{
 		wildcards = false;
-
 		whox = false;
-		channel = hop = flags = host = ip = idle = nick = info = server = querytype = user = account = oplevel = false;
-
-		viewopersonly = showrealhost = realname = mode = ident = metadata = port = away = local = far = time = false;
 	}
 };
 
@@ -120,12 +114,12 @@ bool CommandWho::Match(User* source, User* user, WhoData &data)
 	if (user->registered != REG_ALL)
 		return false;
 
-	if (data.local && !IS_LOCAL(user))
+	if (data.flags['l'] && (source->HasPrivPermission("users/auspex") || ServerInstance->Config->HideWhoisServer.empty()) && !IS_LOCAL(user))
 		return false;
-	if (data.far && IS_LOCAL(user))
+	if (data.flags['f'] && (source->HasPrivPermission("users/auspex") || ServerInstance->Config->HideWhoisServer.empty()) && IS_LOCAL(user))
 		return false;
 
-	if (data.mode)
+	if (data.flags['m'] && source-> HasPrivPermission("users/auspex"))
 	{
 		bool positive = true;
 		for (unsigned i = 0; i < data.matchtext.length(); ++i)
@@ -146,20 +140,20 @@ bool CommandWho::Match(User* source, User* user, WhoData &data)
 	 * to be, since only one condition was ever checked, a chained if works just fine.
 	 * -- w00t
 	 */
-	if (data.metadata)
+	if (data.flags['M'] && source->HasPrivPermission("users/auspex"))
 	{
 		const Extensible::ExtensibleStore& list = user->GetExtList();
 		for(Extensible::ExtensibleStore::const_iterator i = list.begin(); i != list.end(); ++i)
 			if (InspIRCd::Match(i->first->name, data.matchtext))
 				match = true;
 	}
-	else if (data.realname)
+	else if (data.flags['r'])
 		match = InspIRCd::Match(user->fullname, data.matchtext);
-	else if (data.showrealhost)
+	else if (data.flags['h'] && source->HasPrivPermission("users/auspex"))
 		match = InspIRCd::Match(user->host, data.matchtext, ascii_case_insensitive_map);
-	else if (data.ident)
+	else if (data.flags['i'])
 		match = InspIRCd::Match(user->ident, data.matchtext, ascii_case_insensitive_map);
-	else if (data.port)
+	else if (data.flags['p'] && source->HasPrivPermission("users/auspex"))
 	{
 		irc::portparser portrange(data.matchtext, false);
 		long portno = -1;
@@ -170,9 +164,9 @@ bool CommandWho::Match(User* source, User* user, WhoData &data)
 				break;
 			}
 	}
-	else if (data.away)
+	else if (data.flags['a'])
 		match = InspIRCd::Match(user->awaymsg, data.matchtext);
-	else if (data.time)
+	else if (data.flags['t'])
 	{
 		long seconds = InspIRCd::Duration(data.matchtext);
 
@@ -219,7 +213,7 @@ void CommandWho::WhoChannel(User* source, const std::vector<std::string>& parame
 		if (source != u)
 		{
 			/* opers only, please */
-			if (data.viewopersonly && !u->IsOper())
+			if (data.flags['o'] && !u->IsOper())
 				continue;
 
 			/* If we're not inside the channel, hide +i users */
@@ -281,9 +275,10 @@ void CommandWho::SendWhoLine(User* user, const std::vector<std::string>& parms, 
 
 	if (!data.whox)
 	{
+		bool showrealhost = data.flags['h'] && user->HasPrivPermission("users/auspex");
 
 		wholine += (ch ? ch->name : "*") + " " + u->ident + " " +
-			(data.showrealhost ? u->host : u->dhost) + " ";
+			(showrealhost ? u->host : u->dhost) + " ";
 		if (!ServerInstance->Config->HideWhoisServer.empty() && !user->HasPrivPermission("servers/auspex"))
 			wholine.append(ServerInstance->Config->HideWhoisServer);
 		else
@@ -308,31 +303,34 @@ void CommandWho::SendWhoLine(User* user, const std::vector<std::string>& parms, 
 	}
 	else
 	{
-		if (data.querytype)
+		if (data.whox_flags['t'])
 			wholine += (data.querytext.empty() ? "0" : data.querytext.substr(0, 3)) + " ";
-		if (data.channel)
+		if (data.whox_flags['c'])
 			wholine += (ch ? ch->name : "*") + " ";
-		if (data.user)
+		if (data.whox_flags['u'])
 			wholine += u->ident + " ";
-		if (data.ip)
+		if (data.whox_flags['i'])
 		{
 			if (user == u || user->HasPrivPermission("users/auspex"))
 				wholine += u->GetIPString() + " ";
 			else
 				wholine += "255.255.255.255 ";
 		}
-		if (data.host)
-			wholine += (data.showrealhost ? u->host : u->dhost) + " ";
-		if (data.server)
+		if (data.whox_flags['h'])
+		{
+			bool showrealhost = data.flags['h'] && user->HasPrivPermission("users/auspex");
+			wholine += (showrealhost ? u->host : u->dhost) + " ";
+		}
+		if (data.whox_flags['s'])
 		{
 			if (!ServerInstance->Config->HideWhoisServer.empty() && !user->HasPrivPermission("servers/auspex"))
 				wholine += ServerInstance->Config->HideWhoisServer + " ";
 			else
 				wholine += u->server->GetName() + " ";
 		}
-		if (data.nick)
+		if (data.whox_flags['n'])
 			wholine += u->nick + " ";
-		if (data.flags)
+		if (data.whox_flags['f'])
 		{
 			if (u->IsAway())
 				wholine.append("G");
@@ -343,19 +341,19 @@ void CommandWho::SendWhoLine(User* user, const std::vector<std::string>& parms, 
 			if (ch)
 				wholine.append(std::string(ch->GetPrefixChar(u)));
 		}
-		if (data.hop)
+		if (data.whox_flags['d']) // Hops
 			wholine += "0 ";
-		if (data.idle)
+		if (data.whox_flags['l']) // Idle
 			wholine += "0 ";
-		if (data.account)
+		if (data.whox_flags['a'])
 		{
 			const AccountExtItem* accountext = GetAccountExtItem();
 			std::string *account = accountext ? accountext->get(u) : NULL;
 			wholine += (account ? *account : "0") + " ";
 		}
-		if (data.oplevel)
+		if (data.whox_flags['o'])
 			wholine += (mem ? ConvToStr(mem->getRank()) : "n/a") + " ";
-		if (data.info)
+		if (data.whox_flags['r'])
 			wholine += u->fullname;
 	}
 
@@ -396,44 +394,8 @@ CmdResult CommandWho::Handle(const std::vector<std::string>& parameters, User *u
 		for (unsigned i = 0; i < flags.size(); ++i)
 			switch (flags[i])
 			{
-				case 'o':
-					data.viewopersonly = true;
-					break;
-				case 'h':
-					if (user->HasPrivPermission("users/auspex"))
-						data.showrealhost = true;
-					break;
-				case 'r':
-					data.realname = true;
-					break;
-				case 'm':
-					if (user->HasPrivPermission("users/auspex"))
-						data.mode = true;
-					break;
-				case 'M':
-					if (user->HasPrivPermission("users/auspex"))
-						data.metadata = true;
-					break;
-				case 'i':
-					data.ident = true;
-					break;
-				case 'p':
-					if (user->HasPrivPermission("users/auspex"))
-						data.port = true;
-					break;
-				case 'a':
-					data.away = true;
-					break;
-				case 'l':
-					if (user->HasPrivPermission("users/auspex") || ServerInstance->Config->HideWhoisServer.empty())
-						data.local = true;
-					break;
-				case 'f':
-					if (user->HasPrivPermission("users/auspex") || ServerInstance->Config->HideWhoisServer.empty())
-						data.far = true;
-					break;
-				case 't':
-					data.time = true;
+				default:
+					data.flags[static_cast<unsigned char>(flags[i])] = true;
 					break;
 				case '%':
 					/* WHOX */
@@ -441,44 +403,8 @@ CmdResult CommandWho::Handle(const std::vector<std::string>& parameters, User *u
 					for (++i; i < flags.size(); ++i)
 						switch (flags[i])
 						{
-							case 'a':
-								data.account = true;
-								break;
-							case 'c':
-								data.channel = true;
-								break;
-							case 'd':
-								data.hop = true;
-								break;
-							case 'f':
-								data.flags = true;
-								break;
-							case 'h':
-								data.host = true;
-								break;
-							case 'i':
-								data.ip = true;
-								break;
-							case 'l':
-								data.idle = true;
-								break;
-							case 'n':
-								data.nick = true;
-								break;
-							case 'o':
-								data.oplevel = true;
-								break;
-							case 'r':
-								data.info = true;
-								break;
-							case 's':
-								data.server = true;
-								break;
-							case 't':
-								data.querytype = true;
-								break;
-							case 'u':
-								data.user = true;
+							default:
+								data.whox_flags[static_cast<unsigned char>(flags[i])] = true;
 								break;
 							case ',':
 								data.querytext = flags.substr(i + 1);
@@ -500,7 +426,7 @@ CmdResult CommandWho::Handle(const std::vector<std::string>& parameters, User *u
 		/* Match against wildcard of nick, server or host */
 
 		/* If we only want to match against opers, we only have to iterate the oper list */
-		if (data.viewopersonly)
+		if (data.flags['o'])
 			WhoUsers(user, parameters, ServerInstance->Users->all_opers, data);
 		else
 			WhoUsers(user, parameters, *ServerInstance->Users->clientlist, data);
