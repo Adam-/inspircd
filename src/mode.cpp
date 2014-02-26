@@ -184,8 +184,11 @@ void ModeParser::DisplayCurrentModes(User *user, User* targetuser, Channel* targ
 			user->WriteNumeric(RPL_UMODEIS, ":+%s", targetuser->FormatModes());
 			if ((targetuser->IsOper()))
 			{
-				ModeHandler* snomask = FindMode('s', MODETYPE_USER);
-				user->WriteNumeric(RPL_SNOMASKIS, "%s :Server notice mask", snomask->GetUserParameter(user).c_str());
+				ModeHandler* snomask = FindMode('s', MODETYPE_USER), * snomaskRemote = FindMode('S', MODETYPE_USER);
+				if (user->IsModeSet(snomask))
+					user->WriteNumeric(RPL_SNOMASKIS, "%s :Local server notice mask", snomask->GetUserParameter(user).c_str());
+				if (user->IsModeSet(snomaskRemote))
+					user->WriteNumeric(RPL_SNOMASKIS, "%s :Remote server notice mask", snomaskRemote->GetUserParameter(user).c_str());
 			}
 			return;
 		}
@@ -902,11 +905,12 @@ struct builtin_modes
 	ModeUserInvisible ui;
 	ModeUserOperator uo;
 	ModeUserServerNoticeMask us;
+	ModeUserServerNoticeMaskRemote uS;
 
 	void init()
 	{
 		ServiceProvider* modes[] = { &s, &p, &m, &t, &n, &i, &k, &l, &b, &o, &v,
-									 &uw, &ui, &uo, &us };
+									 &uw, &ui, &uo, &us, &uS };
 		ServerInstance->Modules->AddServices(modes, sizeof(modes)/sizeof(ServiceProvider*));
 	}
 };

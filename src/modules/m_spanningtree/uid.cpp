@@ -136,7 +136,7 @@ CmdResult CommandUID::HandleServer(TreeServer* remoteserver, std::vector<std::st
 		dosend = false;
 
 	if (dosend)
-		ServerInstance->SNO->WriteToSnoMask('C',"Client connecting at %s: %s (%s) [%s]", remoteserver->GetName().c_str(), _new->GetFullRealHost().c_str(), _new->GetIPString().c_str(), _new->fullname.c_str());
+		SnomaskManager::WriteToSnoMaskRemote(SnomaskManager::connect, "Client connecting at %s: %s (%s) [%s]", remoteserver->GetName().c_str(), _new->GetFullRealHost().c_str(), _new->GetIPString().c_str(), _new->fullname.c_str());
 
 	FOREACH_MOD(OnPostConnect, (_new));
 

@@ -151,10 +151,13 @@ class ModeUserServerNoticeMask : public ModeHandler
 	 * e.g. in the above example if masks c and e are not
 	 * valid, this function will return +ab-d
 	 */
-	std::string ProcessNoticeMasks(User* user, const std::string& input);
+	std::string ProcessNoticeMasks(User* user, const std::string& input, bool adding);
+
+ protected:
+	bool remote;
 
  public:
-	ModeUserServerNoticeMask();
+	ModeUserServerNoticeMask(const std::string &name = "snomask", char c = 's');
 	ModeAction OnModeChange(User* source, User* dest, Channel* channel, std::string &parameter, bool adding);
 	void OnParameterMissing(User* user, User* dest, Channel* channel);
 
@@ -163,6 +166,14 @@ class ModeUserServerNoticeMask : public ModeHandler
 	 * @return The notice mask character sequence
 	 */
 	std::string GetUserParameter(User* user);
+};
+
+/** User mode +S
+ */
+class ModeUserServerNoticeMaskRemote : public ModeUserServerNoticeMask
+{
+ public:
+	ModeUserServerNoticeMaskRemote() : ModeUserServerNoticeMask("snomaskremote", 'S') { remote = true; }
 };
 
 /** User mode +o

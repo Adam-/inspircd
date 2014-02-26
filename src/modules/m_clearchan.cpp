@@ -70,7 +70,12 @@ class CommandClearChan : public Command
 		const std::string reason = parameters.size() > 2 ? parameters.back() : "Clearing " + chan->name;
 
 		if (!user->server->IsSilentULine())
-			ServerInstance->SNO->WriteToSnoMask((IS_LOCAL(user) ? 'a' : 'A'), user->nick + " has cleared \002" + chan->name + "\002 (" + method + "): " + reason);
+		{
+			if (IS_LOCAL(user))
+				SnomaskManager::WriteToSnoMask(SnomaskManager::announcement, user->nick + " has cleared \002" + chan->name + "\002 (" + method + "): " + reason);
+			else
+				SnomaskManager::WriteToSnoMaskRemote(SnomaskManager::announcement, user->nick + " has cleared \002" + chan->name + "\002 (" + method + "): " + reason);
+		}
 
 		user->WriteNotice("Clearing \002" + chan->name + "\002 (" + method + "): " + reason);
 
