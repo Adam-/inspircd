@@ -45,8 +45,10 @@ ModeAction ModeUserOperator::OnModeChange(User* source, User* dest, Channel*, st
 	 * verifying as an oper and getting an opertype assigned
 	 * to your User!
 	 */
-	char snomask = IS_LOCAL(dest) ? 'o' : 'O';
-	ServerInstance->SNO->WriteToSnoMask(snomask, "User %s de-opered (by %s)", dest->nick.c_str(), source->nick.c_str());
+	if (IS_LOCAL(dest))
+		SnomaskManager::WriteToSnoMask(SnomaskManager::oper, "User %s de-opered (by %s)", dest->nick.c_str(), source->nick.c_str());
+	else
+		SnomaskManager::WriteToSnoMaskRemote(SnomaskManager::oper, "User %s de-opered (by %s)", dest->nick.c_str(), source->nick.c_str());
 	dest->UnOper();
 
 	return MODEACTION_ALLOW;
