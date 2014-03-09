@@ -340,6 +340,7 @@ void CommandWho::SendWhoLine(User* user, const std::vector<std::string>& parms, 
 				wholine.append("*");
 			if (ch)
 				wholine.append(std::string(ch->GetPrefixChar(u)));
+			wholine.append(" ");
 		}
 		if (data.whox_flags['d']) // Hops
 			wholine += "0 ";
