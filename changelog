@@ -1,19 +1,31 @@
-inspircd (2.0.14-1) unstable; urgency=low
+inspircd (2.0.15-1) unstable; urgency=low
 
-  * New upstream release (Closes: #724874)
+  * New upstream release (Closes: #724874), enable m_regex_stdlib new module
+    and repack tarball to remove docs/rfc/{rfc1035.txt,rfc1413.txt,rfc1459.txt}
+    as i re-introduce them a few years ago. Upstream removes dir at 7fea7c24c5
   * Drop patches accepted upstream:
     + debian/patches/01_spelling_error.diff
     + debian/patches/03_CVE-2012-1836.diff (cherry-picked)
     + debian/patches/04_FTBFS_kfreebsd.diff
     + debian/patches/05_FTBFS_gcc-4.7.diff
-    + debian/patches/06_FTBFS-hurd.diff
   * debian/docs: docs/README has moved to README.md
-  * debian/examples: examples are now in docs/conf
+  * debian/inspircd.examples: examples are now in docs/conf
   * Bump debhelper compat to 9
   * Remove Bradley Smith as uploaders (Closes: #674890)
   * debian/watch: update based on sepwatch
+  * Add systemd support:
+    + Build-Depends on dh-systemd (>= 1.5)
+    + Add debian/inspircd.service, debian/inspircd.tmpfiles.d.conf
+    + debian/rules: call generic dh with "--with systemd"
+  * debian/control: Change Vcs-{Svn,Browser}, point to anonscm.debian.org and
+    bump to Standards-Version 3.9.5 (no changes needed)
+  * debian/patches/02_disable_rpath_for_extra_modules.diff: Refresh according
+    upstream modules changes
+  * debian/copyright: make it machine-readable
+  * debian/rules: compile binary with debuginfo as upstream don't
+    generate it by default; dh_strip overrided to generate a -dbg package
 
- -- Guillaume Delacour <gui@iroqwa.org>  Thu, 19 Dec 2013 00:35:13 +0100
+ -- Guillaume Delacour <gui@iroqwa.org>  Sun, 23 Mar 2014 17:03:55 +0100
 
 inspircd (2.0.5-1) unstable; urgency=low
 

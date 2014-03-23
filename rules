@@ -13,7 +13,7 @@ endif
 # modules selection
 LDAP_MODULES      = m_ldapauth.cpp,m_ldapoper.cpp
 DATABASES_MODULES = $(LDAP_MODULES),m_mysql.cpp,m_pgsql.cpp,m_sqlite3.cpp
-REGEX_MODULES     = m_regex_pcre.cpp,m_regex_posix.cpp,m_regex_tre.cpp
+REGEX_MODULES     = m_regex_pcre.cpp,m_regex_posix.cpp,m_regex_tre.cpp,m_regex_stdlib.cpp
 OTHER_MODULES     = $(REGEX_MODULES),m_geoip.cpp
 SSL_MODULE        = m_ssl_gnutls.cpp
 INSPIRCD_MODULES  = $(SSL_MODULE),$(DATABASES_MODULES),$(OTHER_MODULES)
@@ -62,4 +62,4 @@ override_dh_auto_clean:
 	rm -f $(CURDIR)/inspircd
 
 %:
-	dh $@
+	dh $@ --with systemd
