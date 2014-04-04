@@ -58,7 +58,7 @@ CmdResult CommandIson::Handle (const std::vector<std::string>& parameters, User 
 		if (ison_already.find(u) != ison_already.end())
 			continue;
 
-		if (u)
+		if ((u) && (u->registered == REG_ALL))
 		{
 			reply.append(u->nick).append(" ");
 			if (reply.length() > 450)
@@ -83,7 +83,7 @@ CmdResult CommandIson::Handle (const std::vector<std::string>& parameters, User 
 					if (ison_already.find(u) != ison_already.end())
 						continue;
 
-					if (u)
+					if ((u) && (u->registered == REG_ALL))
 					{
 						reply.append(u->nick).append(" ");
 						if (reply.length() > 450)
