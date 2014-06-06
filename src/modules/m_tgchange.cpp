@@ -55,7 +55,7 @@ class TGReply
 		if (it != reply_targets.end())
 			/* already exists, move to front */
 			reply_targets.erase(it);
-		else if (reply_targets.size() == TGCHANGE_REPLY)
+		else if (reply_targets.size() >= TGCHANGE_REPLY)
 			/* list growing too large? */
 			reply_targets.pop_back();
 
@@ -76,21 +76,7 @@ class TGInfo : public TGReply
 	{
 	}
 
-	bool Add(User *target)
-	{
-		if (user == target || ServerInstance->ULine(target->server))
-			return true;
-
-		return AddTarget(target);
-	}
-
-	bool Add(Channel *target)
-	{
-		return AddTarget(target);
-	}
-
- private:
-	bool AddTarget(Target *target)
+	bool Add(Target *target)
 	{
 		/* already exists? */
 		std::deque<Target *>::iterator it = std::find(targets.begin(), targets.end(), target);
@@ -128,7 +114,7 @@ class TGInfo : public TGReply
 			last = ServerInstance->Time();
 		}
 
-		if (targets.size() == TGCHANGE_NUM)
+		if (targets.size() >= TGCHANGE_NUM)
 		{
 			/* still no free targets? */
 			return false;
@@ -238,6 +224,9 @@ class ModuleTGChange : public Module
  private:
 	ModResult Target(LocalUser *source, User *dest)
 	{
+		if (source == dest || ServerInstance->ULine(dest->server))
+			return MOD_RES_PASSTHRU;
+
 		ModResult m = Target(source, dest, dest->nick);
 		if (m != MOD_RES_PASSTHRU)
 			return m;
@@ -253,8 +242,7 @@ class ModuleTGChange : public Module
 		return Target(source, dest, dest->name);
 	}
 
-	template<typename T>
-	ModResult Target(LocalUser *source, T *target, const std::string &name)
+	ModResult Target(LocalUser *source, ::Target *target, const std::string &name)
 	{
 		TGInfo *tg = tginfo.get_user(source);
 		if (!tg->Add(target))
