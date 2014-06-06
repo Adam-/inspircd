@@ -36,47 +36,21 @@ namespace
 
 typedef void Target;
 
-class TGReply
-{
-	User *user;
-
- protected:
-	std::deque<Target *> reply_targets;
-
- public:
-	TGReply(User *u) : user(u) { }
-
-	void AddReply(User *target)
-	{
-		if (user == target || ServerInstance->ULine(target->server))
-			return;
-
-		std::deque<Target *>::iterator it = std::find(reply_targets.begin(), reply_targets.end(), target);
-		if (it != reply_targets.end())
-			/* already exists, move to front */
-			reply_targets.erase(it);
-		else if (reply_targets.size() >= TGCHANGE_REPLY)
-			/* list growing too large? */
-			reply_targets.pop_back();
-
-		reply_targets.push_front(target);
-	}
-};
-
-class TGInfo : public TGReply
+class TGInfo
 {
 	LocalUser *user;
 
 	time_t last;
 
 	std::deque<Target *> targets;
+	std::deque<Target *> reply_targets;
 
  public:
-	TGInfo(LocalUser *u) : TGReply(u), user(u), last(0)
+	TGInfo(LocalUser *u) : user(u), last(0)
 	{
 	}
 
-	bool Add(Target *target)
+	bool AddTarget(Target *target)
 	{
 		/* already exists? */
 		std::deque<Target *>::iterator it = std::find(targets.begin(), targets.end(), target);
@@ -125,31 +99,32 @@ class TGInfo : public TGReply
 
 		return true;
 	}
+
+	void AddReply(User *target)
+	{
+		if (user == target || ServerInstance->ULine(target->server))
+			return;
+
+		std::deque<Target *>::iterator it = std::find(reply_targets.begin(), reply_targets.end(), target);
+		if (it != reply_targets.end())
+			/* already exists, move to front */
+			reply_targets.erase(it);
+		else if (reply_targets.size() >= TGCHANGE_REPLY)
+			/* list growing too large? */
+			reply_targets.pop_back();
+
+		reply_targets.push_front(target);
+	}
 };
 
-class TGExtInfo : public SimpleExtItem<TGReply>
+class TGExtInfo : public SimpleExtItem<TGInfo>
 {
  public:
-	TGExtInfo(const std::string& Key, Module* parent) : SimpleExtItem<TGReply>(Key, parent) { }
-
-	TGReply *get_user(User *user)
-	{
-		LocalUser *luser = IS_LOCAL(user);
-		if (luser)
-			return get_user(luser);
-
-		TGReply *t = get(user);
-		if (!t)
-		{
-			t = new TGReply(user);
-			set(user, t);
-		}
-		return t;
-	}
+	TGExtInfo(const std::string& Key, Module* parent) : SimpleExtItem<TGInfo>(Key, parent) { }
 
 	TGInfo *get_user(LocalUser *user)
 	{
-		TGInfo *t = static_cast<TGInfo *>(get(user));
+		TGInfo *t = get(user);
 		if (!t)
 		{
 			t = new TGInfo(user);
@@ -190,15 +165,11 @@ class ModuleTGChange : public Module
 
 	ModResult OnUserPreMessage(User* user, void* dest, int target_type, std::string &text, char status, CUList &exempt_list)
 	{
-		LocalUser *luser = IS_LOCAL(user);
-		if (!luser)
-			return MOD_RES_PASSTHRU;
-
 		if (target_type == TYPE_USER)
-			return Target(luser, static_cast<User *>(dest));
+			return Target(user, static_cast<User *>(dest));
 
 		if (target_type == TYPE_CHANNEL)
-			return Target(luser, static_cast<Channel *>(dest));
+			return Target(user, static_cast<Channel *>(dest));
 
 		return MOD_RES_PASSTHRU;
 	}
@@ -214,15 +185,11 @@ class ModuleTGChange : public Module
 
 	ModResult OnUserPreInvite(User* source, User* dest, Channel* channel, time_t timeout)
 	{
-		LocalUser *luser = IS_LOCAL(source);
-		if (!luser)
-			return MOD_RES_PASSTHRU;
-
-		return Target(luser, dest);
+		return Target(source, dest);
 	}
 
  private:
-	ModResult Target(LocalUser *source, User *dest)
+	ModResult Target(User *source, User *dest)
 	{
 		if (source == dest || ServerInstance->ULine(dest->server))
 			return MOD_RES_PASSTHRU;
@@ -231,21 +198,27 @@ class ModuleTGChange : public Module
 		if (m != MOD_RES_PASSTHRU)
 			return m;
 
-		TGReply *r = tginfo.get_user(dest);
-		r->AddReply(source);
+		if (LocalUser *ldest = IS_LOCAL(dest))
+		{
+			TGInfo *tg = tginfo.get_user(ldest);
+			tg->AddReply(source);
+		}
 
 		return MOD_RES_PASSTHRU;
 	}
 
-	ModResult Target(LocalUser *source, Channel *dest)
+	ModResult Target(User *source, Channel *dest)
 	{
 		return Target(source, dest, dest->name);
 	}
 
-	ModResult Target(LocalUser *source, ::Target *target, const std::string &name)
+	ModResult Target(User *source, ::Target *target, const std::string &name)
 	{
-		TGInfo *tg = tginfo.get_user(source);
-		if (!tg->Add(target))
+		if (!IS_LOCAL(source))
+			return MOD_RES_PASSTHRU;
+
+		TGInfo *tg = tginfo.get_user(IS_LOCAL(source));
+		if (!tg->AddTarget(target))
 		{
 			source->WriteNumeric(ERR_TARGCHANGE, "%s %s :Targets changing too fast, message dropped", source->nick.c_str(), name.c_str());
 			return MOD_RES_DENY;
