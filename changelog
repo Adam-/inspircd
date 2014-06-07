@@ -1,4 +1,4 @@
-inspircd (2.0.15-1) unstable; urgency=low
+inspircd (2.0.16-1) unstable; urgency=low
 
   * New upstream release (Closes: #724874), enable m_regex_stdlib new module
     and repack tarball to remove docs/rfc/{rfc1035.txt,rfc1413.txt,rfc1459.txt}
