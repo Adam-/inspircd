@@ -201,11 +201,7 @@ class ModuleTGChange : public Module
 	{
 		if (LocalUser *lsource = IS_LOCAL(source))
 		{
-			if (source == dest || ServerInstance->ULine(dest->server))
-				;
-			else if (Allowed(lsource, dest))
-				;
-			else
+			if (source != dest && !ServerInstance->ULine(dest->server) && !Allowed(lsource, dest))
 			{
 				ModResult m = Target(lsource, dest, dest->nick);
 				if (m != MOD_RES_PASSTHRU)
@@ -215,9 +211,7 @@ class ModuleTGChange : public Module
 
 		if (LocalUser *ldest = IS_LOCAL(dest))
 		{
-			if (source == dest || ServerInstance->ULine(source->server))
-				;
-			else
+			if (source != dest && !ServerInstance->ULine(source->server))
 			{
 				TGInfo *tg = tginfo.get_user(ldest);
 				tg->AddReply(source);
