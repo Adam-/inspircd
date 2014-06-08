@@ -201,7 +201,7 @@ class ModuleTGChange : public Module
 	{
 		if (LocalUser *lsource = IS_LOCAL(source))
 		{
-			if (source != dest && !ServerInstance->ULine(dest->server) && !Allowed(lsource, dest))
+			if (source != dest && !ServerInstance->ULine(dest->server) && !Allowed(lsource, dest) && !IS_OPER(source))
 			{
 				ModResult m = Target(lsource, dest, dest->nick);
 				if (m != MOD_RES_PASSTHRU)
@@ -211,7 +211,7 @@ class ModuleTGChange : public Module
 
 		if (LocalUser *ldest = IS_LOCAL(dest))
 		{
-			if (source != dest && !ServerInstance->ULine(source->server))
+			if (source != dest && !ServerInstance->ULine(source->server) && !IS_OPER(dest))
 			{
 				TGInfo *tg = tginfo.get_user(ldest);
 				tg->AddReply(source);
@@ -223,7 +223,7 @@ class ModuleTGChange : public Module
 
 	ModResult Target(User *source, Channel *dest)
 	{
-		return IS_LOCAL(source) ? Target(IS_LOCAL(source), dest, dest->name) : MOD_RES_PASSTHRU;
+		return IS_LOCAL(source) && !IS_OPER(source) ? Target(IS_LOCAL(source), dest, dest->name) : MOD_RES_PASSTHRU;
 	}
 
 	ModResult Target(LocalUser *source, ::Target *target, const std::string &name)
