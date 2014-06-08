@@ -38,15 +38,13 @@ typedef void Target;
 
 class TGInfo
 {
-	LocalUser *user;
-
 	time_t last;
 
 	std::deque<Target *> targets;
 	std::deque<Target *> reply_targets;
 
  public:
-	TGInfo(LocalUser *u) : user(u), last(0)
+	TGInfo() : last(0)
 	{
 	}
 
@@ -102,9 +100,6 @@ class TGInfo
 
 	void AddReply(User *target)
 	{
-		if (user == target || ServerInstance->ULine(target->server))
-			return;
-
 		std::deque<Target *>::iterator it = std::find(reply_targets.begin(), reply_targets.end(), target);
 		if (it != reply_targets.end())
 			/* already exists, move to front */
@@ -127,7 +122,7 @@ class TGExtInfo : public SimpleExtItem<TGInfo>
 		TGInfo *t = get(user);
 		if (!t)
 		{
-			t = new TGInfo(user);
+			t = new TGInfo();
 			set(user, t);
 		}
 		return t;
@@ -189,7 +184,7 @@ class ModuleTGChange : public Module
 	}
 
  private:
-	bool Allowed(User *source, User *target)
+	bool Allowed(LocalUser *source, User *target)
 	{
 		for (UCListIter i = source->chans.begin(); i != source->chans.end(); i++)
 		{
@@ -204,20 +199,29 @@ class ModuleTGChange : public Module
 
 	ModResult Target(User *source, User *dest)
 	{
-		if (source == dest || ServerInstance->ULine(dest->server))
-			return MOD_RES_PASSTHRU;
-
-		if (Allowed(source, dest))
-			return MOD_RES_PASSTHRU;
-
-		ModResult m = Target(source, dest, dest->nick);
-		if (m != MOD_RES_PASSTHRU)
-			return m;
+		if (LocalUser *lsource = IS_LOCAL(source))
+		{
+			if (source == dest || ServerInstance->ULine(dest->server))
+				;
+			else if (Allowed(lsource, dest))
+				;
+			else
+			{
+				ModResult m = Target(lsource, dest, dest->nick);
+				if (m != MOD_RES_PASSTHRU)
+					return m;
+			}
+		}
 
 		if (LocalUser *ldest = IS_LOCAL(dest))
 		{
-			TGInfo *tg = tginfo.get_user(ldest);
-			tg->AddReply(source);
+			if (source == dest || ServerInstance->ULine(source->server))
+				;
+			else
+			{
+				TGInfo *tg = tginfo.get_user(ldest);
+				tg->AddReply(source);
+			}
 		}
 
 		return MOD_RES_PASSTHRU;
@@ -225,15 +229,12 @@ class ModuleTGChange : public Module
 
 	ModResult Target(User *source, Channel *dest)
 	{
-		return Target(source, dest, dest->name);
+		return IS_LOCAL(source) ? Target(IS_LOCAL(source), dest, dest->name) : MOD_RES_PASSTHRU;
 	}
 
-	ModResult Target(User *source, ::Target *target, const std::string &name)
+	ModResult Target(LocalUser *source, ::Target *target, const std::string &name)
 	{
-		if (!IS_LOCAL(source))
-			return MOD_RES_PASSTHRU;
-
-		TGInfo *tg = tginfo.get_user(IS_LOCAL(source));
+		TGInfo *tg = tginfo.get_user(source);
 		if (!tg->AddTarget(target))
 		{
 			source->WriteNumeric(ERR_TARGCHANGE, "%s %s :Targets changing too fast, message dropped", source->nick.c_str(), name.c_str());
