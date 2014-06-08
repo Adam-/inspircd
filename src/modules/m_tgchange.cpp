@@ -189,9 +189,25 @@ class ModuleTGChange : public Module
 	}
 
  private:
+	bool Allowed(User *source, User *target)
+	{
+		for (UCListIter i = source->chans.begin(); i != source->chans.end(); i++)
+		{
+			Channel *c = *i;
+
+			if (c->GetPrefixValue(source) >= VOICE_VALUE && std::find(target->chans.begin(), target->chans.end(), c) != target->chans.end())
+				return true;
+		}
+
+		return false;
+	}
+
 	ModResult Target(User *source, User *dest)
 	{
 		if (source == dest || ServerInstance->ULine(dest->server))
+			return MOD_RES_PASSTHRU;
+
+		if (Allowed(source, dest))
 			return MOD_RES_PASSTHRU;
 
 		ModResult m = Target(source, dest, dest->nick);
