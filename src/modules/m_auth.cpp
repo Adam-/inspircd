@@ -108,8 +108,6 @@ class ModuleAuth : public Module
  		Implementation eventlist[] = { I_OnUserRegister, I_OnCheckReady };
  		ServerInstance->Modules->Attach(eventlist, this, sizeof(eventlist) / sizeof(Implementation));
 
-		ServerInstance->Modules->SetPriority(this, I_OnUserRegister, PRIORITY_LAST);
-
  		OnRehash(NULL);
  	}
 
@@ -148,6 +146,11 @@ class ModuleAuth : public Module
 	ModResult OnCheckReady(LocalUser *user)
 	{
 		return ext.get(user) ? MOD_RES_DENY : MOD_RES_PASSTHRU;
+	}
+
+	void Prioritize()
+	{
+		ServerInstance->Modules->SetPriority(this, I_OnUserRegister, PRIORITY_LAST);
 	}
 };
 
