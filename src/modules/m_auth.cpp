@@ -81,8 +81,8 @@ class ModuleAuth : public Module
 		dup2(fds[1], 2);
 
 		/* close existing fds */
-		for (int i = 3; i < ServerInstance->SE->GetMaxFds(); ++i)
-			close(i);
+		for (int j = 3; j < ServerInstance->SE->GetMaxFds(); ++j)
+			close(j);
 
 		char *args[4];
 		args[0] = (char *) program.c_str();
