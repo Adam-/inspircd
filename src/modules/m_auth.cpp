@@ -139,7 +139,7 @@ class ModuleAuth : public Module
 	{
 		EventHandler *e = StartWorker(user);
 		ext.set(user, e);
-		ServerInstance->SE->AddFd(e, EVENT_READ);
+		ServerInstance->SE->AddFd(e, FD_WANT_POLL_READ);
 		return MOD_RES_PASSTHRU;
 	}
 
