@@ -23,15 +23,34 @@
 #ifndef DLL_H
 #define DLL_H
 
-/** The DLLManager class is able to load a module file by filename,
- * and locate its init_module symbol.
- */
-class CoreExport DLLManager : public classbase
+class ImportManager : public classbase
 {
  protected:
 	/** The last error string
 	 */
 	std::string err;
+
+ public:
+	/** Get the last error from dlopen() or dlsym().
+	 */
+	const std::string& LastError() { return err; }
+
+	/** Return a module by calling the init function
+	 */
+	virtual Module* CallInit() = 0;
+
+	virtual std::string GetVersion() = 0;
+};
+
+/** The DLLManager class is able to load a module file by filename,
+ * and locate its init_module symbol.
+ */
+class CoreExport DLLManager : public ImportManager
+{
+ protected:
+	/** The module library handle.
+	 */
+	void *h;
 
 #ifdef _WIN32
 	/** Sets the last error string
@@ -45,18 +64,7 @@ class CoreExport DLLManager : public classbase
 	 * the modules dir.
 	 */
 	DLLManager(const char *fname);
-	virtual ~DLLManager();
-
-	/** Get the last error from dlopen() or dlsym().
-	 */
-	const std::string& LastError()
-	{
-		 return err;
-	}
-
-	/** The module library handle.
-	 */
-	void *h;
+	~DLLManager();
 
 	/** Return a module by calling the init function
 	 */

@@ -32,7 +32,7 @@
 
 #ifndef PURE_STATIC
 
-bool ModuleManager::Load(const std::string& filename, bool defer)
+bool ModuleManager::Load(const std::string &filename, bool defer)
 {
 	/* Don't allow people to specify paths for modules, it doesn't work as expected */
 	if (filename.find('/') != std::string::npos)
@@ -55,9 +55,14 @@ bool ModuleManager::Load(const std::string& filename, bool defer)
 		return false;
 	}
 
-	Module* newmod = NULL;
 	DLLManager* newhandle = new DLLManager(modfile);
 
+	return Load(filename, newhandle, defer);
+}
+
+bool ModuleManager::Load(const std::string &filename, ImportManager *newhandle, bool defer)
+{
+	Module* newmod = NULL;
 	try
 	{
 		newmod = newhandle->CallInit();
@@ -138,7 +143,7 @@ namespace {
 		UnloadAction(Module* m) : mod(m) {}
 		void Call()
 		{
-			DLLManager* dll = mod->ModuleDLLManager;
+			ImportManager* dll = mod->ModuleDLLManager;
 			ServerInstance->Modules->DoSafeUnload(mod);
 			ServerInstance->GlobalCulls.Apply();
 			delete dll;
@@ -154,7 +159,7 @@ namespace {
 			: mod(m), callback(c) {}
 		void Call()
 		{
-			DLLManager* dll = mod->ModuleDLLManager;
+			ImportManager* dll = mod->ModuleDLLManager;
 			std::string name = mod->ModuleSourceFile;
 			ServerInstance->Modules->DoSafeUnload(mod);
 			ServerInstance->GlobalCulls.Apply();

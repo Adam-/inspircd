@@ -188,6 +188,7 @@ ModuleManager::~ModuleManager()
 
 bool ModuleManager::Attach(Implementation i, Module* mod)
 {
+	printf("ATTACHING: %i %p\n", i, mod);
 	if (std::find(EventHandlers[i].begin(), EventHandlers[i].end(), mod) != EventHandlers[i].end())
 		return false;
 

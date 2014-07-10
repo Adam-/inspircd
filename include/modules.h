@@ -194,14 +194,16 @@ class CoreExport Version
  public:
 	/** Module description
 	 */
-	const std::string description;
+	std::string description;
 
 	/** Flags
 	 */
-	const int Flags;
+	int Flags;
 
 	/** Server linking description string */
-	const std::string link_data;
+	std::string link_data;
+
+	Version() : Flags(VF_NONE) { }
 
 	/** Simple module version */
 	Version(const std::string &desc, int flags = VF_NONE);
@@ -355,7 +357,7 @@ class CoreExport Module : public classbase, public usecountbase
 	std::string ModuleSourceFile;
 	/** Reference to the dlopen() value
 	 */
-	DLLManager* ModuleDLLManager;
+	ImportManager* ModuleDLLManager;
 
 	/** If true, this module will be unloaded soon, further unload attempts will fail
 	 * Value is used by the ModuleManager internally, you should not modify it
@@ -973,10 +975,10 @@ class CoreExport Module : public classbase, public usecountbase
 	 * @param command The command being executed
 	 * @param parameters An array of array of characters containing the parameters for the command
 	 * @param user the user issuing the command
-	 * @param result The return code given by the command handler, one of CMD_SUCCESS or CMD_FAILURE
+	 * @param res The return code given by the command handler, one of CMD_SUCCESS or CMD_FAILURE
 	 * @param original_line The entire original line as passed to the parser from the user
 	 */
-	virtual void OnPostCommand(const std::string &command, const std::vector<std::string>& parameters, LocalUser *user, CmdResult result, const std::string &original_line);
+	virtual void OnPostCommand(const std::string &command, const std::vector<std::string>& parameters, LocalUser *user, CmdResult res, const std::string &original_line);
 
 	/** Called when a user is first connecting, prior to starting DNS lookups, checking initial
 	 * connect class, or accepting any commands.
@@ -1596,6 +1598,8 @@ class CoreExport ModuleManager
 	 * @return True if the module was found and loaded
 	 */
 	bool Load(const std::string& filename, bool defer = false);
+
+	bool Load(const std::string &, ImportManager *, bool = false);
 
 	/** Unload a given module file. Note that the module will not be
 	 * completely gone until the cull list has finished processing.

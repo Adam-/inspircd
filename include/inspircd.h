@@ -672,6 +672,7 @@ class CoreExport InspIRCd
 	 * @param mask The glob pattern to match against.
 	 * @param map The character map to use when matching.
 	 */
+#ifndef SWIG
 	static bool Match(const std::string &str, const std::string &mask, unsigned const char *map = NULL);
 	static bool Match(const  char *str, const char *mask, unsigned const char *map = NULL);
 
@@ -684,6 +685,7 @@ class CoreExport InspIRCd
 	 */
 	static bool MatchCIDR(const std::string &str, const std::string &mask, unsigned const char *map = NULL);
 	static bool MatchCIDR(const  char *str, const char *mask, unsigned const char *map = NULL);
+#endif
 
 	/** Call the handler for a given command.
 	 * @param commandname The command whos handler you wish to call
@@ -716,10 +718,6 @@ class CoreExport InspIRCd
 	 * @param input The data to process
 	 */
 	static void ProcessColors(file_cache& input);
-
-	/** Rehash the local server
-	 */
-	void RehashServer();
 
 	/** Check if the given nickmask matches too many users, send errors to the given user
 	 * @param nick A nickmask to match against
@@ -873,8 +871,6 @@ class CoreExport InspIRCd
 
 	friend class TestSuite;
 };
-
-ENTRYPOINT;
 
 template<class Cmd>
 class CommandModule : public Module

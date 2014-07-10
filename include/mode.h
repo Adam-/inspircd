@@ -522,14 +522,14 @@ class CoreExport ModeParser
 	 * @param mt type of mode to search for, user or channel
 	 * @returns a pointer to a ModeHandler class, or NULL of there isnt a handler for the given mode
 	 */
-	ModeHandler* FindMode(unsigned const char modeletter, ModeType mt);
+	ModeHandler* FindMode(const unsigned char modeletter, ModeType mt);
 
 	/** Find a mode handler by its prefix.
 	 * If there is no mode handler with the given prefix, NULL will be returned.
 	 * @param pfxletter The prefix to find, e.g. '@'
 	 * @return The mode handler which handles this prefix, or NULL if there is none.
 	 */
-	ModeHandler* FindPrefix(unsigned const char pfxletter);
+	ModeHandler* FindPrefix(const unsigned char pfxletter);
 
 	/** Returns a list of mode characters which are usermodes.
 	 * This is used in the 004 numeric when users connect.
@@ -553,8 +553,6 @@ class CoreExport ModeParser
 	 *  4; Modes that dont take a param
 	 */
 	std::string GiveModeList(ModeMasks m);
-
-	static bool PrefixComparison(ModeHandler* one, ModeHandler* two);
 
 	/** This returns the PREFIX=(ohv)@%+ section of the 005 numeric, or
 	 * just the "@%+" part if the parameter false
