@@ -1,5 +1,4 @@
 import inspircd
-import traceback
 
 
 class Test(inspircd.Module):
