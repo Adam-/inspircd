@@ -48,10 +48,12 @@ class CoreExport classbase
 	 */
 	virtual CullResult cull();
 	virtual ~classbase();
+#ifndef SWIG
  private:
 	// uncopyable
 	classbase(const classbase&);
 	void operator=(const classbase&);
+#endif
 };
 
 /** The base class for inspircd classes that provide a wrapping interface, and
@@ -61,12 +63,14 @@ class CoreExport interfacebase
 {
  public:
 	interfacebase() {}
+#ifndef SWIG
 	static inline void* operator new(size_t, void* m) { return m; }
  private:
 	interfacebase(const interfacebase&);
 	void operator=(const interfacebase&);
 	static void* operator new(size_t);
 	static void operator delete(void*);
+#endif
 };
 
 /** The base class for inspircd classes that support reference counting.
@@ -94,10 +98,12 @@ class CoreExport refcountbase
 	static void operator delete(void*);
 	inline void refcount_inc() const { refcount++; }
 	inline bool refcount_dec() const { refcount--; return !refcount; }
+#ifndef SWIG
  private:
 	// uncopyable
 	refcountbase(const refcountbase&);
 	void operator=(const refcountbase&);
+#endif
 };
 
 /** Base class for use count tracking. Uses reference<>, but does not
@@ -114,10 +120,12 @@ class CoreExport usecountbase
 	inline unsigned int GetUseCount() const { return usecount; }
 	inline void refcount_inc() const { usecount++; }
 	inline bool refcount_dec() const { usecount--; return false; }
+#ifndef SWIG
  private:
 	// uncopyable
 	usecountbase(const usecountbase&);
 	void operator=(const usecountbase&);
+#endif
 };
 
 template <typename T>

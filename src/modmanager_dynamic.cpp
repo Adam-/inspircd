@@ -27,11 +27,14 @@
 
 #ifndef PURE_STATIC
 
-bool ModuleManager::Load(const std::string& filename, bool defer)
+bool ModuleManager::Load(const std::string& filename, ImportManager *imp, bool defer)
 {
 	/* Don't allow people to specify paths for modules, it doesn't work as expected */
 	if (filename.find('/') != std::string::npos)
+	{
+		delete imp;
 		return false;
+	}
 
 	const std::string moduleFile = ServerInstance->Config->Paths.PrependModule(filename);
 
@@ -39,6 +42,7 @@ bool ModuleManager::Load(const std::string& filename, bool defer)
 	{
 		LastModuleError = "Module file could not be found: " + filename;
 		ServerInstance->Logs->Log("MODULE", LOG_DEFAULT, LastModuleError);
+		delete imp;
 		return false;
 	}
 
@@ -46,27 +50,29 @@ bool ModuleManager::Load(const std::string& filename, bool defer)
 	{
 		LastModuleError = "Module " + filename + " is already loaded, cannot load a module twice!";
 		ServerInstance->Logs->Log("MODULE", LOG_DEFAULT, LastModuleError);
+		delete imp;
 		return false;
 	}
 
 	Module* newmod = NULL;
-	DLLManager* newhandle = new DLLManager(moduleFile.c_str());
+	if (!imp)
+		imp = new DLLManager(moduleFile.c_str());
 	ServiceList newservices;
 	if (!defer)
 		this->NewServices = &newservices;
 
 	try
 	{
-		newmod = newhandle->CallInit();
+		newmod = imp->CallInit();
 		this->NewServices = NULL;
 
 		if (newmod)
 		{
 			newmod->ModuleSourceFile = filename;
-			newmod->ModuleDLLManager = newhandle;
+			newmod->ModuleDLLManager = imp;
 			newmod->dying = false;
 			Modules[filename] = newmod;
-			std::string version = newhandle->GetVersion();
+			std::string version = imp->GetVersion();
 			if (defer)
 			{
 				ServerInstance->Logs->Log("MODULE", LOG_DEFAULT, "New module introduced: %s (Module version %s)",
@@ -88,9 +94,9 @@ bool ModuleManager::Load(const std::string& filename, bool defer)
 		}
 		else
 		{
-			LastModuleError = "Unable to load " + filename + ": " + newhandle->LastError();
+			LastModuleError = "Unable to load " + filename + ": " + imp->LastError();
 			ServerInstance->Logs->Log("MODULE", LOG_DEFAULT, LastModuleError);
-			delete newhandle;
+			delete imp;
 			return false;
 		}
 	}
@@ -102,10 +108,10 @@ bool ModuleManager::Load(const std::string& filename, bool defer)
 		if (newmod)
 		{
 			DoSafeUnload(newmod);
-			ServerInstance->GlobalCulls.AddItem(newhandle);
+			ServerInstance->GlobalCulls.AddItem(imp);
 		}
 		else
-			delete newhandle;
+			delete imp;
 		LastModuleError = "Unable to load " + filename + ": " + modexcept.GetReason();
 		ServerInstance->Logs->Log("MODULE", LOG_DEFAULT, LastModuleError);
 		return false;

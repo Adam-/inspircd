@@ -690,7 +690,7 @@ class CoreExport ModeParser : public fakederef<ModeParser>
 	 * @param mt type of mode to search for, user or channel
 	 * @returns a pointer to a ModeHandler class, or NULL of there isnt a handler for the given mode
 	 */
-	ModeHandler* FindMode(unsigned const char modeletter, ModeType mt);
+	ModeHandler* FindMode(const unsigned char modeletter, ModeType mt);
 
 	/** Find the mode handler for the given prefix mode
 	 * @param modeletter The mode letter to search for
@@ -703,7 +703,7 @@ class CoreExport ModeParser : public fakederef<ModeParser>
 	 * @param pfxletter The prefix to find, e.g. '@'
 	 * @return The mode handler which handles this prefix, or NULL if there is none.
 	 */
-	PrefixMode* FindPrefix(unsigned const char pfxletter);
+	PrefixMode* FindPrefix(const unsigned char pfxletter);
 
 	/** Returns a list of modes, space seperated by type:
 	 * 1. User modes

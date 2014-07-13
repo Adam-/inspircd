@@ -287,7 +287,7 @@ class CoreExport Module : public classbase, public usecountbase
 	std::string ModuleSourceFile;
 	/** Reference to the dlopen() value
 	 */
-	DLLManager* ModuleDLLManager;
+	ImportManager* ModuleDLLManager;
 
 	/** If true, this module will be unloaded soon, further unload attempts will fail
 	 * Value is used by the ModuleManager internally, you should not modify it
@@ -1219,7 +1219,7 @@ class CoreExport ModuleManager : public fakederef<ModuleManager>
 	 * @param defer Defer module init (loading many modules)
 	 * @return True if the module was found and loaded
 	 */
-	bool Load(const std::string& filename, bool defer = false);
+	bool Load(const std::string& filename, ImportManager * = NULL, bool defer = false);
 
 	/** Unload a given module file. Note that the module will not be
 	 * completely gone until the cull list has finished processing.

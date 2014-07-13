@@ -80,8 +80,10 @@ class AllModule : public Module
 
 MODULE_INIT(AllModule)
 
-bool ModuleManager::Load(const std::string& name, bool defer)
+bool ModuleManager::Load(const std::string& name, ImportManager *imp, bool defer)
 {
+	delete imp; /* We don't use this */
+
 	modmap::iterator it = modlist->find(name);
 	if (it == modlist->end())
 		return false;

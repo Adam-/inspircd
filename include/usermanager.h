@@ -46,7 +46,7 @@ class CoreExport UserManager : public fakederef<UserManager>
 
 	/** A CloneCounts that contains zero for both local and global
 	 */
-	const CloneCounts zeroclonecounts;
+	CloneCounts zeroclonecounts;
 
  public:
 	/** Constructor, initializes variables

@@ -53,22 +53,22 @@
  * This is provided as a pointer so that modules can change it to their custom mapping tables,
  * e.g. for national character support.
  */
-CoreExport extern unsigned const char *national_case_insensitive_map;
+CoreExport extern const unsigned char *national_case_insensitive_map;
 
 /** A mapping of uppercase to lowercase, including scandinavian
  * 'oddities' as specified by RFC1459, e.g. { -> [, and | -> \
  */
-CoreExport extern unsigned const char rfc_case_insensitive_map[256];
+CoreExport extern const unsigned char rfc_case_insensitive_map[256];
 
 /** Case insensitive map, ASCII rules.
  * That is;
  * [ != {, but A == a.
  */
-CoreExport extern unsigned const char ascii_case_insensitive_map[256];
+CoreExport extern const unsigned char ascii_case_insensitive_map[256];
 
 /** Case sensitive (identity) map.
  */
-CoreExport extern unsigned const char rfc_case_sensitive_map[256];
+CoreExport extern const unsigned char rfc_case_sensitive_map[256];
 
 template<typename T> const T& SearchAndReplace(T& text, const T& pattern, const T& replace)
 {
