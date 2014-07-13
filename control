@@ -9,10 +9,10 @@ Uploaders: Darren Blaber <dmbtech@gmail.com>,
   Giacomo Catenazzi <cate@debian.org>,
   Bradley Smith <bradsmith@debian.org>,
   Guillaume Delacour <gui@iroqwa.org>
-Build-Depends: debhelper (>= 9.0.0), perl-modules, libgnutls-dev, pkg-config,
+Build-Depends: debhelper (>= 9.0.0), perl-modules, libgnutls28-dev, pkg-config,
                libldap2-dev, libpcre3-dev, libmysqlclient-dev, libpq-dev,
                libsqlite3-dev, zlib1g-dev, libgeoip-dev,
-               libtre-dev, hardening-wrapper, dh-systemd (>= 1.5)
+               libtre-dev, dh-systemd (>= 1.5)
 Standards-Version: 3.9.5
 Homepage: http://www.inspircd.org/
 Vcs-Svn: svn://anonscm.debian.org/pkg-irc/packages/inspircd2/trunk/

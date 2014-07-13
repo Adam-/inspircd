@@ -1,5 +1,6 @@
 inspircd (2.0.16-1) unstable; urgency=low
 
+  [ Guillaume Delacour ]
   * New upstream release (Closes: #724874), enable m_regex_stdlib new module
     and repack tarball to remove docs/rfc/{rfc1035.txt,rfc1413.txt,rfc1459.txt}
     as i re-introduce them a few years ago. Upstream removes dir at 7fea7c24c5
@@ -17,15 +18,26 @@ inspircd (2.0.16-1) unstable; urgency=low
     + Build-Depends on dh-systemd (>= 1.5)
     + Add debian/inspircd.service, debian/inspircd.tmpfiles.d.conf
     + debian/rules: call generic dh with "--with systemd"
-  * debian/control: Change Vcs-{Svn,Browser}, point to anonscm.debian.org and
+  * debian/control:
+    + Change Vcs-{Svn,Browser}, point to anonscm.debian.org and
     bump to Standards-Version 3.9.5 (no changes needed)
+    + Drop Build-Depends on hardening-wrapper since dpkg-buildflags now
+    returns hardening build flags by default (already enabled in debian/rules)
   * debian/patches/02_disable_rpath_for_extra_modules.diff: Refresh according
     upstream modules changes
   * debian/copyright: make it machine-readable
   * debian/rules: compile binary with debuginfo as upstream don't
     generate it by default; dh_strip overrided to generate a -dbg package
 
- -- Guillaume Delacour <gui@iroqwa.org>  Sun, 23 Mar 2014 17:03:55 +0100
+  [ Andreas Metzler ]
+  * Build with debug symbols and optimization by using "make D=2 all" instead
+    of "make debug"; dh_strip overrided to generate a -dbg package
+  * 05_gnutls_crypt_api_instead_gcrypt.diff Apply/unfuzz upstream's
+    690c372f6ef246b43b477e3685c8e716431427ad to get rid of the dependency on
+    libgcrypt.
+  * Build against gnutls v3. Closes: #745948
+
+ -- Guillaume Delacour <gui@iroqwa.org>  Sun, 13 Jul 2014 15:13:53 +0200
 
 inspircd (2.0.5-1) unstable; urgency=low
 
