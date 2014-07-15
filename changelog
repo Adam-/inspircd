@@ -16,7 +16,8 @@ inspircd (2.0.16-1) unstable; urgency=low
   * debian/watch: update based on sepwatch
   * Add systemd support:
     + Build-Depends on dh-systemd (>= 1.5)
-    + Add debian/inspircd.service, debian/inspircd.tmpfiles.d.conf
+    + Add debian/inspircd.service, debian/inspircd.tmpfile to create
+      /run/inspircd directory at boot time
     + debian/rules: call generic dh with "--with systemd"
   * debian/control:
     + Change Vcs-{Svn,Browser}, point to anonscm.debian.org and
