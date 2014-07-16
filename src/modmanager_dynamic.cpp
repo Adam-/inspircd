@@ -145,7 +145,7 @@ void ModuleManager::LoadCoreModules(std::map<std::string, ServiceList>& servicem
 
 				this->NewServices = &servicemap[entry->d_name];
 
-				if (!Load(entry->d_name, true))
+				if (!Load(entry->d_name, NULL, true))
 				{
 					ServerInstance->Logs->Log("MODULE", LOG_DEFAULT, this->LastError());
 					std::cout << std::endl << "[" << con_red << "*" << con_reset << "] " << this->LastError() << std::endl << std::endl;

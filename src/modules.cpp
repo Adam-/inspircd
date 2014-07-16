@@ -473,7 +473,7 @@ namespace
 		UnloadAction(Module* m) : mod(m) {}
 		void Call()
 		{
-			DLLManager* dll = mod->ModuleDLLManager;
+			ImportManager* dll = mod->ModuleDLLManager;
 			ServerInstance->Modules->DoSafeUnload(mod);
 			ServerInstance->GlobalCulls.Apply();
 			// In pure static mode this is always NULL
@@ -490,7 +490,7 @@ namespace
 			: mod(m), callback(c) {}
 		void Call()
 		{
-			DLLManager* dll = mod->ModuleDLLManager;
+			ImportManager* dll = mod->ModuleDLLManager;
 			std::string name = mod->ModuleSourceFile;
 			ServerInstance->Modules->DoSafeUnload(mod);
 			ServerInstance->GlobalCulls.Apply();
@@ -532,7 +532,7 @@ void ModuleManager::LoadAll()
 		this->NewServices = &servicemap[name];
 		std::cout << "[" << con_green << "*" << con_reset << "] Loading module:\t" << con_green << name << con_reset << std::endl;
 
-		if (!this->Load(name, true))
+		if (!this->Load(name, NULL, true))
 		{
 			ServerInstance->Logs->Log("MODULE", LOG_DEFAULT, this->LastError());
 			std::cout << std::endl << "[" << con_red << "*" << con_reset << "] " << this->LastError() << std::endl << std::endl;
