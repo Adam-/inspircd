@@ -133,7 +133,7 @@ public:
 
 		Unload();
 
-		ConfigTagList modules = ServerInstance->Config->ConfTags("pythonmodules");
+		ConfigTagList modules = ServerInstance->Config->ConfTags("pythonmodule");
 		for (ConfigIter i = modules.first; i != modules.second; ++i)
 		{
 			tag = i->second;

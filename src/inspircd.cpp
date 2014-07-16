@@ -719,7 +719,8 @@ void InspIRCd::SetSignal(int signal)
  * win32service.cpp. This allows the service control manager to control
  * the process where we are running as a windows service.
  */
-ENTRYPOINT
+//ENTRYPOINT
+int main(int argc, char **argv)
 {
 	new InspIRCd(argc, argv);
 	ServerInstance->Run();

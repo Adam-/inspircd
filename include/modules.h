@@ -188,14 +188,16 @@ class CoreExport Version
  public:
 	/** Module description
 	 */
-	const std::string description;
+	std::string description;
 
 	/** Flags
 	 */
-	const int Flags;
+	int Flags;
 
 	/** Server linking description string */
-	const std::string link_data;
+	std::string link_data;
+
+	Version(int flags = VF_NONE) : Flags(flags) { }
 
 	/** Simple module version */
 	Version(const std::string &desc, int flags = VF_NONE);
@@ -803,10 +805,10 @@ class CoreExport Module : public classbase, public usecountbase
 	 * @param command The command being executed
 	 * @param parameters An array of array of characters containing the parameters for the command
 	 * @param user the user issuing the command
-	 * @param result The return code given by the command handler, one of CMD_SUCCESS or CMD_FAILURE
+	 * @param res The return code given by the command handler, one of CMD_SUCCESS or CMD_FAILURE
 	 * @param original_line The entire original line as passed to the parser from the user
 	 */
-	virtual void OnPostCommand(Command* command, const std::vector<std::string>& parameters, LocalUser* user, CmdResult result, const std::string& original_line);
+	virtual void OnPostCommand(Command* command, const std::vector<std::string>& parameters, LocalUser* user, CmdResult res, const std::string& original_line);
 
 	/** Called when a user is first connecting, prior to starting DNS lookups, checking initial
 	 * connect class, or accepting any commands.

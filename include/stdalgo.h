@@ -19,6 +19,8 @@
 
 #pragma once
 
+class classbase;
+
 namespace stdalgo
 {
 	namespace vector

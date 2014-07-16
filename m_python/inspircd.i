@@ -1,7 +1,32 @@
 %module(directors="1") inspircd
 %{
 
+/*#include "compat.h"*/
+/*#include "typedefs.h"*/
 #include "inspircd.h"
+#include "base.h"
+#include "cull_list.h"
+#include "extensible.h"
+#include "numerics.h"
+#include "uid.h"
+#include "users.h"
+#include "channels.h"
+#include "timer.h"
+#include "hashcomp.h"
+#include "logger.h"
+#include "usermanager.h"
+#include "socket.h"
+#include "ctables.h"
+#include "command_parse.h"
+#include "mode.h"
+#include "socketengine.h"
+#include "snomasks.h"
+#include "filelogger.h"
+#include "modules.h"
+#include "threadengine.h"
+#include "configreader.h"
+#include "inspstring.h"
+#include "protocol.h"
 
 %}
 
@@ -22,6 +47,7 @@
 %ignore InspIRCd::OnCheckExemption;
 %ignore classbase::cull;
 %ignore LocalUser::eh;
+%ignore ListenSocket::iohookprov;
 
 %feature("director");
 
@@ -31,5 +57,31 @@
         }
 }
 
+%feature("nodirector") CommandBase::GetRouting;
+
+%include "compat.h"
+%include "typedefs.h"
 %include "inspircd.h"
+%include "base.h"
+%include "cull_list.h"
+%include "extensible.h"
+%include "numerics.h"
+%include "uid.h"
+%include "users.h"
+%include "channels.h"
+%include "timer.h"
+%include "logger.h"
+%include "usermanager.h"
+%include "socket.h"
+%include "ctables.h"
+%include "command_parse.h"
+%include "mode.h"
+%include "socketengine.h"
+%include "snomasks.h"
+%include "filelogger.h"
+%include "modules.h"
+%include "threadengine.h"
+%include "configreader.h"
+%include "inspstring.h"
+%include "protocol.h"
 
