@@ -3,7 +3,6 @@ Description=IRC server
 
 [Service]
 User=irc
-PIDFile=/var/run/inspircd/inspircd.pid
 ExecStart=/usr/sbin/inspircd --logfile /var/log/inspircd.log --config /etc/inspircd/inspircd.conf --nofork
 
 [Install]

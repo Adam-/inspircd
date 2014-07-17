@@ -35,14 +35,16 @@ override_dh_auto_build:
 	# compile binary with debuginfo and optimization (make D=2 all) as upstream
 	# don't generate symbols by default. dh_strip generate a -dbg package
 	# (see below)
-	dh_auto_build --parallel -- D=2 all
+	# show compiler commandline when building,
+	# ccache can use it to speed the build (V=1)
+	dh_auto_build --parallel -- D=2 V=1 all
 
 # install
 override_dh_auto_install:
 	dh_auto_install -- install DESTDIR=$(CURDIR)/debian/inspircd
 
 	# Delete example files (already in /usr/share/doc/inspircd/examples)
-	rm -f $(CURDIR)/debian/inspircd/etc/inspircd/*.example
+	rm -rf $(CURDIR)/debian/inspircd/etc/inspircd/examples
 
 	# delete empty data and log dir
 	rmdir $(CURDIR)/debian/inspircd/usr/lib/inspircd/data \

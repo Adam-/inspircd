@@ -1,1 +1,2 @@
-d /run/inspircd 0755 irc irc -
+f /var/run/inspircd.pid 0644 irc irc
+f /var/log/inspircd.log 0640 irc adm

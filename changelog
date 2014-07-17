@@ -37,8 +37,16 @@ inspircd (2.0.16-1) unstable; urgency=low
     690c372f6ef246b43b477e3685c8e716431427ad to get rid of the dependency on
     libgcrypt.
   * Build against gnutls v3. Closes: #745948
+  * Show compiler commandline when building. As a nice side effect this
+    actually lets ccache speed up the build.
+  * Drop PIDFile entry from systemd service file, it should not be necessary
+    for the non-forking case.
+  * Mimic init-file trickery in inspircd.tmpfile. Pre-generate both pidfile
+    and logfile with correct user/permissions. The daemon cannot do so, since
+    it is lacking write permissions in /var/run and /var/log. Remove pidfile
+    in postrm purge.
 
- -- Guillaume Delacour <gui@iroqwa.org>  Sun, 13 Jul 2014 15:13:53 +0200
+ -- Guillaume Delacour <gui@iroqwa.org>  Wed, 16 Jul 2014 21:49:08 +0200
 
 inspircd (2.0.5-1) unstable; urgency=low
 
