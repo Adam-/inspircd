@@ -109,13 +109,8 @@
 # include "threadengines/threadengine_win32.h"
 #else
 # define ENTRYPOINT int main(int argc, char** argv)
-# ifndef SWIG
-#  define DllExport __attribute__ ((visibility ("default")))
-#  define CoreExport __attribute__ ((visibility ("default")))
-# else
-#  define DllExport
-#  define CoreExport
-# endif
+# define DllExport
+# define CoreExport
 # include <unistd.h>
 # include "threadengines/threadengine_pthread.h"
 #endif

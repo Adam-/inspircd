@@ -36,16 +36,6 @@ bool ModuleManager::Load(const std::string& filename, ImportManager *imp, bool d
 		return false;
 	}
 
-	const std::string moduleFile = ServerInstance->Config->Paths.PrependModule(filename);
-
-	if (!FileSystem::FileExists(moduleFile))
-	{
-		LastModuleError = "Module file could not be found: " + filename;
-		ServerInstance->Logs->Log("MODULE", LOG_DEFAULT, LastModuleError);
-		delete imp;
-		return false;
-	}
-
 	if (Modules.find(filename) != Modules.end())
 	{
 		LastModuleError = "Module " + filename + " is already loaded, cannot load a module twice!";
@@ -56,7 +46,19 @@ bool ModuleManager::Load(const std::string& filename, ImportManager *imp, bool d
 
 	Module* newmod = NULL;
 	if (!imp)
+	{
+		const std::string moduleFile = ServerInstance->Config->Paths.PrependModule(filename);
+
+		if (!FileSystem::FileExists(moduleFile))
+		{
+			LastModuleError = "Module file could not be found: " + filename;
+			ServerInstance->Logs->Log("MODULE", LOG_DEFAULT, LastModuleError);
+			delete imp;
+			return false;
+		}
+
 		imp = new DLLManager(moduleFile.c_str());
+	}
 	ServiceList newservices;
 	if (!defer)
 		this->NewServices = &newservices;

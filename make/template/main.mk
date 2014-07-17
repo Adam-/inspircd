@@ -37,7 +37,7 @@ COMPILER = @COMPILER_NAME@
 SYSTEM = @SYSTEM_NAME@
 BUILDPATH ?= $(PWD)/build
 SOCKETENGINE = @SOCKETENGINE@
-CORECXXFLAGS = -fPIC -fvisibility-inlines-hidden -pipe -Iinclude -Wall -Wextra -Wfatal-errors -Wno-unused-parameter -Wshadow
+CORECXXFLAGS = -fPIC -pipe -Iinclude -Wall -Wextra -Wfatal-errors -Wno-unused-parameter -Wshadow
 LDLIBS = -lstdc++
 CORELDFLAGS = -rdynamic -L. $(LDFLAGS)
 PICLDFLAGS = -fPIC -shared -rdynamic $(LDFLAGS)
@@ -57,7 +57,6 @@ INSTMODE_LIB = 0640
 @ENDIF
 
 @IFNEQ $(SYSTEM)-$(COMPILER) darwin-GCC
-  CORECXXFLAGS += -fvisibility=hidden
 @ENDIF
 
 @IFNEQ $(SYSTEM) darwin
