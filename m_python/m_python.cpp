@@ -38,6 +38,21 @@ class PythonImportManager : public ImportManager
 	~PythonImportManager()
 	{
 		Py_XDECREF(mod);
+
+		PyObject *utils = PyImport_ImportModule("inspircd_util");
+		if (utils)
+		{
+			PyObject *unload = PyObject_GetAttrString(utils, "unload");
+			if (unload)
+			{
+				PyObject_CallFunctionObjArgs(unload, PyString_FromString(name.c_str()));
+				Py_DECREF(unload);
+			}
+			Py_DECREF(utils);
+		}
+		
+		if (PyErr_Occurred())
+			PyErr_Print();
 	}
 
 	Module* CallInit() CXX11_OVERRIDE
@@ -92,6 +107,9 @@ class ModulePython : public Module
 			if (dynamic_cast<PythonImportManager *>(m->ModuleDLLManager))
 				ServerInstance->Modules->Unload(m);
 		}
+
+		/* I need my modules to completely unload *now* */
+		ServerInstance->AtomicActions.Run();
 	}
 
 public:
@@ -103,9 +121,6 @@ public:
 	~ModulePython()
 	{
 		Unload();
-
-		/* I need my modules to completely unload *now* */
-		ServerInstance->AtomicActions.Run();
 
 		Py_Finalize();
 	}

@@ -8,5 +8,5 @@ class Test(inspircd.Module):
 		return inspircd.Version("lol!?", inspircd.VF_VENDOR);
 
 	def OnWhois(self, source, dest):
-		inspircd.cvar.ServerInstance.SendWhoisLine(source, dest, 320, "%s %s :%s" % (source.nick, dest.nick, "moo"))
+		inspircd.cvar.ServerInstance.SendWhoisLine(source, dest, 320, "%s %s :%s" % (source.nick, dest.nick, "moo6"))
 
