@@ -45,7 +45,8 @@ class PythonImportManager : public ImportManager
 			PyObject *unload = PyObject_GetAttrString(utils, "unload");
 			if (unload)
 			{
-				PyObject_CallFunctionObjArgs(unload, PyString_FromString(name.c_str()));
+				PyObject *ret = PyObject_CallFunctionObjArgs(unload, PyString_FromString(name.c_str()));
+				Py_XDECREF(ret);
 				Py_DECREF(unload);
 			}
 			Py_DECREF(utils);
