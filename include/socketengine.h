@@ -234,6 +234,14 @@ class CoreExport EventHandler : public classbase
 class CoreExport SocketEngine
 {
  public:
+	struct IONotifier
+	{
+		virtual void Unlock() = 0;
+		virtual void Lock() = 0;
+	};
+
+	static IONotifier *notifier;
+
 	/** Socket engine statistics: count of various events, bandwidth usage
 	 */
 	class Statistics

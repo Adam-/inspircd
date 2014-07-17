@@ -164,7 +164,11 @@ void SocketEngine::DelFd(EventHandler* eh)
 
 int SocketEngine::DispatchEvents()
 {
+	if (notifier)
+		notifier->Unlock();
 	int i = epoll_wait(EngineHandle, &events[0], events.size(), 1000);
+	if (notifier)
+		notifier->Lock();
 	ServerInstance->UpdateTime();
 
 	stats.TotalEvents += i;

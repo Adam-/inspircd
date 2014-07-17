@@ -23,6 +23,7 @@
 
 #include "inspircd.h"
 
+SocketEngine::IONotifier *SocketEngine::notifier = NULL;
 
 /** Reference table, contains all current handlers
  **/

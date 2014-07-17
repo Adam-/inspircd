@@ -95,8 +95,9 @@ class PythonImportManager : public ImportManager
 	}
 };
 
-class ModulePython : public Module
+class ModulePython : public Module, public SocketEngine::IONotifier
 {
+	PyThreadState *state;
 	std::set<std::string> paths;
 
 	void Unload()
@@ -114,9 +115,13 @@ class ModulePython : public Module
 	}
 
 public:
-	ModulePython()
+	ModulePython() : state(NULL)
 	{
 		Py_Initialize();
+
+		PyEval_InitThreads();
+
+		SocketEngine::notifier = this;
 	}
 
 	~ModulePython()
@@ -124,6 +129,8 @@ public:
 		Unload();
 
 		Py_Finalize();
+
+		SocketEngine::notifier = NULL;
 	}
 
 	Version GetVersion() CXX11_OVERRIDE
@@ -157,6 +164,20 @@ public:
 
 			ServerInstance->Modules->Load(name, new PythonImportManager(name));
 		}
+	}
+
+	void Unlock() CXX11_OVERRIDE
+	{
+		assert(state == NULL);
+		state = PyEval_SaveThread();
+		assert(state != NULL);
+	}
+
+	void Lock() CXX11_OVERRIDE
+	{
+		assert(state != NULL);
+		PyEval_RestoreThread(state);
+		state = NULL;
 	}
 };
 
