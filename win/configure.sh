@@ -1,6 +1,6 @@
 #!/bin/bash
 
-LIBS_TAG=2014-6-7
+LIBS_TAG=2014-7-24
 BASE=`pwd`
 INSPIRCD_BASE=$BASE/../
 LIBS_BASE=$BASE/windows-libs
