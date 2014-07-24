@@ -30,13 +30,10 @@
 
 #include <ldap.h>
 
-#ifdef _WIN32
-# pragma comment(lib, "libldap.lib")
-# pragma comment(lib, "liblber.lib")
-#endif
-
 /* $ModDesc: Allow/Deny connections based upon answer from LDAP server */
 /* $LinkerFlags: -lldap */
+/* $WindowsLibraries: ldap */
+/* $WindowsLibraries: lber */
 
 struct RAIILDAPString
 {

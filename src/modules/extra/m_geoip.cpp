@@ -23,12 +23,9 @@
 
 #include <GeoIP.h>
 
-#ifdef _WIN32
-# pragma comment(lib, "GeoIP.lib")
-#endif
-
 /* $ModDesc: Provides a way to restrict users by country using GeoIP lookup */
 /* $LinkerFlags: -lGeoIP */
+/* $WindowsLibraries: GeoIP */
 
 class ModuleGeoIP : public Module
 {

@@ -26,10 +26,7 @@
 /* $ModDep: m_regex.h */
 /* $CompileFlags: exec("pcre-config --cflags") */
 /* $LinkerFlags: exec("pcre-config --libs") rpath("pcre-config --libs") -lpcre */
-
-#ifdef _WIN32
-# pragma comment(lib, "libpcre.lib")
-#endif
+/* $WindowsLibraries: pcre */
 
 class PCREException : public ModuleException
 {

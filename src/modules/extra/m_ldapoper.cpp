@@ -27,13 +27,10 @@
 
 #include <ldap.h>
 
-#ifdef _WIN32
-# pragma comment(lib, "libldap.lib")
-# pragma comment(lib, "liblber.lib")
-#endif
-
 /* $ModDesc: Adds the ability to authenticate opers via LDAP */
 /* $LinkerFlags: -lldap */
+/* $WindowsLibraries: ldap */
+/* $WindowsLibraries: lber */
 
 // Duplicated code, also found in cmd_oper and m_sqloper
 static bool OneOfMatches(const char* host, const char* ip, const std::string& hostlist)

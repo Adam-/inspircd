@@ -22,7 +22,7 @@ foreach(MODULE_NAME ${INSPIRCD_MODULES})
 	endif(MINGW)
 	target_link_libraries(${SO_NAME} psapi) # for cmd_stats
 
-	file(STRINGS ${MODULE_NAME} LIBRARIES REGEX "/\\*[ \t]*\\$WindowsMingwLibraries:[ \t]*.*[ \t]*\\*/")
+	file(STRINGS ${MODULE_NAME} LIBRARIES REGEX "/\\*[ \t]*\\$WindowsLibraries:[ \t]*.*[ \t]*\\*/")
 	foreach(LIBRARY ${LIBRARIES})
 		string(REGEX REPLACE "/\\*[ \t]*\\$.*:[ \t]*([^ \t]*)[ \t]*\\*/" "\\1" LIBRARY ${LIBRARY})
 		target_link_libraries(${SO_NAME} ${LIBRARY})

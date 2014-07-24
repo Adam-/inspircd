@@ -34,8 +34,7 @@
 /* $CompileFlags: pkgconfincludes("gnutls","/gnutls/gnutls.h","") exec("libgcrypt-config --cflags") */
 /* $LinkerFlags: rpath("pkg-config --libs gnutls") pkgconflibs("gnutls","/libgnutls.so","-lgnutls") exec("libgcrypt-config --libs") */
 /* $NoPedantic */
-
-/* $WindowsMingwLibraries: gnutls */
+/* $WindowsLibraries: gnutls */
 
 #ifndef GNUTLS_VERSION_MAJOR
 #define GNUTLS_VERSION_MAJOR LIBGNUTLS_VERSION_MAJOR

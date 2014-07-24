@@ -36,8 +36,6 @@
 #include "ssl.h"
 
 #ifdef _WIN32
-# pragma comment(lib, "ssleay32.lib")
-# pragma comment(lib, "libeay32.lib")
 # undef MAX_DESCRIPTORS
 # define MAX_DESCRIPTORS 10000
 #endif
@@ -47,6 +45,8 @@
 /* $LinkerFlags: if("USE_FREEBSD_BASE_SSL") -lssl -lcrypto */
 /* $CompileFlags: if(!"USE_FREEBSD_BASE_SSL") pkgconfversion("openssl","0.9.7") pkgconfincludes("openssl","/openssl/ssl.h","") */
 /* $LinkerFlags: if(!"USE_FREEBSD_BASE_SSL") rpath("pkg-config --libs openssl") pkgconflibs("openssl","/libssl.so","-lssl -lcrypto -ldl") */
+/* $WindowsLibraries: ssleay32 */
+/* $WindowsLibraries: libeay32 */
 
 /* $NoPedantic */
 
