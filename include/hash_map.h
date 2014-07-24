@@ -44,13 +44,15 @@
 		#endif
 	#else
 		#include <unordered_map>
-			/** Oddball linux namespace for hash_map */
+		#define HASHMAP_DEPRECATED
+		#ifdef MINGW
 			#define nspace std
-		#define hash_map unordered_map
+			#define hash_map unordered_map
 			#define BEGIN_HASHMAP_NAMESPACE namespace nspace {
 			#define END_HASHMAP_NAMESPACE }
-		//#define HAS_TR1_UNORDERED
-		#define HASHMAP_DEPRECATED
+		#else
+			#define HAS_TR1_UNORDERED
+		#endif
 	#endif
 
 	// tr1: restoring sanity to our headers. now if only compiler vendors could agree on a FUCKING INCLUDE FILE.
