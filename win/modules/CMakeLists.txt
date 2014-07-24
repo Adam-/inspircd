@@ -21,6 +21,13 @@ foreach(MODULE_NAME ${INSPIRCD_MODULES})
 		target_link_libraries(${SO_NAME} ws2_32)
 	endif(MINGW)
 	target_link_libraries(${SO_NAME} psapi) # for cmd_stats
+
+	file(STRINGS ${MODULE_NAME} LIBRARIES REGEX "/\\*[ \t]*\\$WindowsMingwLibraries:[ \t]*.*[ \t]*\\*/")
+	foreach(LIBRARY ${LIBRARIES})
+		string(REGEX REPLACE "/\\*[ \t]*\\$.*:[ \t]*([^ \t]*)[ \t]*\\*/" "\\1" LIBRARY ${LIBRARY})
+		target_link_libraries(${SO_NAME} ${LIBRARY})
+	endforeach(LIBRARY)
+
 	install(TARGETS ${SO_NAME} DESTINATION ${MODULE_PATH})
 endforeach(MODULE_NAME ${INSPIRCD_MODULES})
 

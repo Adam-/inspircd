@@ -30,14 +30,12 @@
 #include "ssl.h"
 #include "m_cap.h"
 
-#ifdef _WIN32
-# pragma comment(lib, "libgnutls-28.lib")
-#endif
-
 /* $ModDesc: Provides SSL support for clients */
 /* $CompileFlags: pkgconfincludes("gnutls","/gnutls/gnutls.h","") exec("libgcrypt-config --cflags") */
 /* $LinkerFlags: rpath("pkg-config --libs gnutls") pkgconflibs("gnutls","/libgnutls.so","-lgnutls") exec("libgcrypt-config --libs") */
 /* $NoPedantic */
+
+/* $WindowsMingwLibraries: gnutls */
 
 #ifndef GNUTLS_VERSION_MAJOR
 #define GNUTLS_VERSION_MAJOR LIBGNUTLS_VERSION_MAJOR
