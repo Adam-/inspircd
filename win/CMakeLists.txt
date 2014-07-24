@@ -66,7 +66,7 @@ endif(MSVC)
 if(MINGW)
 	target_link_libraries(inspircd ws2_32)
 endif(MINGW)
-target_link_libraries(inspircd iphlpapi)
+target_link_libraries(inspircd iphlpapi) # for configreader
 set_target_properties(inspircd PROPERTIES ENABLE_EXPORTS ON)
 install(TARGETS inspircd DESTINATION .)
 

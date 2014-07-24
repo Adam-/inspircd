@@ -17,7 +17,10 @@ foreach(MODULE_NAME ${INSPIRCD_MODULES})
 		target_link_libraries(${SO_NAME} win32_memory)
 		add_dependencies(${SO_NAME} win32_memory)
 	endif(MSVC)
-	target_link_libraries(${SO_NAME} psapi.lib ws2_32)
+	if(MINGW)
+		target_link_libraries(${SO_NAME} ws2_32)
+	endif(MINGW)
+	target_link_libraries(${SO_NAME} psapi) # for cmd_stats
 	install(TARGETS ${SO_NAME} DESTINATION ${MODULE_PATH})
 endforeach(MODULE_NAME ${INSPIRCD_MODULES})
 
