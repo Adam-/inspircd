@@ -66,13 +66,13 @@
 
 /* Normal windows (platform-specific) includes */
 #include <winsock2.h>
-#pragma comment(lib, "Ws2_32.lib")
 #include <windows.h>
 #include <ws2tcpip.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <direct.h>
 #include <process.h>
+#include <errno.h>
 
 /* strcasecmp is not defined on windows by default */
 #define strcasecmp _stricmp
