@@ -39,3 +39,4 @@ cp $LIBS_BASE/gnutls/bin/libgnutls-28.dll $BASE
 cd build
 rm -rf *
 cmake .. -DTOOLCHAIN_PREFIX=i686-w64-mingw32  -DCMAKE_TOOLCHAIN_FILE=../mingw-toolchain.cmake -DEXTRA_INCLUDES="$LIBS_BASE/geoip/include/;$LIBS_BASE/gnutls/include/;$LIBS_BASE/mysql/include/;$LIBS_BASE/openldap/include/;$LIBS_BASE/openssl/include/;$LIBS_BASE/pcre/include/;$LIBS_BASE/sqlite/include/;$LIBS_BASE/gnutls/include" -DEXTRA_LIBS="$LIBS_BASE/geoip/lib/;$LIBS_BASE/gnutls/lib/;$LIBS_BASE/mysql/lib/;$LIBS_BASE/openldap/lib;$LIBS_BASE/openssl/lib/;$LIBS_BASE/pcre/lib;$LIBS_BASE/sqlite/lib/;$LIBS_BASE/gnutls/lib"
+cat ../inspircd.rc
