@@ -1,0 +1,13 @@
+before_script: cd win && ./configure.sh
+script: make -C win/build
+
+before_deploy: cd win/build && cpack
+deploy:
+  provider: releases
+  api_key:
+    secure: ADZ0i5xFYXSl9NBxm33CtSgvuXicbiNLBWXJFijpHAKmrCVIke+Z26BMqPdvXYKWEsiSCu0NofB27YQbbwNwCzGJhhtgAia3E8D+wbBTX5Xirjym5VcyK3Oj4ftPf8EfVCjHd9AC75QqhIFQK4sijonBS6wJGD9NLQJYWrWKDtU=
+  file: win/build/InspIRCd-*.exe
+  on:
+    repo: Adam-/inspircd
+    tags: true
+    all_branches: true
