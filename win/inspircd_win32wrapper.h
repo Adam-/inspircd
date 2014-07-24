@@ -96,7 +96,7 @@ CoreExport const char * insp_inet_ntop(int af, const void * src, char * dst, soc
 #endif
 
 #define EINPROGRESS WSAEINPROGRESS
-#define ETIMEOUT WSAETIMEOUT
+#define ETIMEDOUT WSAETIMEDOUT
 #define ECONNREFUSED WSAECONNREFUSED
 #define EADDRINUSE WSAEADDRINUSE
 
