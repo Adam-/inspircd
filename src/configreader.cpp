@@ -29,7 +29,7 @@
 #include "commands/cmd_whowas.h"
 #include "configparser.h"
 #include <iostream>
-#ifdef _WIN32
+#ifdef _WIN32X
 #include <Iphlpapi.h>
 #pragma comment(lib, "Iphlpapi.lib")
 #endif
@@ -149,7 +149,7 @@ static void FindDNS(std::string& server)
 {
 	if (!server.empty())
 		return;
-#ifdef _WIN32
+#ifdef _WIN32X
 	// attempt to look up their nameserver from the system
 	ServerInstance->Logs->Log("CONFIG",DEFAULT,"WARNING: <dns:server> not defined, attempting to find a working server in the system settings...");
 

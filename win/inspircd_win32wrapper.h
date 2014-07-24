@@ -90,9 +90,11 @@ CoreExport const char * insp_inet_ntop(int af, const void * src, char * dst, soc
 #define inet_pton insp_inet_pton
 #define inet_ntop insp_inet_ntop
 
+#ifndef MINGW
 /* Safe printf functions aren't defined in VC++ */
 #define snprintf _snprintf
 #define vsnprintf _vsnprintf
+#endif
 
 /* Unix-style sleep (argument is in seconds) */
 __inline void sleep(int seconds) { Sleep(seconds * 1000); }
@@ -136,11 +138,13 @@ struct DIR
 	bool first;
 };
 
+#ifndef MINGW
 struct timespec
 {
 	time_t tv_sec;
 	long tv_nsec;
 };
+#endif
 
 CoreExport DIR * opendir(const char * path);
 CoreExport dirent * readdir(DIR * handle);
@@ -182,9 +186,11 @@ CoreExport void closedir(DIR * handle);
 #pragma warning(disable:4355)
 #endif
 
+#ifndef MINGW
 /* Shared memory allocation functions */
 void * ::operator new(size_t iSize);
 void ::operator delete(void * ptr);
+#endif
 
 #define DISABLE_WRITEV
 

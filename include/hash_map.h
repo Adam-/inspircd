@@ -44,7 +44,12 @@
 		#endif
 	#else
 		#include <unordered_map>
-		#define HAS_TR1_UNORDERED
+			/** Oddball linux namespace for hash_map */
+			#define nspace std
+		#define hash_map unordered_map
+			#define BEGIN_HASHMAP_NAMESPACE namespace nspace {
+			#define END_HASHMAP_NAMESPACE }
+		//#define HAS_TR1_UNORDERED
 		#define HASHMAP_DEPRECATED
 	#endif
 

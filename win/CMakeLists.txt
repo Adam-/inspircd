@@ -60,7 +60,12 @@ configure_file("${INSPIRCD_BASE}/win/inspircd_version.h.cmake" "${INSPIRCD_BASE}
 configure_file("${INSPIRCD_BASE}/win/inspircd_config.h.cmake" "${INSPIRCD_BASE}/win/inspircd_config.h")
 
 add_executable(inspircd ${INSPIRCD_SOURCES} "${INSPIRCD_BASE}/win/inspircd.rc")
-target_link_libraries(inspircd win32_memory)
+if(MSVC)
+	target_link_libraries(inspircd win32_memory)
+endif(MSVC)
+if(MINGW)
+	target_link_libraries(inspircd ws2_32)
+endif(MINGW)
 set_target_properties(inspircd PROPERTIES ENABLE_EXPORTS ON)
 install(TARGETS inspircd DESTINATION .)
 

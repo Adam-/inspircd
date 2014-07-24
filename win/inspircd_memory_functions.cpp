@@ -16,6 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifndef MINGW
+
 #include <windows.h>
 #include <exception>
 #include <new>
@@ -63,3 +65,5 @@ void operator delete[] (void* ptr)
 	if (ptr)
 		HeapFree(GetProcessHeap(), 0, ptr);
 }
+
+#endif

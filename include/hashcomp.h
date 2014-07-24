@@ -114,7 +114,7 @@ namespace irc
 	 * This class is used to implement irc::string, a case-insensitive, RFC-
 	 * comparing string class.
 	 */
-	struct irc_char_traits : std::char_traits<char> {
+	struct CoreExport irc_char_traits : std::char_traits<char> {
 
 		/** Check if two chars match.
 		 * @param c1st First character
@@ -144,7 +144,7 @@ namespace irc
 		 * @return similar to strcmp, zero for equal, less than zero for str1
 		 * being less and greater than zero for str1 being greater than str2.
 		 */
-		static CoreExport int compare(const char* str1, const char* str2, size_t n);
+		static int compare(const char* str1, const char* str2, size_t n);
 
 		/** Find a char within a string up to position n.
 		 * @param s1 String to find in
@@ -152,7 +152,7 @@ namespace irc
 		 * @param c Character to search for
 		 * @return Pointer to the first occurance of c in s1
 		 */
-		static CoreExport const char* find(const char* s1, int  n, char c);
+		static const char* find(const char* s1, int  n, char c);
 	};
 
 	/** Compose a hex string from raw data.
@@ -598,7 +598,7 @@ BEGIN_HASHMAP_NAMESPACE
 
 	/** Hashing function to hash irc::string
 	 */
-#if defined(_WIN32) && !defined(HAS_TR1_UNORDERED)
+#if defined(_WIN32XXXX) && !defined(HAS_TR1_UNORDERED)
 	template<> class CoreExport hash_compare<irc::string, std::less<irc::string> >
 	{
 	public:

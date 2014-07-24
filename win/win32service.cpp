@@ -121,13 +121,13 @@ VOID ServiceMain(DWORD argc, LPCSTR *argv)
 		try {
 			g_ServiceData.argv = new char*[argc];
 
-			uint32_t allocsize = strnlen_s(szModuleName, MAX_PATH) + 1;
+			uint32_t allocsize = strnlen(szModuleName, MAX_PATH) + 1;
 			g_ServiceData.argv[0] = new char[allocsize];
 			strcpy_s(g_ServiceData.argv[0], allocsize, szModuleName);
 
 			for(uint32_t i = 1; i < argc; i++)
 			{
-				allocsize = strnlen_s(argv[i], MAX_PATH) + 1;
+				allocsize = strnlen(argv[i], MAX_PATH) + 1;
 				g_ServiceData.argv[i] = new char[allocsize];
 				strcpy_s(g_ServiceData.argv[i], allocsize, argv[i]);
 			}
