@@ -31,7 +31,6 @@
 #include <iostream>
 #ifdef _WIN32
 #include <iphlpapi.h>
-#pragma comment(lib, "Iphlpapi.lib")
 #endif
 
 ServerConfig::ServerConfig()
