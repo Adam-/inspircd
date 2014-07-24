@@ -506,13 +506,8 @@ public:
 
 inline bool SocketEngine::IgnoreError()
 {
-	if (errno == EAGAIN)
+	if ((errno == EAGAIN) || (errno == EWOULDBLOCK))
 		return true;
-
-#ifdef EWOULDBLOCK
-	if (errno == EWOULDBLOCK)
-		return true;
-#endif
 
 #ifdef _WIN32
 	if (WSAGetLastError() == WSAEWOULDBLOCK)

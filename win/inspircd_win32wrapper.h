@@ -66,6 +66,7 @@
 
 /* Normal windows (platform-specific) includes */
 #include <winsock2.h>
+#pragma comment(lib, "Ws2_32.lib")
 #include <windows.h>
 #include <ws2tcpip.h>
 #include <sys/types.h>
@@ -94,11 +95,6 @@ CoreExport const char * insp_inet_ntop(int af, const void * src, char * dst, soc
 #define snprintf _snprintf
 #define vsnprintf _vsnprintf
 #endif
-
-#define EINPROGRESS WSAEINPROGRESS
-#define ETIMEDOUT WSAETIMEDOUT
-#define ECONNREFUSED WSAECONNREFUSED
-#define EADDRINUSE WSAEADDRINUSE
 
 /* Unix-style sleep (argument is in seconds) */
 __inline void sleep(int seconds) { Sleep(seconds * 1000); }

@@ -100,7 +100,7 @@ void DLLManager::RetrieveLastError()
 	char errmsg[500];
 	DWORD dwErrorCode = GetLastError();
 	if (FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, dwErrorCode, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)errmsg, _countof(errmsg), NULL) == 0)
-		snprintf(errmsg, _countof(errmsg), "Error code: %u", dwErrorCode);
+		sprintf_s(errmsg, _countof(errmsg), "Error code: %u", dwErrorCode);
 	SetLastError(ERROR_SUCCESS);
 	err = errmsg;
 
