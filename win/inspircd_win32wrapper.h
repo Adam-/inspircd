@@ -72,7 +72,6 @@
 #include <sys/stat.h>
 #include <direct.h>
 #include <process.h>
-#include <errno.h>
 
 /* strcasecmp is not defined on windows by default */
 #define strcasecmp _stricmp
@@ -95,6 +94,11 @@ CoreExport const char * insp_inet_ntop(int af, const void * src, char * dst, soc
 #define snprintf _snprintf
 #define vsnprintf _vsnprintf
 #endif
+
+#define EINPROGRESS WSAEINPROGRESS
+#define ETIMEOUT WSAETIMEOUT
+#define ECONNREFUSED WSAECONNREFUSED
+#define EADDRINUSE WSAEADDRINUSE
 
 /* Unix-style sleep (argument is in seconds) */
 __inline void sleep(int seconds) { Sleep(seconds * 1000); }
