@@ -5,6 +5,8 @@ BASE=`pwd`
 INSPIRCD_BASE=$BASE/../
 LIBS_BASE=$BASE/windows-libs
 
+dpkg -s g++-mingw-w64-i686
+
 # Unpack extra libraries
 if [ ! -f windows-libs.tar.gz ] ; then
 	wget https://github.com/Adam-/windows-scripts/releases/download/$LIBS_TAG/windows-libs.tar.gz
