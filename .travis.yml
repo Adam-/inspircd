@@ -1,5 +1,5 @@
 before_install: sudo apt-get update -qq
-install: sudo apt-get install -y g++-mingw-w64-i686
+install: sudo apt-get install -y -f gcc-mingw-w64-i686 g++-mingw-w64-i686 binutils-mingw-w64-i686 mingw-w64-dev lzip cmake
 before_script: cd win && ./configure.sh
 script: make -C build
 
