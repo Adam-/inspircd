@@ -66,7 +66,6 @@
 
 /* Normal windows (platform-specific) includes */
 #include <winsock2.h>
-#pragma comment(lib, "Ws2_32.lib")
 #include <windows.h>
 #include <ws2tcpip.h>
 #include <sys/types.h>
