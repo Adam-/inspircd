@@ -1,3 +1,14 @@
+inspircd (2.0.16-2) unstable; urgency=medium
+
+  * To re-enable hardening flags:
+    + Replace DEB_BUILD_HARDENING by DEB_BUILD_MAINT_OPTIONS to enable
+      dpkg-buildflags without pie
+    + debian/patches/01_dpkg-buildflags_support.diff: Patch upstream Makefile
+      template to use CPPFLAGS and custom LDFLAGS, CXXFLAGS; enable PIE on
+      inspircd binary only as libraries already compiled with PIC
+
+ -- Guillaume Delacour <gui@iroqwa.org>  Sun, 20 Jul 2014 23:23:42 +0200
+
 inspircd (2.0.16-1) unstable; urgency=low
 
   [ Guillaume Delacour ]

@@ -6,8 +6,10 @@ Origin: upstream, https://github.com/inspircd/inspircd/commit/690c372f6ef246b43b
 Forwarded: not-needed
 Last-Update: 2014-07-13
 
---- a/src/modules/extra/m_ssl_gnutls.cpp
-+++ b/src/modules/extra/m_ssl_gnutls.cpp
+Index: inspircd-2.0.16/src/modules/extra/m_ssl_gnutls.cpp
+===================================================================
+--- inspircd-2.0.16.orig/src/modules/extra/m_ssl_gnutls.cpp
++++ inspircd-2.0.16/src/modules/extra/m_ssl_gnutls.cpp
 @@ -22,12 +22,18 @@
  
  

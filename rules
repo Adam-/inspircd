@@ -1,8 +1,9 @@
 #!/usr/bin/make -f
 # -*- makefile -*-
 
-# hardening options at build time
-export DEB_BUILD_HARDENING=1
+# hardening options at build time, without PIE enabled globally
+# enable PIE on inspircd binary only in upstream build system
+export DEB_BUILD_MAINT_OPTIONS=hardening=+all,-pie
 
 # use DEB_BUILD_OPTIONS="parallel=n" to parallelize the build
 ifneq (,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
