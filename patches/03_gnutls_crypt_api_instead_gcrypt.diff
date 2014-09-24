@@ -1,0 +1,66 @@
+From: Peter Powell <petpow@saberuk.com>
+Subject: [PATCH] Use gnutls_rnd instead of gcry_randomize on newer GnuTLS
+ versions.
+Origin: upstream, https://github.com/inspircd/inspircd/issues/905
+Bug-Debian: http://bugs.debian.org/745948
+
+This is a modified version of 690c372.
+---
+ make/utilities.pm                  | 9 +++++++++
+ src/modules/extra/m_ssl_gnutls.cpp | 9 +++------
+ 2 files changed, 12 insertions(+), 6 deletions(-)
+
+diff --git a/make/utilities.pm b/make/utilities.pm
+index 42dd6b5..ae16ce3 100644
+--- a/make/utilities.pm
++++ b/make/utilities.pm
+@@ -319,6 +319,15 @@ sub translate_functions($$)
+ 			die "Developers should no longer use backticks in configuration macros. Please use exec() and eval() macros instead. Offending line: $line (In module: $module)";
+ 		}
+ 
++		if ($line =~ /if(gt|lt)\("(.+?)","(.+?)"\)/) {
++			chomp(my $result = `$2 2>/dev/null`);
++			if (($1 eq 'gt' && $result le $3) || ($1 eq 'lt' && $result ge $3)) {
++				$line = substr $line, 0, $-[0];
++			} else {
++				$line =~ s/if$1\("$2","$3"\)//;
++			}
++		}
++
+ 		if ($line =~ /ifuname\(\!"(\w+)"\)/)
+ 		{
+ 			my $uname = $1;
+diff --git a/src/modules/extra/m_ssl_gnutls.cpp b/src/modules/extra/m_ssl_gnutls.cpp
+index 6a6a792..1779937 100644
+--- a/src/modules/extra/m_ssl_gnutls.cpp
++++ b/src/modules/extra/m_ssl_gnutls.cpp
+@@ -22,9 +22,6 @@
+ 
+ 
+ #include "inspircd.h"
+-#ifndef _WIN32
+-#include <gcrypt.h>
+-#endif
+ #include <gnutls/gnutls.h>
+ #include <gnutls/x509.h>
+ #include "ssl.h"
+@@ -35,8 +32,8 @@
+ #endif
+ 
+ /* $ModDesc: Provides SSL support for clients */
+-/* $CompileFlags: pkgconfincludes("gnutls","/gnutls/gnutls.h","") exec("libgcrypt-config --cflags") */
+-/* $LinkerFlags: rpath("pkg-config --libs gnutls") pkgconflibs("gnutls","/libgnutls.so","-lgnutls") exec("libgcrypt-config --libs") */
++/* $CompileFlags: pkgconfincludes("gnutls","/gnutls/gnutls.h","") iflt("pkg-config --modversion gnutls","2.12") exec("libgcrypt-config --cflags") */
++/* $LinkerFlags: rpath("pkg-config --libs gnutls") pkgconflibs("gnutls","/libgnutls.so","-lgnutls") iflt("pkg-config --modversion gnutls","2.12") exec("libgcrypt-config --libs") */
+ /* $NoPedantic */
+ 
+ #ifndef GNUTLS_VERSION_MAJOR
+@@ -55,7 +52,7 @@ typedef gnutls_certificate_credentials_t gnutls_certificate_credentials;
+ typedef gnutls_dh_params_t gnutls_dh_params;
+ #endif
+ 
+-#if (defined(_WIN32) && (GNUTLS_VERSION_MAJOR > 2 || (GNUTLS_VERSION_MAJOR == 2 && GNUTLS_VERSION_MINOR >= 12)))
++#if (GNUTLS_VERSION_MAJOR > 2 || (GNUTLS_VERSION_MAJOR == 2 && GNUTLS_VERSION_MINOR >= 12))
+ # define GNUTLS_HAS_RND
+ # include <gnutls/crypto.h>
+ #else

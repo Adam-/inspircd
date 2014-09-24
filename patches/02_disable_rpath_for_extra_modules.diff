@@ -1,11 +1,13 @@
 From: Guillaume Delacour <gui@iroqwa.org>
 Subject: Disable rpath build option in modules
-Last-Update: 2013-12-18
+Last-Update: 2014-09-24
 Forwarded: not-needed
 
---- a/src/modules/extra/m_mysql.cpp
-+++ b/src/modules/extra/m_mysql.cpp
-@@ -37,7 +37,7 @@
+Index: inspircd-2.0.17/src/modules/extra/m_mysql.cpp
+===================================================================
+--- inspircd-2.0.17.orig/src/modules/extra/m_mysql.cpp
++++ inspircd-2.0.17/src/modules/extra/m_mysql.cpp
+@@ -35,7 +35,7 @@
  
  /* $ModDesc: SQL Service Provider module for all other m_sql* modules */
  /* $CompileFlags: exec("mysql_config --include") */
@@ -14,47 +16,3 @@ Forwarded: not-needed
  
  /* THE NONBLOCKING MYSQL API!
   *
---- a/src/modules/extra/m_regex_pcre.cpp
-+++ b/src/modules/extra/m_regex_pcre.cpp
-@@ -25,7 +25,7 @@
- /* $ModDesc: Regex Provider Module for PCRE */
- /* $ModDep: m_regex.h */
- /* $CompileFlags: exec("pcre-config --cflags") */
--/* $LinkerFlags: exec("pcre-config --libs") rpath("pcre-config --libs") -lpcre */
-+/* $LinkerFlags: exec("pcre-config --libs") */
- 
- #ifdef _WIN32
- # pragma comment(lib, "libpcre.lib")
---- a/src/modules/extra/m_regex_tre.cpp
-+++ b/src/modules/extra/m_regex_tre.cpp
-@@ -25,7 +25,7 @@
- 
- /* $ModDesc: Regex Provider Module for TRE Regular Expressions */
- /* $CompileFlags: pkgconfincludes("tre","tre/regex.h","") */
--/* $LinkerFlags: pkgconflibs("tre","/libtre.so","-ltre") rpath("pkg-config --libs tre") */
-+/* $LinkerFlags: pkgconflibs("tre","/libtre.so","-ltre") */
- /* $ModDep: m_regex.h */
- 
- class TRERegexException : public ModuleException
---- a/src/modules/extra/m_ssl_gnutls.cpp
-+++ b/src/modules/extra/m_ssl_gnutls.cpp
-@@ -41,7 +41,7 @@
- 
- /* $ModDesc: Provides SSL support for clients */
- /* $CompileFlags: pkgconfincludes("gnutls","/gnutls/gnutls.h","") exec("libgcrypt-config --cflags") */
--/* $LinkerFlags: rpath("pkg-config --libs gnutls") pkgconflibs("gnutls","/libgnutls.so","-lgnutls") exec("libgcrypt-config --libs") */
-+/* $LinkerFlags: pkgconflibs("gnutls","/libgnutls.so","-lgnutls") exec("libgcrypt-config --libs") */
- /* $NoPedantic */
- 
- #ifndef GNUTLS_VERSION_MAJOR
---- a/src/modules/extra/m_ssl_openssl.cpp
-+++ b/src/modules/extra/m_ssl_openssl.cpp
-@@ -51,7 +51,7 @@
- 
- /* $LinkerFlags: if("USE_FREEBSD_BASE_SSL") -lssl -lcrypto */
- /* $CompileFlags: if(!"USE_FREEBSD_BASE_SSL") pkgconfversion("openssl","0.9.7") pkgconfincludes("openssl","/openssl/ssl.h","") */
--/* $LinkerFlags: if(!"USE_FREEBSD_BASE_SSL") rpath("pkg-config --libs openssl") pkgconflibs("openssl","/libssl.so","-lssl -lcrypto -ldl") */
-+/* $LinkerFlags: if(!"USE_FREEBSD_BASE_SSL") pkgconflibs("openssl","/libssl.so","-lssl -lcrypto -ldl") */
- 
- /* $NoPedantic */
- 

@@ -1,3 +1,14 @@
+inspircd (2.0.17-1) unstable; urgency=medium
+
+  * New upstream release
+  * Refresh debian/patches/03_gnutls_crypt_api_instead_gcrypt.diff and
+    cherry-pick upstream fix to use gnutls_rnd instead of gcry_randomize
+  * Refresh debian/patches/02_disable_rpath_for_extra_modules.diff
+   to only patch m_mysql as upstream use a DISABLE_RPATH environnement
+   variable that disable rpath in all other modules
+
+ -- Guillaume Delacour <gui@iroqwa.org>  Fri, 05 Sep 2014 18:05:19 +0200
+
 inspircd (2.0.16-2) unstable; urgency=medium
 
   * To re-enable hardening flags:

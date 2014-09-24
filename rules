@@ -21,7 +21,7 @@ INSPIRCD_MODULES  = $(SSL_MODULE),$(DATABASES_MODULES),$(OTHER_MODULES)
 
 override_dh_auto_configure:
 	# Enable extra modules
-	./configure --enable-extras=$(INSPIRCD_MODULES)
+	DISABLE_RPATH=yes ./configure --enable-extras=$(INSPIRCD_MODULES)
 
 	# Really launch configure
 	./configure --disable-interactive \
