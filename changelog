@@ -1,3 +1,10 @@
+inspircd (2.0.17-2) unstable; urgency=medium
+
+  * Use an integer instead of seconds when calling sleep in initscript
+    (Closes: #772337)
+
+ -- Guillaume Delacour <gui@iroqwa.org>  Sat, 06 Dec 2014 16:08:35 +0100
+
 inspircd (2.0.17-1) unstable; urgency=medium
 
   * New upstream release
