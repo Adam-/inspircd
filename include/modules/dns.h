@@ -124,6 +124,7 @@ namespace DNS
 
 	class ReplySocket;
 	class Request;
+	class Nameserver;
 
 	/** DNS manager
 	 */
@@ -135,6 +136,7 @@ namespace DNS
 		virtual void Process(Request* req) = 0;
 		virtual void RemoveRequest(Request* req) = 0;
 		virtual std::string GetErrorStr(Error) = 0;
+		virtual void OnEvent(Nameserver *ns, EventType et) = 0;
 	};
 
 	/** A DNS query.
@@ -150,6 +152,7 @@ namespace DNS
 	 	unsigned short id;
 	 	/* Creator of this request */
 		Module* const creator;
+		Nameserver *nameserver;
 
 		Request(Manager* mgr, Module* mod, const std::string& addr, QueryType qt, bool usecache = true)
 			: Timer((ServerInstance->Config->dns_timeout ? ServerInstance->Config->dns_timeout : 5))
@@ -158,6 +161,7 @@ namespace DNS
 			, use_cache(usecache)
 			, id(0)
 			, creator(mod)
+			, nameserver(NULL)
 		{
 			ServerInstance->Timers.AddTimer(this);
 		}

@@ -394,17 +394,57 @@ class Packet : public Query
 	}
 };
 
-class MyManager : public Manager, public Timer, public EventHandler
+class DNS::Nameserver : public EventHandler
+{
+ public:
+	Manager *manager;
+	irc::sockets::sockaddrs address; /* address of nameserver */
+	int num_requests;
+	DNS::Request* requests[MAX_REQUEST_ID]; /* pending requests to this ns */
+
+	Nameserver(Manager *m) : manager(m)
+	{
+		num_requests = 0;
+		for (int i = 0; i < MAX_REQUEST_ID; ++i)
+			requests[i] = NULL;
+	}
+
+	~Nameserver()
+	{
+		SocketEngine::Shutdown(this, 2);
+		SocketEngine::Close(this);
+	}
+
+	void HandleEvent(EventType et, int) CXX11_OVERRIDE
+	{
+		manager->OnEvent(this, et);
+	}
+};
+
+class MyManager : public Manager, public Timer
 {
 	typedef TR1NS::unordered_map<Question, Query, Question::hash> cache_map;
 	cache_map cache;
-
-	irc::sockets::sockaddrs myserver;
 
 	static bool IsExpired(const Query& record, time_t now = ServerInstance->Time())
 	{
 		const ResourceRecord& req = record.answers[0];
 		return (req.created + static_cast<time_t>(req.ttl) < now);
+	}
+
+	Nameserver *FindAvailableNameserver()
+	{
+		Nameserver *ns = NULL;
+
+		for (unsigned int i = 0; i < nameservers.size(); ++i)
+		{
+			Nameserver *n = nameservers[i];
+
+			if (ns == NULL || n->num_requests < ns->num_requests)
+				ns = n;
+		}
+
+		return ns;
 	}
 
 	/** Check the DNS cache to see if request can be handled by a cached result
@@ -442,34 +482,53 @@ class MyManager : public Manager, public Timer, public EventHandler
 	}
 
  public:
-	DNS::Request* requests[MAX_REQUEST_ID];
+	std::vector<Nameserver *> nameservers;
 
 	MyManager(Module* c) : Manager(c), Timer(3600, true)
 	{
-		for (int i = 0; i < MAX_REQUEST_ID; ++i)
-			requests[i] = NULL;
 		ServerInstance->Timers.AddTimer(this);
 	}
 
 	~MyManager()
 	{
-		for (int i = 0; i < MAX_REQUEST_ID; ++i)
+		for (unsigned int j = 0; j < nameservers.size(); ++j)
 		{
-			DNS::Request* request = requests[i];
-			if (!request)
-				continue;
+			Nameserver *ns = nameservers[j];
 
-			Query rr(*request);
-			rr.error = ERROR_UNKNOWN;
-			request->OnError(&rr);
+			for (int i = 0; i < MAX_REQUEST_ID; ++i)
+			{
+				DNS::Request* request = ns->requests[i];
+				if (!request)
+					continue;
 
-			delete request;
+				Query rr(*request);
+				rr.error = ERROR_UNKNOWN;
+				request->OnError(&rr);
+
+				delete request;
+			}
+
+			delete ns;
 		}
 	}
 
 	void Process(DNS::Request* req)
 	{
-		ServerInstance->Logs->Log(MODNAME, LOG_DEBUG, "Processing request to lookup " + req->name + " of type " + ConvToStr(req->type) + " to " + this->myserver.addr());
+		Nameserver *ns = FindAvailableNameserver();
+		
+		if (ns == NULL)
+		{
+			ServerInstance->Logs->Log(MODNAME, LOG_DEBUG, "Unable to process request to lookup " + req->name + " of type " + ConvToStr(req->type) + ", unable to find available nameserver");
+			throw Exception("DNS: no available nameservers");
+		}
+		
+		/* id 0 isn't used */
+		if (ns->num_requests == MAX_REQUEST_ID - 1)
+		{
+			throw Exception("DNS: all requests in use");
+		}
+
+		ServerInstance->Logs->Log(MODNAME, LOG_DEBUG, "Processing request to lookup " + req->name + " of type " + ConvToStr(req->type) + " to " + ns->address.addr());
 
 		/* Create an id */
 		unsigned int tries = 0;
@@ -484,7 +543,7 @@ class MyManager : public Manager, public Timer, public EventHandler
 				req->id = 0;
 				for (int i = 1; i < DNS::MAX_REQUEST_ID; i++)
 				{
-					if (!this->requests[i])
+					if (!ns->requests[i])
 					{
 						req->id = i;
 						break;
@@ -492,14 +551,16 @@ class MyManager : public Manager, public Timer, public EventHandler
 				}
 
 				if (req->id == 0)
-					throw Exception("DNS: All ids are in use");
+					throw CoreException("DNS: corrupted state, unable to find availabe id on full table scan");
 
 				break;
 			}
 		}
-		while (!req->id || this->requests[req->id]);
+		while (!req->id || ns->requests[req->id]);
 
-		this->requests[req->id] = req;
+		req->nameserver = ns;
+		ns->requests[req->id] = req;
+		++ns->num_requests;
 
 		Packet p;
 		p.flags = QUERYFLAGS_RD;
@@ -519,13 +580,15 @@ class MyManager : public Manager, public Timer, public EventHandler
 			return;
 		}
 
-		if (SocketEngine::SendTo(this, buffer, len, 0, &this->myserver.sa, this->myserver.sa_size()) != len)
+		if (SocketEngine::SendTo(ns, buffer, len, 0, &ns->address.sa, ns->address.sa_size()) != len)
 			throw Exception("DNS: Unable to send query");
 	}
 
 	void RemoveRequest(DNS::Request* req)
 	{
-		this->requests[req->id] = NULL;
+		--req->nameserver->num_requests;
+		req->nameserver->requests[req->id] = NULL;
+		req->nameserver = NULL;
 	}
 
 	std::string GetErrorStr(Error e)
@@ -555,7 +618,7 @@ class MyManager : public Manager, public Timer, public EventHandler
 		}
 	}
 
-	void HandleEvent(EventType et, int)
+	void OnEvent(Nameserver *ns, EventType et) CXX11_OVERRIDE
 	{
 		if (et == EVENT_ERROR)
 		{
@@ -567,7 +630,7 @@ class MyManager : public Manager, public Timer, public EventHandler
 		irc::sockets::sockaddrs from;
 		socklen_t x = sizeof(from);
 
-		int length = SocketEngine::RecvFrom(this, buffer, sizeof(buffer), 0, &from.sa, &x);
+		int length = SocketEngine::RecvFrom(ns, buffer, sizeof(buffer), 0, &from.sa, &x);
 
 		if (length < Packet::HEADER_LENGTH)
 			return;
@@ -584,16 +647,16 @@ class MyManager : public Manager, public Timer, public EventHandler
 			return;
 		}
 
-		if (myserver != from)
+		if (ns->address != from)
 		{
 			std::string server1 = from.str();
-			std::string server2 = myserver.str();
+			std::string server2 = ns->address.str();
 			ServerInstance->Logs->Log(MODNAME, LOG_DEBUG, "Got a result from the wrong server! Bad NAT or DNS forging attempt? '%s' != '%s'",
 				server1.c_str(), server2.c_str());
 			return;
 		}
 
-		DNS::Request* request = this->requests[recv_packet.id];
+		DNS::Request* request = ns->requests[recv_packet.id];
 		if (request == NULL)
 		{
 			ServerInstance->Logs->Log(MODNAME, LOG_DEBUG, "Received an answer for something we didn't request");
@@ -677,50 +740,56 @@ class MyManager : public Manager, public Timer, public EventHandler
 		return true;
 	}
 
-	void Rehash(const std::string& dnsserver)
+	void Rehash(const std::vector<std::string>& dnsservers)
 	{
-		if (this->GetFd() > -1)
+		for (unsigned int i = 0; i < nameservers.size(); ++i)
+			delete nameservers[i];
+		nameservers.clear();
+
+		/* Remove expired entries from the cache */
+		this->Tick(ServerInstance->Time());
+
+		for (unsigned int i = 0; i < dnsservers.size(); ++i)
 		{
-			SocketEngine::Shutdown(this, 2);
-			SocketEngine::Close(this);
+			Nameserver *ns = new Nameserver(this);
 
-			/* Remove expired entries from the cache */
-			this->Tick(ServerInstance->Time());
-		}
+			irc::sockets::aptosa(dnsservers[i], DNS::PORT, ns->address);
 
-		irc::sockets::aptosa(dnsserver, DNS::PORT, myserver);
+			/* Initialize mastersocket */
+			int s = socket(ns->address.sa.sa_family, SOCK_DGRAM, 0);
+			ns->SetFd(s);
 
-		/* Initialize mastersocket */
-		int s = socket(myserver.sa.sa_family, SOCK_DGRAM, 0);
-		this->SetFd(s);
-
-		/* Have we got a socket? */
-		if (this->GetFd() != -1)
-		{
-			SocketEngine::SetReuse(s);
-			SocketEngine::NonBlocking(s);
-
-			irc::sockets::sockaddrs bindto;
-			memset(&bindto, 0, sizeof(bindto));
-			bindto.sa.sa_family = myserver.sa.sa_family;
-
-			if (SocketEngine::Bind(this->GetFd(), bindto) < 0)
+			/* Have we got a socket? */
+			if (ns->GetFd() != -1)
 			{
-				/* Failed to bind */
-				ServerInstance->Logs->Log(MODNAME, LOG_SPARSE, "Error binding dns socket - hostnames will NOT resolve");
-				SocketEngine::Close(this->GetFd());
-				this->SetFd(-1);
+				SocketEngine::SetReuse(s);
+				SocketEngine::NonBlocking(s);
+
+				irc::sockets::sockaddrs bindto;
+				memset(&bindto, 0, sizeof(bindto));
+				bindto.sa.sa_family = ns->address.sa.sa_family;
+
+				if (SocketEngine::Bind(ns->GetFd(), bindto) < 0)
+				{
+					/* Failed to bind */
+					ServerInstance->Logs->Log(MODNAME, LOG_SPARSE, "Error binding dns socket - hostnames may not resolve");
+					delete ns;
+				}
+				else if (!SocketEngine::AddFd(ns, FD_WANT_POLL_READ | FD_WANT_NO_WRITE))
+				{
+					ServerInstance->Logs->Log(MODNAME, LOG_SPARSE, "Internal error starting DNS - hostnames may not resolve.");
+					delete ns;
+				}
+				else
+				{
+					nameservers.push_back(ns);
+				}
 			}
-			else if (!SocketEngine::AddFd(this, FD_WANT_POLL_READ | FD_WANT_NO_WRITE))
+			else
 			{
-				ServerInstance->Logs->Log(MODNAME, LOG_SPARSE, "Internal error starting DNS - hostnames will NOT resolve.");
-				SocketEngine::Close(this->GetFd());
-				this->SetFd(-1);
+				ServerInstance->Logs->Log(MODNAME, LOG_SPARSE, "Error creating DNS socket - hostnames may not resolve");
+				delete ns;
 			}
-		}
-		else
-		{
-			ServerInstance->Logs->Log(MODNAME, LOG_SPARSE, "Error creating DNS socket - hostnames will NOT resolve");
 		}
 	}
 };
@@ -728,10 +797,12 @@ class MyManager : public Manager, public Timer, public EventHandler
 class ModuleDNS : public Module
 {
 	MyManager manager;
-	std::string DNSServer;
+	std::vector<std::string> dns_servers;
 
-	void FindDNSServer()
+	std::vector<std::string> FindDNSServer()
 	{
+		std::vector<std::string> servers;
+
 #ifdef _WIN32
 		// attempt to look up their nameserver from the system
 		ServerInstance->Logs->Log("CONFIG", LOG_DEFAULT, "WARNING: <dns:server> not defined, attempting to find a working server in the system settings...");
@@ -751,7 +822,7 @@ class ModuleDNS : public Module
 			if (pFixedInfo)
 			{
 				if (GetNetworkParams(pFixedInfo, &dwBufferSize) == NO_ERROR)
-					DNSServer = pFixedInfo->DnsServerList.IpAddress.String;
+					servers.push_back(pFixedInfo->DnsServerList.IpAddress.String);
 
 				HeapFree(GetProcessHeap(), 0, pFixedInfo);
 			}
@@ -764,28 +835,35 @@ class ModuleDNS : public Module
 		}
 
 		ServerInstance->Logs->Log("CONFIG", LOG_DEFAULT, "No viable nameserver found! Defaulting to nameserver '127.0.0.1'!");
+		servers.push_back("127.0.0.1");
 #else
 		// attempt to look up their nameserver from /etc/resolv.conf
 		ServerInstance->Logs->Log("CONFIG", LOG_DEFAULT, "WARNING: <dns:server> not defined, attempting to find working server in /etc/resolv.conf...");
 
 		std::ifstream resolv("/etc/resolv.conf");
 
-		while (resolv >> DNSServer)
+		std::string buf;
+		while (resolv >> buf)
 		{
-			if (DNSServer == "nameserver")
+			if (buf == "nameserver")
 			{
-				resolv >> DNSServer;
-				if (DNSServer.find_first_not_of("0123456789.") == std::string::npos)
+				resolv >> buf;
+				if (buf.find_first_not_of("0123456789.abcdefABCDEF:") == std::string::npos)
 				{
-					ServerInstance->Logs->Log("CONFIG", LOG_DEFAULT, "<dns:server> set to '%s' as first resolver in /etc/resolv.conf.",DNSServer.c_str());
-					return;
+					servers.push_back(buf);
+					ServerInstance->Logs->Log("CONFIG", LOG_DEFAULT, "Added '%s' to <dns:server> from /etc/resolv.conf.", buf.c_str());
 				}
 			}
 		}
 
-		ServerInstance->Logs->Log("CONFIG", LOG_DEFAULT, "/etc/resolv.conf contains no viable nameserver entries! Defaulting to nameserver '127.0.0.1'!");
+		if (servers.empty())
+		{
+			ServerInstance->Logs->Log("CONFIG", LOG_DEFAULT, "/etc/resolv.conf contains no viable nameserver entries! Defaulting to nameserver '127.0.0.1'!");
+			servers.push_back("127.0.0.1");
+		}
 #endif
-		DNSServer = "127.0.0.1";
+
+		return servers;
 	}
 
  public:
@@ -795,35 +873,47 @@ class ModuleDNS : public Module
 
 	void ReadConfig(ConfigStatus& status) CXX11_OVERRIDE
 	{
-		std::string oldserver = DNSServer;
-		DNSServer = ServerInstance->Config->ConfValue("dns")->getString("server");
-		if (DNSServer.empty())
-			FindDNSServer();
+		std::vector<std::string> newservers;
 
-		if (oldserver != DNSServer)
-			this->manager.Rehash(DNSServer);
+		irc::spacesepstream sep(ServerInstance->Config->ConfValue("dns")->getString("server"));
+		for (std::string s; sep.GetToken(s);)
+			newservers.push_back(s);
+
+		if (newservers.empty())
+			newservers = FindDNSServer();
+
+		if (dns_servers != newservers)
+		{
+			this->manager.Rehash(newservers);
+			dns_servers = newservers;
+		}
 	}
 
-	void OnUnloadModule(Module* mod)
+	void OnUnloadModule(Module* mod) CXX11_OVERRIDE
 	{
-		for (int i = 0; i < MAX_REQUEST_ID; ++i)
+		for (unsigned int j = 0; j < this->manager.nameservers.size(); ++j)
 		{
-			DNS::Request* req = this->manager.requests[i];
-			if (!req)
-				continue;
+			Nameserver *n = this->manager.nameservers[j];
 
-			if (req->creator == mod)
+			for (int i = 0; i < MAX_REQUEST_ID; ++i)
 			{
-				Query rr(*req);
-				rr.error = ERROR_UNLOADED;
-				req->OnError(&rr);
+				DNS::Request* req = n->requests[i];
+				if (!req)
+					continue;
 
-				delete req;
+				if (req->creator == mod)
+				{
+					Query rr(*req);
+					rr.error = ERROR_UNLOADED;
+					req->OnError(&rr);
+
+					delete req;
+				}
 			}
 		}
 	}
 
-	Version GetVersion()
+	Version GetVersion() CXX11_OVERRIDE
 	{
 		return Version("DNS support", VF_CORE|VF_VENDOR);
 	}
