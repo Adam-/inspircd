@@ -13,10 +13,11 @@ Build-Depends: debhelper (>= 9.0.0), perl-modules, libgnutls28-dev, pkg-config,
                libldap2-dev, libpcre3-dev, libmysqlclient-dev, libpq-dev,
                libsqlite3-dev, zlib1g-dev, libgeoip-dev,
                libtre-dev, dh-systemd (>= 1.5)
-Standards-Version: 3.9.5
+Standards-Version: 3.9.6
+XS-Testsuite: autopkgtest
 Homepage: http://www.inspircd.org/
-Vcs-Svn: svn://anonscm.debian.org/pkg-irc/packages/inspircd2/trunk/
-Vcs-Browser: http://anonscm.debian.org/viewvc/pkg-irc/packages/inspircd2/trunk/
+Vcs-Browser: http://anonscm.debian.org/gitweb/?p=collab-maint/inspircd.git
+Vcs-Git: git://anonscm.debian.org/collab-maint/inspircd.git
 
 Package: inspircd
 Architecture: any
