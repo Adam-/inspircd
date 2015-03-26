@@ -43,6 +43,7 @@
 #include <cstring>
 #include <climits>
 #include <cstdio>
+#include <stdint.h>
 
 #include <sstream>
 #include <string>
