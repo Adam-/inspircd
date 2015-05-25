@@ -4,10 +4,10 @@ Description: Remove __{DATE,TIME}__ usage to do reproducible builds
 Forwarded: not-needed
 Last-Update: 2015-02-12
 
-Index: inspircd/src/inspircd.cpp
+Index: inspircd.new/src/inspircd.cpp
 ===================================================================
---- inspircd.orig/src/inspircd.cpp
-+++ inspircd/src/inspircd.cpp
+--- inspircd.new.orig/src/inspircd.cpp
++++ inspircd.new/src/inspircd.cpp
 @@ -511,7 +511,7 @@ InspIRCd::InspIRCd(int argc, char** argv
  		}
  	}
@@ -17,18 +17,17 @@ Index: inspircd/src/inspircd.cpp
  	std::cout << con_green << "(C) InspIRCd Development Team." << con_reset << std::endl << std::endl;
  	std::cout << "Developers:" << std::endl;
  	std::cout << con_green << "\tBrain, FrostyCoolSlug, w00t, Om, Special, peavey" << std::endl;
-Index: inspircd/src/users.cpp
+Index: inspircd.new/src/users.cpp
 ===================================================================
---- inspircd.orig/src/users.cpp
-+++ inspircd/src/users.cpp
-@@ -785,7 +785,9 @@ void LocalUser::FullConnect()
+--- inspircd.new.orig/src/users.cpp
++++ inspircd.new/src/users.cpp
+@@ -785,7 +785,8 @@ void LocalUser::FullConnect()
  		this->WriteServ("NOTICE Auth :Welcome to \002%s\002!",ServerInstance->Config->Network.c_str());
  	this->WriteNumeric(RPL_WELCOME, "%s :Welcome to the %s IRC Network %s",this->nick.c_str(), ServerInstance->Config->Network.c_str(), GetFullRealHost().c_str());
  	this->WriteNumeric(RPL_YOURHOSTIS, "%s :Your host is %s, running version %s",this->nick.c_str(),ServerInstance->Config->ServerName.c_str(),BRANCH);
 -	this->WriteNumeric(RPL_SERVERCREATED, "%s :This server was created %s %s", this->nick.c_str(), __TIME__, __DATE__);
-+	// static const std::string startup_timestr = InspIRCd::TimeString(ServerInstance->startup_time, "%H:%M:%S %b %e %Y");
 +	// this->WriteNumeric(RPL_SERVERCREATED, ":This server was started %s", startup_timestr.c_str());
-+	this->WriteNumeric(RPL_SERVERCREATED, "%s :This server was created on Debian");
++	this->WriteNumeric(RPL_SERVERCREATED, "%s :This server was created on Debian", this->nick.c_str());
  
  	std::string umlist = ServerInstance->Modes->UserModeList();
  	std::string cmlist = ServerInstance->Modes->ChannelModeList();

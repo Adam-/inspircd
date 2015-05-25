@@ -1,4 +1,4 @@
-inspircd (2.0.18-1) UNRELEASED; urgency=medium
+inspircd (2.0.20-1) unstable; urgency=medium
 
   * New upstream release, drop 03_gnutls_crypt_api_instead_gcrypt.diff
   * 04_reproducible_builds.diff: Remove message containing __{DATE,TIME}__ to do
@@ -6,8 +6,9 @@ inspircd (2.0.18-1) UNRELEASED; urgency=medium
   * Bump to Standards-Version 3.9.6 (no changes needed)
   * Enable autopkgtest suite and provide minimal test client.pl
   * Change Vcs-{Browser,Git}, as the packaging have been migrated to git
+  * Remove obsolete debian/README.source file
 
- -- Guillaume Delacour <gui@iroqwa.org>  Sat, 21 Feb 2015 14:23:08 +0100
+ -- Guillaume Delacour <gui@iroqwa.org>  Mon, 25 May 2015 21:35:06 +0200
 
 inspircd (2.0.17-2) unstable; urgency=medium
 
