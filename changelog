@@ -8,7 +8,7 @@ inspircd (2.0.20-1) unstable; urgency=medium
   * Change Vcs-{Browser,Git}, as the packaging have been migrated to git
   * Remove obsolete debian/README.source file
 
- -- Guillaume Delacour <gui@iroqwa.org>  Mon, 25 May 2015 21:35:06 +0200
+ -- Guillaume Delacour <gui@iroqwa.org>  Tue, 26 May 2015 20:54:00 +0200
 
 inspircd (2.0.17-2) unstable; urgency=medium
 
