@@ -1,3 +1,2 @@
 Tests: client.pl
 Depends: inspircd
-Restrictions: needs-root
