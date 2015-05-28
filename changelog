@@ -1,3 +1,12 @@
+inspircd (2.0.20-2) unstable; urgency=medium
+
+  * Reproducible builds:
+    + 04_reproducible_builds.diff: Fix version don't set revision with unrelated
+    git packaging tags and only use kernel name (no hostname or	release)
+    + Set uid of irc user at configure time
+
+ -- Guillaume Delacour <gui@iroqwa.org>  Fri, 29 May 2015 00:15:26 +0200
+
 inspircd (2.0.20-1) unstable; urgency=medium
 
   * New upstream release, drop 03_gnutls_crypt_api_instead_gcrypt.diff
