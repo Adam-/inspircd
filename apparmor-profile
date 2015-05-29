@@ -1,0 +1,35 @@
+# AppArmor profile for inspircd
+# Thanks LeMont Jones 
+#include <tunables/global>
+
+# vim:syntax=apparmor
+
+
+/usr/sbin/inspircd {
+  #include <abstractions/base>
+  #include <abstractions/nameservice>
+
+  capability net_bind_service,
+  capability setgid,
+  capability setuid,
+  capability sys_chroot,
+  capability sys_resource,
+
+  # we need our config files.
+  /etc/inspircd/** r,
+
+  # needed for ldapauth
+  /etc/ldap/ldap.conf r,
+
+  # pidfile used by inspircd.
+  /run/inspircd.pid w,
+
+  # we need to be able to write to the log file
+  # and also the old log when logrotate happends
+  /var/log/inspircd.log* rw,
+
+  # we need libraries, and we need to be able to restart
+  /usr/lib{,32,64}/** mr,
+  /usr/sbin/inspircd ixr,
+
+}
