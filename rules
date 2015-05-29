@@ -51,6 +51,12 @@ override_dh_auto_install:
 	# delete empty data and log dir
 	rmdir $(CURDIR)/debian/inspircd/usr/lib/inspircd/data \
 	$(CURDIR)/debian/inspircd/usr/lib/inspircd/logs
+	
+	# Add AppArmor profile
+	cp $(CURDIR)/debian/apparmor-profile \
+        $(CURDIR)/debian/inspircd/etc/apparmor.d/usr.sbin.inspircd
+        dh_apparmor --profile-name=usr.sbin.inspircd -pinspircd
+
 
 # debugging symbols package
 override_dh_strip:

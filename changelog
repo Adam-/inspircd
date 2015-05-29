@@ -1,11 +1,16 @@
 inspircd (2.0.20-2) unstable; urgency=medium
 
+  [ Guillaume Delacour ]
   * Reproducible builds:
     + 04_reproducible_builds.diff: Fix version don't set revision with unrelated
     git packaging tags and only use kernel name (no hostname or	release)
     + Set uid of irc user at configure time
 
- -- Guillaume Delacour <gui@iroqwa.org>  Fri, 29 May 2015 00:15:26 +0200
+  [ Matt Arnold ]
+  * Add AppArmor profile, Thanks LeMont Jones (LP:1456783) 
+  * Update my email address, previous is unusable due to spam
+
+ -- Matt Arnold <adeodatus@sdf.org>  Fri, 29 May 2015 11:12:28 -0400
 
 inspircd (2.0.20-1) unstable; urgency=medium
 
