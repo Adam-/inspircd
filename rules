@@ -54,8 +54,8 @@ override_dh_auto_install:
 	
 	# Add AppArmor profile
 	cp $(CURDIR)/debian/apparmor-profile \
-        $(CURDIR)/debian/inspircd/etc/apparmor.d/usr.sbin.inspircd
-        dh_apparmor --profile-name=usr.sbin.inspircd -pinspircd
+		$(CURDIR)/debian/inspircd/etc/apparmor.d/usr.sbin.inspircd
+	dh_apparmor --profile-name=usr.sbin.inspircd -pinspircd
 
 
 # debugging symbols package
