@@ -7,7 +7,7 @@ inspircd (2.0.20-2) unstable; urgency=medium
     + Set uid of irc user at configure time
 
   [ Matt Arnold ]
-  * Add AppArmor profile, Thanks LaMont Jones (LP:1456783)
+  * Add AppArmor profile, Thanks LaMont Jones (LP: #1456783)
   * Update my email address, previous is unusable due to spam
 
  -- Matt Arnold <adeodatus@sdf.org>  Fri, 29 May 2015 11:12:28 -0400
