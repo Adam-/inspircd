@@ -10,7 +10,7 @@ inspircd (2.0.20-2) unstable; urgency=medium
   * Add AppArmor profile, Thanks LaMont Jones (LP: #1456783)
   * Update my email address, previous is unusable due to spam
 
- -- Matt Arnold <adeodatus@sdf.org>  Fri, 29 May 2015 11:12:28 -0400
+ -- Guillaume Delacour <gui@iroqwa.org>  Sat, 30 May 2015 15:53:33 +0200
 
 inspircd (2.0.20-1) unstable; urgency=medium
 
