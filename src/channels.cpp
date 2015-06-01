@@ -32,9 +32,6 @@ namespace
 	ChanModeReference inviteonlymode(NULL, "inviteonly");
 	ChanModeReference keymode(NULL, "key");
 	ChanModeReference limitmode(NULL, "limit");
-	ChanModeReference secretmode(NULL, "secret");
-	ChanModeReference privatemode(NULL, "private");
-	UserModeReference invisiblemode(NULL, "invisible");
 }
 
 Channel::Channel(const std::string &cname, time_t ts)
@@ -61,17 +58,17 @@ void Channel::SetTopic(User* u, const std::string& ntopic)
 
 Membership* Channel::AddUser(User* user)
 {
-	Membership*& memb = userlist[user];
-	if (memb)
+	std::pair<MemberMap::iterator, bool> ret = userlist.insert(std::make_pair(user, insp::aligned_storage<Membership>()));
+	if (!ret.second)
 		return NULL;
 
-	memb = new Membership(user, this);
+	Membership* memb = new(ret.first->second) Membership(user, this);
 	return memb;
 }
 
 void Channel::DelUser(User* user)
 {
-	UserMembIter it = userlist.find(user);
+	MemberMap::iterator it = userlist.find(user);
 	if (it != userlist.end())
 		DelUser(it);
 }
@@ -86,23 +83,22 @@ void Channel::CheckDestroy()
 	if (res == MOD_RES_DENY)
 		return;
 
+	// If the channel isn't in chanlist then it is already in the cull list, don't add it again
 	chan_hash::iterator iter = ServerInstance->chanlist.find(this->name);
-	/* kill the record */
-	if (iter != ServerInstance->chanlist.end())
-	{
-		FOREACH_MOD(OnChannelDelete, (this));
-		ServerInstance->chanlist.erase(iter);
-	}
+	if ((iter == ServerInstance->chanlist.end()) || (iter->second != this))
+		return;
 
+	FOREACH_MOD(OnChannelDelete, (this));
+	ServerInstance->chanlist.erase(iter);
 	ClearInvites();
 	ServerInstance->GlobalCulls.AddItem(this);
 }
 
-void Channel::DelUser(const UserMembIter& membiter)
+void Channel::DelUser(const MemberMap::iterator& membiter)
 {
 	Membership* memb = membiter->second;
 	memb->cull();
-	delete memb;
+	memb->~Membership();
 	userlist.erase(membiter);
 
 	// If this channel became empty then it should be removed
@@ -111,7 +107,7 @@ void Channel::DelUser(const UserMembIter& membiter)
 
 Membership* Channel::GetUser(User* user)
 {
-	UserMembIter i = userlist.find(user);
+	MemberMap::iterator i = userlist.find(user);
 	if (i == userlist.end())
 		return NULL;
 	return i->second;
@@ -136,9 +132,17 @@ void Channel::SetDefaultModes()
 				continue;
 
 			if (mode->GetNumParams(true))
+			{
 				list.GetToken(parameter);
+				// If the parameter begins with a ':' then it's invalid
+				if (parameter.c_str()[0] == ':')
+					continue;
+			}
 			else
 				parameter.clear();
+
+			if ((mode->GetNumParams(true)) && (parameter.empty()))
+				continue;
 
 			mode->OnModeChange(ServerInstance->FakeClient, ServerInstance->FakeClient, this, parameter, true);
 		}
@@ -337,16 +341,6 @@ Membership* Channel::ForceJoin(User* user, const std::string* privs, bool bursti
 		this->WriteAllExcept(user, !ServerInstance->Config->CycleHostsFromUser, 0, except_list, "MODE %s +%s", this->name.c_str(), ms.c_str());
 	}
 
-	if (IS_LOCAL(user))
-	{
-		if (this->topicset)
-		{
-			user->WriteNumeric(RPL_TOPIC, "%s :%s", this->name.c_str(), this->topic.c_str());
-			user->WriteNumeric(RPL_TOPICTIME, "%s %s %lu", this->name.c_str(), this->setby.c_str(), (unsigned long)this->topicset);
-		}
-		this->UserList(user);
-	}
-
 	FOREACH_MOD(OnPostJoin, (memb));
 	return memb;
 }
@@ -388,10 +382,10 @@ bool Channel::CheckBan(User* user, const std::string& mask)
 		return false;
 
 	const std::string nickIdent = user->nick + "!" + user->ident;
-	std::string prefix = mask.substr(0, at);
+	std::string prefix(mask, 0, at);
 	if (InspIRCd::Match(nickIdent, prefix, NULL))
 	{
-		std::string suffix = mask.substr(at + 1);
+		std::string suffix(mask, at + 1);
 		if (InspIRCd::Match(user->host, suffix, NULL) ||
 			InspIRCd::Match(user->dhost, suffix, NULL) ||
 			InspIRCd::MatchCIDR(user->GetIPString(), suffix, NULL))
@@ -426,7 +420,7 @@ ModResult Channel::GetExtBanStatus(User *user, char type)
  */
 void Channel::PartUser(User *user, std::string &reason)
 {
-	UserMembIter membiter = userlist.find(user);
+	MemberMap::iterator membiter = userlist.find(user);
 
 	if (membiter != userlist.end())
 	{
@@ -443,7 +437,7 @@ void Channel::PartUser(User *user, std::string &reason)
 	}
 }
 
-void Channel::KickUser(User* src, const UserMembIter& victimiter, const std::string& reason)
+void Channel::KickUser(User* src, const MemberMap::iterator& victimiter, const std::string& reason)
 {
 	Membership* memb = victimiter->second;
 	CUList except_list;
@@ -467,7 +461,7 @@ void Channel::WriteChannel(User* user, const std::string &text)
 {
 	const std::string message = ":" + user->GetFullHost() + " " + text;
 
-	for (UserMembIter i = userlist.begin(); i != userlist.end(); i++)
+	for (MemberMap::iterator i = userlist.begin(); i != userlist.end(); i++)
 	{
 		if (IS_LOCAL(i->first))
 			i->first->Write(message);
@@ -485,7 +479,7 @@ void Channel::WriteChannelWithServ(const std::string& ServName, const std::strin
 {
 	const std::string message = ":" + (ServName.empty() ? ServerInstance->Config->ServerName : ServName) + " " + text;
 
-	for (UserMembIter i = userlist.begin(); i != userlist.end(); i++)
+	for (MemberMap::iterator i = userlist.begin(); i != userlist.end(); i++)
 	{
 		if (IS_LOCAL(i->first))
 			i->first->Write(message);
@@ -524,7 +518,7 @@ void Channel::RawWriteAllExcept(User* user, bool serversource, char status, CULi
 		if (mh)
 			minrank = mh->GetPrefixRank();
 	}
-	for (UserMembIter i = userlist.begin(); i != userlist.end(); i++)
+	for (MemberMap::iterator i = userlist.begin(); i != userlist.end(); i++)
 	{
 		if (IS_LOCAL(i->first) && (except_list.find(i->first) == except_list.end()))
 		{
@@ -579,66 +573,6 @@ const char* Channel::ChanModes(bool showkey)
 	return scratch.c_str();
 }
 
-/* compile a userlist of a channel into a string, each nick seperated by
- * spaces and op, voice etc status shown as @ and +, and send it to 'user'
- */
-void Channel::UserList(User* user, bool has_user)
-{
-	bool has_privs = user->HasPrivPermission("channels/auspex");
-	std::string list;
-	list.push_back(this->IsModeSet(secretmode) ? '@' : this->IsModeSet(privatemode) ? '*' : '=');
-	list.push_back(' ');
-	list.append(this->name).append(" :");
-	std::string::size_type pos = list.size();
-
-	const size_t maxlen = ServerInstance->Config->Limits.MaxLine - 10 - ServerInstance->Config->ServerName.size();
-	std::string prefixlist;
-	std::string nick;
-	for (UserMembIter i = userlist.begin(); i != userlist.end(); ++i)
-	{
-		if ((!has_user) && (i->first->IsModeSet(invisiblemode)) && (!has_privs))
-		{
-			/*
-			 * user is +i, and source not on the channel, does not show
-			 * nick in NAMES list
-			 */
-			continue;
-		}
-
-		Membership* memb = i->second;
-
-		prefixlist.clear();
-		char prefix = memb->GetPrefixChar();
-		if (prefix)
-			prefixlist.push_back(prefix);
-		nick = i->first->nick;
-
-		ModResult res;
-		FIRST_MOD_RESULT(OnNamesListItem, res, (user, memb, prefixlist, nick));
-
-		// See if a module wants us to exclude this user from NAMES
-		if (res == MOD_RES_DENY)
-			continue;
-
-		if (list.size() + prefixlist.length() + nick.length() + 1 > maxlen)
-		{
-			/* list overflowed into multiple numerics */
-			user->WriteNumeric(RPL_NAMREPLY, list);
-
-			// Erase all nicks, keep the constant part
-			list.erase(pos);
-		}
-
-		list.append(prefixlist).append(nick).push_back(' ');
-	}
-
-	// Only send the user list numeric if there is at least one user in it
-	if (list.size() != pos)
-		user->WriteNumeric(RPL_NAMREPLY, list);
-
-	user->WriteNumeric(RPL_ENDOFNAMES, "%s :End of /NAMES list.", this->name.c_str());
-}
-
 /* returns the status character for a given user on a channel, e.g. @ for op,
  * % for halfop etc. If the user has several modes set, the highest mode
  * the user has must be returned.
@@ -691,7 +625,7 @@ const char* Membership::GetAllPrefixChars() const
 
 unsigned int Channel::GetPrefixValue(User* user)
 {
-	UserMembIter m = userlist.find(user);
+	MemberMap::iterator m = userlist.find(user);
 	if (m == userlist.end())
 		return 0;
 	return m->second->getRank();

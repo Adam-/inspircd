@@ -20,34 +20,6 @@
 #include "inspircd.h"
 #include "core_user.h"
 
-class CommandMode : public Command
-{
- public:
-	/** Constructor for mode.
-	 */
-	CommandMode(Module* parent)
-		: Command(parent, "MODE", 1)
-	{
-		syntax = "<target> <modes> {<mode-parameters>}";
-	}
-
-	/** Handle command.
-	 * @param parameters The parameters to the command
-	 * @param user The user issuing the command
-	 * @return A value from CmdResult to indicate command success or failure.
-	 */
-	CmdResult Handle(const std::vector<std::string>& parameters, User* user)
-	{
-		ServerInstance->Modes->Process(parameters, user, (IS_LOCAL(user) ? ModeParser::MODE_NONE : ModeParser::MODE_LOCALONLY));
-		return CMD_SUCCESS;
-	}
-
-	RouteDescriptor GetRouting(User* user, const std::vector<std::string>& parameters)
-	{
-		return (IS_LOCAL(user) ? ROUTE_LOCALONLY : ROUTE_BROADCAST);
-	}
-};
-
 /** Handle /PASS.
  */
 class CommandPass : public SplitCommand
@@ -73,6 +45,7 @@ class CommandPass : public SplitCommand
 		// Check to make sure they haven't registered -- Fix by FCS
 		if (user->registered == REG_ALL)
 		{
+			user->CommandFloodPenalty += 1000;
 			user->WriteNumeric(ERR_ALREADYREGISTERED, ":You may not reregister");
 			return CMD_FAILURE;
 		}
@@ -92,7 +65,6 @@ class CommandPing : public Command
 	CommandPing(Module* parent)
 		: Command(parent, "PING", 1, 2)
 	{
-		Penalty = 0;
 		syntax = "<servername> [:<servername>]";
 	}
 
@@ -130,8 +102,15 @@ class CommandPong : public Command
 	CmdResult Handle(const std::vector<std::string>& parameters, User* user)
 	{
 		// set the user as alive so they survive to next ping
-		if (IS_LOCAL(user))
-			IS_LOCAL(user)->lastping = 1;
+		LocalUser* localuser = IS_LOCAL(user);
+		if (localuser)
+		{
+			// Increase penalty unless we've sent a PING and this is the reply
+			if (localuser->lastping)
+				localuser->CommandFloodPenalty += 1000;
+			else
+				localuser->lastping = 1;
+		}
 		return CMD_SUCCESS;
 	}
 };

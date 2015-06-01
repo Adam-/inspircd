@@ -54,6 +54,14 @@ void EventHandler::SetFd(int FD)
 	this->fd = FD;
 }
 
+void EventHandler::OnEventHandlerWrite()
+{
+}
+
+void EventHandler::OnEventHandlerError(int errornum)
+{
+}
+
 void SocketEngine::ChangeEventMask(EventHandler* eh, int change)
 {
 	int old_m = eh->event_mask;
@@ -92,9 +100,9 @@ void SocketEngine::DispatchTrialWrites()
 		int mask = eh->event_mask;
 		eh->event_mask &= ~(FD_ADD_TRIAL_READ | FD_ADD_TRIAL_WRITE);
 		if ((mask & (FD_ADD_TRIAL_READ | FD_READ_WILL_BLOCK)) == FD_ADD_TRIAL_READ)
-			eh->HandleEvent(EVENT_READ, 0);
+			eh->OnEventHandlerRead();
 		if ((mask & (FD_ADD_TRIAL_WRITE | FD_WRITE_WILL_BLOCK)) == FD_ADD_TRIAL_WRITE)
-			eh->HandleEvent(EVENT_WRITE, 0);
+			eh->OnEventHandlerWrite();
 	}
 }
 
@@ -225,6 +233,33 @@ int SocketEngine::SendTo(EventHandler* fd, const void *buf, size_t len, int flag
 	return nbSent;
 }
 
+int SocketEngine::WriteV(EventHandler* fd, const IOVector* iovec, int count)
+{
+	int sent = writev(fd->GetFd(), iovec, count);
+	if (sent > 0)
+		stats.Update(0, sent);
+	return sent;
+}
+
+#ifdef _WIN32
+int SocketEngine::WriteV(EventHandler* fd, const iovec* iovec, int count)
+{
+	// On Windows the fields in iovec are not in the order required by the Winsock API; IOVector has
+	// the fields in the correct order.
+	// Create temporary IOVectors from the iovecs and pass them to the WriteV() method that accepts the
+	// platform's native struct.
+	IOVector wiovec[128];
+	count = std::min(count, static_cast<int>(sizeof(wiovec) / sizeof(IOVector)));
+
+	for (int i = 0; i < count; i++)
+	{
+		wiovec[i].iov_len = iovec[i].iov_len;
+		wiovec[i].iov_base = reinterpret_cast<char*>(iovec[i].iov_base);
+	}
+	return WriteV(fd, wiovec, count);
+}
+#endif
+
 int SocketEngine::Connect(EventHandler* fd, const sockaddr *serv_addr, socklen_t addrlen)
 {
 	int ret = connect(fd->GetFd(), serv_addr, addrlen);
@@ -292,7 +327,13 @@ std::string SocketEngine::LastError()
 	DWORD dwErrorCode = WSAGetLastError();
 	if (FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, dwErrorCode, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)szErrorString, _countof(szErrorString), NULL) == 0)
 		sprintf_s(szErrorString, _countof(szErrorString), "Error code: %u", dwErrorCode);
-	return szErrorString;
+
+	std::string::size_type p;
+	std::string ret = szErrorString;
+	while ((p = ret.find_last_of("\r\n")) != std::string::npos)
+		ret.erase(p, 1);
+
+	return ret;
 #endif
 }
 

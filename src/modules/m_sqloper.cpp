@@ -78,7 +78,7 @@ class OpMeQuery : public SQLQuery
 
 	bool OperUser(User* user, const std::string &pattern, const std::string &type)
 	{
-		OperIndex::iterator iter = ServerInstance->Config->OperTypes.find(type);
+		ServerConfig::OperIndex::const_iterator iter = ServerInstance->Config->OperTypes.find(type);
 		if (iter == ServerInstance->Config->OperTypes.end())
 		{
 			ServerInstance->Logs->Log(MODNAME, LOG_DEFAULT, "bad type '%s' in returned row for oper %s", type.c_str(), username.c_str());
@@ -122,7 +122,7 @@ public:
 			SQL.SetProvider("SQL/" + dbid);
 
 		hashtype = tag->getString("hash");
-		query = tag->getString("query", "SELECT hostname as host, type FROM ircd_opers WHERE username='$username' AND password='$password'");
+		query = tag->getString("query", "SELECT hostname as host, type FROM ircd_opers WHERE username='$username' AND password='$password' AND active=1;");
 	}
 
 	ModResult OnPreCommand(std::string &command, std::vector<std::string> &parameters, LocalUser *user, bool validated, const std::string &original_line) CXX11_OVERRIDE
@@ -147,7 +147,7 @@ public:
 		ParamM userinfo;
 		SQL->PopulateUserInfo(user, userinfo);
 		userinfo["username"] = username;
-		userinfo["password"] = hash ? hash->hexsum(password) : password;
+		userinfo["password"] = hash ? hash->Generate(password) : password;
 
 		SQL->submit(new OpMeQuery(this, user->uuid, username, password), query, userinfo);
 	}

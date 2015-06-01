@@ -26,7 +26,7 @@
 
 CmdResult CommandPong::HandleServer(TreeServer* server, std::vector<std::string>& params)
 {
-	if (server->bursting)
+	if (server->IsBursting())
 	{
 		ServerInstance->SNO->WriteGlobalSno('l', "Server \002%s\002 has not finished burst, forcing end of burst (send ENDBURST!)", server->GetName().c_str());
 		server->FinishBurst();
@@ -35,9 +35,7 @@ CmdResult CommandPong::HandleServer(TreeServer* server, std::vector<std::string>
 	if (params[0] == ServerInstance->Config->GetSID())
 	{
 		// PONG for us
-		long ts = ServerInstance->Time() * 1000 + (ServerInstance->Time_ns() / 1000000);
-		server->rtt = ts - server->LastPingMsec;
-		server->SetPingFlag();
+		server->OnPong();
 	}
 	return CMD_SUCCESS;
 }

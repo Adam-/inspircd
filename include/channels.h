@@ -36,6 +36,12 @@
  */
 class CoreExport Channel : public Extensible, public InviteBase<Channel>
 {
+ public:
+	/** A map of Memberships on a channel keyed by User pointers
+	 */
+ 	typedef std::map<User*, insp::aligned_storage<Membership> > MemberMap;
+
+ private:
 	/** Set default modes for the channel on creation
 	 */
 	void SetDefaultModes();
@@ -51,9 +57,9 @@ class CoreExport Channel : public Extensible, public InviteBase<Channel>
 	 * This function does not remove the channel from User::chanlist.
 	 * Since the parameter is an iterator to the target, the complexity
 	 * of this function is constant.
-	 * @param membiter The UserMembIter to remove, must be valid
+	 * @param membiter The MemberMap iterator to remove, must be valid
 	 */
-	void DelUser(const UserMembIter& membiter);
+	void DelUser(const MemberMap::iterator& membiter);
 
  public:
 	/** Creates a channel record and initialises it with default values
@@ -84,7 +90,7 @@ class CoreExport Channel : public Extensible, public InviteBase<Channel>
 
 	/** User list.
 	 */
-	UserMembList userlist;
+	MemberMap userlist;
 
 	/** Channel topic.
 	 * If this is an empty string, no channel topic is set.
@@ -166,7 +172,7 @@ class CoreExport Channel : public Extensible, public InviteBase<Channel>
 	 *
 	 * @return This function returns pointer to a map of User pointers (CUList*).
 	 */
-	const UserMembList* GetUsers() const { return &userlist; }
+	const MemberMap& GetUsers() const { return userlist; }
 
 	/** Returns true if the user given is on the given channel.
 	 * @param user The user to look for
@@ -181,7 +187,7 @@ class CoreExport Channel : public Extensible, public InviteBase<Channel>
 	 * @param victimiter Iterator to the user being kicked, must be valid
 	 * @param reason The reason for the kick
 	 */
-	void KickUser(User* src, const UserMembIter& victimiter, const std::string& reason);
+	void KickUser(User* src, const MemberMap::iterator& victimiter, const std::string& reason);
 
 	/** Make src kick user from this channel with the given reason.
 	 * @param src The source of the kick
@@ -190,7 +196,7 @@ class CoreExport Channel : public Extensible, public InviteBase<Channel>
 	 */
 	void KickUser(User* src, User* user, const std::string& reason)
 	{
-		UserMembIter it = userlist.find(user);
+		MemberMap::iterator it = userlist.find(user);
 		if (it != userlist.end())
 			KickUser(src, it, reason);
 	}
@@ -298,12 +304,6 @@ class CoreExport Channel : public Extensible, public InviteBase<Channel>
 	 * @return The channel mode string
 	 */
 	const char* ChanModes(bool showkey);
-
-	/** Spool the NAMES list for this channel to the given user
-	 * @param user The user to spool the NAMES list to
-	 * @param isinside If true, the user is inside the channel, if not then false
-	 */
-	void UserList(User* user, bool isinside = true);
 
 	/** Get the value of a users prefix on this channel.
 	 * @param user The user to look up

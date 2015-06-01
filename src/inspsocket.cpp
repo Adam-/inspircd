@@ -25,14 +25,6 @@
 #include "inspircd.h"
 #include "iohook.h"
 
-#ifndef DISABLE_WRITEV
-#include <sys/uio.h>
-#endif
-
-#ifndef IOV_MAX
-#define IOV_MAX 1024
-#endif
-
 BufferedSocket::BufferedSocket()
 {
 	Timeout = NULL;
@@ -107,7 +99,7 @@ BufferedSocketError BufferedSocket::BeginConnect(const irc::sockets::sockaddrs& 
 	if (!SocketEngine::AddFd(this, FD_WANT_NO_READ | FD_WANT_SINGLE_WRITE | FD_WRITE_WILL_BLOCK))
 		return I_ERR_NOMOREFDS;
 
-	this->Timeout = new SocketTimeout(this->GetFd(), this, timeout, ServerInstance->Time());
+	this->Timeout = new SocketTimeout(this->GetFd(), this, timeout);
 	ServerInstance->Timers.AddTimer(this->Timeout);
 
 	ServerInstance->Logs->Log("SOCKET", LOG_DEBUG, "BufferedSocket::DoConnect success");
@@ -122,15 +114,7 @@ void StreamSocket::Close()
 		DoWrite();
 		if (GetIOHook())
 		{
-			try
-			{
-				GetIOHook()->OnStreamSocketClose(this);
-			}
-			catch (CoreException& modexcept)
-			{
-				ServerInstance->Logs->Log("SOCKET", LOG_DEFAULT, "%s threw an exception: %s",
-					modexcept.GetSource().c_str(), modexcept.GetReason().c_str());
-			}
+			GetIOHook()->OnStreamSocketClose(this);
 			delete iohook;
 			DelIOHook();
 		}
@@ -150,9 +134,8 @@ bool StreamSocket::GetNextLine(std::string& line, char delim)
 	std::string::size_type i = recvq.find(delim);
 	if (i == std::string::npos)
 		return false;
-	line = recvq.substr(0, i);
-	// TODO is this the most efficient way to split?
-	recvq = recvq.substr(i + 1);
+	line.assign(recvq, 0, i);
+	recvq.erase(0, i + 1);
 	return true;
 }
 
@@ -160,17 +143,7 @@ void StreamSocket::DoRead()
 {
 	if (GetIOHook())
 	{
-		int rv = -1;
-		try
-		{
-			rv = GetIOHook()->OnStreamSocketRead(this, recvq);
-		}
-		catch (CoreException& modexcept)
-		{
-			ServerInstance->Logs->Log("SOCKET", LOG_DEFAULT, "%s threw an exception: %s",
-				modexcept.GetSource().c_str(), modexcept.GetReason().c_str());
-			return;
-		}
+		int rv = GetIOHook()->OnStreamSocketRead(this, recvq);
 		if (rv > 0)
 			OnDataReady();
 		if (rv < 0)
@@ -220,18 +193,14 @@ void StreamSocket::DoWrite()
 {
 	if (sendq.empty())
 		return;
-	if (!error.empty() || fd < 0 || fd == INT_MAX)
+	if (!error.empty() || fd < 0)
 	{
 		ServerInstance->Logs->Log("SOCKET", LOG_DEBUG, "DoWrite on errored or closed socket");
 		return;
 	}
 
-#ifndef DISABLE_WRITEV
 	if (GetIOHook())
-#endif
 	{
-		int rv = -1;
-		try
 		{
 			while (error.empty() && !sendq.empty())
 			{
@@ -255,9 +224,9 @@ void StreamSocket::DoWrite()
 				}
 				std::string& front = sendq.front();
 				int itemlen = front.length();
-				if (GetIOHook())
+
 				{
-					rv = GetIOHook()->OnStreamSocketWrite(this, front);
+					int rv = GetIOHook()->OnStreamSocketWrite(this, front);
 					if (rv > 0)
 					{
 						// consumed the entire string, and is ready for more
@@ -279,48 +248,9 @@ void StreamSocket::DoWrite()
 						return;
 					}
 				}
-#ifdef DISABLE_WRITEV
-				else
-				{
-					rv = SocketEngine::Send(this, front.data(), itemlen, 0);
-					if (rv == 0)
-					{
-						SetError("Connection closed");
-						return;
-					}
-					else if (rv < 0)
-					{
-						if (errno == EINTR || SocketEngine::IgnoreError())
-							SocketEngine::ChangeEventMask(this, FD_WANT_FAST_WRITE | FD_WRITE_WILL_BLOCK);
-						else
-							SetError(SocketEngine::LastError());
-						return;
-					}
-					else if (rv < itemlen)
-					{
-						SocketEngine::ChangeEventMask(this, FD_WANT_FAST_WRITE | FD_WRITE_WILL_BLOCK);
-						front = front.substr(rv);
-						sendq_len -= rv;
-						return;
-					}
-					else
-					{
-						sendq_len -= itemlen;
-						sendq.pop_front();
-						if (sendq.empty())
-							SocketEngine::ChangeEventMask(this, FD_WANT_EDGE_WRITE);
-					}
-				}
-#endif
 			}
 		}
-		catch (CoreException& modexcept)
-		{
-			ServerInstance->Logs->Log("SOCKET", LOG_DEBUG, "%s threw an exception: %s",
-				modexcept.GetSource().c_str(), modexcept.GetReason().c_str());
-		}
 	}
-#ifndef DISABLE_WRITEV
 	else
 	{
 		// don't even try if we are known to be blocking
@@ -340,15 +270,17 @@ void StreamSocket::DoWrite()
 			}
 
 			int rv_max = 0;
-			iovec* iovecs = new iovec[bufcount];
-			for(int i=0; i < bufcount; i++)
+			int rv;
 			{
-				iovecs[i].iov_base = const_cast<char*>(sendq[i].data());
-				iovecs[i].iov_len = sendq[i].length();
-				rv_max += sendq[i].length();
+				SocketEngine::IOVector iovecs[MYIOV_MAX];
+				for (int i = 0; i < bufcount; i++)
+				{
+					iovecs[i].iov_base = const_cast<char*>(sendq[i].data());
+					iovecs[i].iov_len = sendq[i].length();
+					rv_max += sendq[i].length();
+				}
+				rv = SocketEngine::WriteV(this, iovecs, bufcount);
 			}
-			int rv = writev(fd, iovecs, bufcount);
-			delete[] iovecs;
 
 			if (rv == (int)sendq_len)
 			{
@@ -378,7 +310,7 @@ void StreamSocket::DoWrite()
 					else
 					{
 						// stopped in the middle of this string
-						front = front.substr(rv);
+						front.erase(0, rv);
 						rv = 0;
 					}
 				}
@@ -411,7 +343,6 @@ void StreamSocket::DoWrite()
 			SocketEngine::ChangeEventMask(this, eventChange);
 		}
 	}
-#endif
 }
 
 void StreamSocket::WriteData(const std::string &data)
@@ -461,7 +392,7 @@ bool SocketTimeout::Tick(time_t)
 void BufferedSocket::OnConnected() { }
 void BufferedSocket::OnTimeout() { return; }
 
-void BufferedSocket::DoWrite()
+void BufferedSocket::OnEventHandlerWrite()
 {
 	if (state == I_CONNECTING)
 	{
@@ -470,70 +401,77 @@ void BufferedSocket::DoWrite()
 		if (!GetIOHook())
 			SocketEngine::ChangeEventMask(this, FD_WANT_FAST_READ | FD_WANT_EDGE_WRITE);
 	}
-	this->StreamSocket::DoWrite();
+	this->StreamSocket::OnEventHandlerWrite();
 }
 
 BufferedSocket::~BufferedSocket()
 {
 	this->Close();
-	if (Timeout)
-	{
-		// The timer is removed from the TimerManager in Timer::~Timer()
-		delete Timeout;
-	}
+	// The timer is removed from the TimerManager in Timer::~Timer()
+	delete Timeout;
 }
 
-void StreamSocket::HandleEvent(EventType et, int errornum)
+void StreamSocket::OnEventHandlerError(int errornum)
 {
 	if (!error.empty())
 		return;
+
+	if (errornum == 0)
+		SetError("Connection closed");
+	else
+		SetError(SocketEngine::GetError(errornum));
+
 	BufferedSocketError errcode = I_ERR_OTHER;
-	try {
-		switch (et)
-		{
-			case EVENT_ERROR:
-			{
-				if (errornum == 0)
-					SetError("Connection closed");
-				else
-					SetError(SocketEngine::GetError(errornum));
-				switch (errornum)
-				{
-					case ETIMEDOUT:
-						errcode = I_ERR_TIMEOUT;
-						break;
-					case ECONNREFUSED:
-					case 0:
-						errcode = I_ERR_CONNECT;
-						break;
-					case EADDRINUSE:
-						errcode = I_ERR_BIND;
-						break;
-					case EPIPE:
-					case EIO:
-						errcode = I_ERR_WRITE;
-						break;
-				}
-				break;
-			}
-			case EVENT_READ:
-			{
-				DoRead();
-				break;
-			}
-			case EVENT_WRITE:
-			{
-				DoWrite();
-				break;
-			}
-		}
+	switch (errornum)
+	{
+		case ETIMEDOUT:
+			errcode = I_ERR_TIMEOUT;
+			break;
+		case ECONNREFUSED:
+		case 0:
+			errcode = I_ERR_CONNECT;
+			break;
+		case EADDRINUSE:
+			errcode = I_ERR_BIND;
+			break;
+		case EPIPE:
+		case EIO:
+			errcode = I_ERR_WRITE;
+			break;
+	}
+
+	// Log and call OnError()
+	CheckError(errcode);
+}
+
+void StreamSocket::OnEventHandlerRead()
+{
+	if (!error.empty())
+		return;
+
+	try
+	{
+		DoRead();
 	}
 	catch (CoreException& ex)
 	{
-		ServerInstance->Logs->Log("SOCKET", LOG_DEFAULT, "Caught exception in socket processing on FD %d - '%s'",
-			fd, ex.GetReason().c_str());
+		ServerInstance->Logs->Log("SOCKET", LOG_DEFAULT, "Caught exception in socket processing on FD %d - '%s'", fd, ex.GetReason().c_str());
 		SetError(ex.GetReason());
 	}
+	CheckError(I_ERR_OTHER);
+}
+
+void StreamSocket::OnEventHandlerWrite()
+{
+	if (!error.empty())
+		return;
+
+	DoWrite();
+	CheckError(I_ERR_OTHER);
+}
+
+void StreamSocket::CheckError(BufferedSocketError errcode)
+{
 	if (!error.empty())
 	{
 		ServerInstance->Logs->Log("SOCKET", LOG_DEBUG, "Error on FD %d - '%s'", fd, error.c_str());

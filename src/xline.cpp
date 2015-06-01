@@ -155,7 +155,8 @@ void XLineManager::CheckELines()
 	if (ELines.empty())
 		return;
 
-	for (LocalUserList::const_iterator u2 = ServerInstance->Users->local_users.begin(); u2 != ServerInstance->Users->local_users.end(); u2++)
+	const UserManager::LocalList& list = ServerInstance->Users.GetLocalUsers();
+	for (UserManager::LocalList::const_iterator u2 = list.begin(); u2 != list.end(); u2++)
 	{
 		LocalUser* u = *u2;
 
@@ -311,9 +312,7 @@ bool XLineManager::DelLine(const char* hostmask, const std::string &type, User* 
 
 	y->second->Unset();
 
-	std::vector<XLine*>::iterator pptr = std::find(pending_lines.begin(), pending_lines.end(), y->second);
-	if (pptr != pending_lines.end())
-		pending_lines.erase(pptr);
+	stdalgo::erase(pending_lines, y->second);
 
 	delete y->second;
 	x->second.erase(y);
@@ -325,7 +324,8 @@ bool XLineManager::DelLine(const char* hostmask, const std::string &type, User* 
 void ELine::Unset()
 {
 	/* remove exempt from everyone and force recheck after deleting eline */
-	for (LocalUserList::const_iterator u2 = ServerInstance->Users->local_users.begin(); u2 != ServerInstance->Users->local_users.end(); u2++)
+	const UserManager::LocalList& list = ServerInstance->Users.GetLocalUsers();
+	for (UserManager::LocalList::const_iterator u2 = list.begin(); u2 != list.end(); u2++)
 	{
 		LocalUser* u = *u2;
 		u->exempt = false;
@@ -417,9 +417,7 @@ void XLineManager::ExpireLine(ContainerIter container, LookupIter item)
 	 * is pending, cleared when it is no longer pending, so we skip over this loop if its not pending?
 	 * -- Brain
 	 */
-	std::vector<XLine*>::iterator pptr = std::find(pending_lines.begin(), pending_lines.end(), item->second);
-	if (pptr != pending_lines.end())
-		pending_lines.erase(pptr);
+	stdalgo::erase(pending_lines, item->second);
 
 	delete item->second;
 	container->second.erase(item);
@@ -429,8 +427,8 @@ void XLineManager::ExpireLine(ContainerIter container, LookupIter item)
 // applies lines, removing clients and changing nicks etc as applicable
 void XLineManager::ApplyLines()
 {
-	LocalUserList& list = ServerInstance->Users->local_users;
-	for (LocalUserList::iterator j = list.begin(); j != list.end(); ++j)
+	const UserManager::LocalList& list = ServerInstance->Users.GetLocalUsers();
+	for (UserManager::LocalList::const_iterator j = list.begin(); j != list.end(); ++j)
 	{
 		LocalUser* u = *j;
 
@@ -533,7 +531,7 @@ void XLine::DefaultApply(User* u, const std::string &line, bool bancache)
 	const std::string banReason = line + "-Lined: " + reason;
 
 	if (!ServerInstance->Config->XLineMessage.empty())
-		u->WriteNotice("*** " + ServerInstance->Config->XLineMessage);
+		u->WriteNumeric(ERR_YOUREBANNEDCREEP, ":" + ServerInstance->Config->XLineMessage);
 
 	if (ServerInstance->Config->HideBans)
 		ServerInstance->Users->QuitUser(u, line + "-Lined", &banReason);
@@ -641,7 +639,7 @@ bool QLine::Matches(User *u)
 void QLine::Apply(User* u)
 {
 	/* Force to uuid on apply of qline, no need to disconnect any more :) */
-	u->ForceNickChange(u->uuid);
+	u->ChangeNick(u->uuid);
 }
 
 
@@ -679,7 +677,8 @@ bool GLine::Matches(const std::string &str)
 void ELine::OnAdd()
 {
 	/* When adding one eline, only check the one eline */
-	for (LocalUserList::const_iterator u2 = ServerInstance->Users->local_users.begin(); u2 != ServerInstance->Users->local_users.end(); u2++)
+	const UserManager::LocalList& list = ServerInstance->Users.GetLocalUsers();
+	for (UserManager::LocalList::const_iterator u2 = list.begin(); u2 != list.end(); u2++)
 	{
 		LocalUser* u = *u2;
 		if (this->Matches(u))

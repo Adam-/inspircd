@@ -28,9 +28,7 @@
 #include "modules/sql.h"
 
 #ifdef _WIN32
-# pragma comment(lib, "mysqlclient.lib")
-# pragma comment(lib, "advapi32.lib")
-# pragma comment(linker, "/NODEFAULTLIB:LIBCMT")
+# pragma comment(lib, "libmysql.lib")
 #endif
 
 /* VERSION 3 API: With nonblocking (threaded) requests */
@@ -91,7 +89,7 @@ struct RQueueItem
 	RQueueItem(SQLQuery* Q, MySQLresult* R) : q(Q), r(R) {}
 };
 
-typedef std::map<std::string, SQLConnection*> ConnMap;
+typedef insp::flat_map<std::string, SQLConnection*> ConnMap;
 typedef std::deque<QQueueItem> QueryQueue;
 typedef std::deque<RQueueItem> ResultQueue;
 
@@ -257,6 +255,12 @@ class SQLConnection : public SQLProvider
 		bool rv = mysql_real_connect(connection, host.c_str(), user.c_str(), pass.c_str(), dbname.c_str(), port, NULL, 0);
 		if (!rv)
 			return rv;
+
+		// Enable character set settings
+		std::string charset = config->getString("charset");
+		if ((!charset.empty()) && (mysql_set_character_set(connection, charset.c_str())))
+			ServerInstance->Logs->Log(MODNAME, LOG_DEFAULT, "WARNING: Could not set character set to \"%s\"", charset.c_str());
+
 		std::string initquery;
 		if (config->readString("initialquery", initquery))
 		{

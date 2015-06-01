@@ -14,7 +14,7 @@
 #                            |___/                                     #
 #                                                                      #
 ##################################||####################################
-                                 #||#                                   
+                                 #||#
 ##################################||####################################
 #                                                                      #
 #         This is an example of the config file for InspIRCd.          #
@@ -62,7 +62,7 @@
 #<include executable="/path/to/executable parameters">                #
 #                                                                     #
 # Executable include example:                                         #
-#<include executable="/usr/bin/wget -q -O - http://mynet.net/inspircd.conf">
+#<include executable="/usr/bin/wget -q -O - http://example.com/inspircd.conf">
 #                                                                     #
 
 
@@ -85,7 +85,7 @@
 <server
         # name: Hostname of your server. Does not need to resolve, but
         # does need to be correct syntax (something.somethingelse.tld).
-        name="penguin.omega.org.za"
+        name="penguin.omega.example.org"
 
         # description: Server description. Spaces are allowed.
         description="Waddle World"
@@ -132,7 +132,7 @@
 #   |_| \_\___|\__,_|\__,_|   |_| |_| |_|_|___/ |____/|_|\__(_)       #
 #                                                                     #
 #  If you want to link servers to InspIRCd you must load the          #
-#  m_spanningtree.so module! Please see the modules list for          #
+#  spanningtree module! Please see the modules list for               #
 #  information on how to load this module! If you do not load this    #
 #  module, server ports will NOT work!                                #
 
@@ -152,10 +152,10 @@
       # to this bind section.
       type="clients"
 
-      # ssl: If you want this bind section to use SSL, define either
-      # gnutls or openssl here. The appropriate SSL modules must be loaded
-      # for ssl to work. If you do not want this bind section to support ssl,
-      # just remove or comment out this option.
+      # ssl: If you want the port(s) in this bind tag to use SSL, set this
+      # to either "gnutls" or "openssl". The appropriate SSL module must be
+      # loaded for SSL to work. If you do not want the port(s) in this bind
+      # tag to support SSL, just remove or comment out this option.
       ssl="gnutls"
 
       # defer: When this is non-zero, connections will not be handed over to
@@ -175,8 +175,8 @@
 # When linking servers, the OpenSSL and GnuTLS implementations are completely
 # link-compatible and can be used alongside each other
 # on each end of the link without any significant issues.
-# Supported ssl types are: "openssl" and "gnutls".
-# You must load, m_ssl_openssl for OpenSSL or m_ssl_gnutls for GnuTLS.
+# Supported SSL types are: "openssl" and "gnutls".
+# You must load the ssl_openssl module for OpenSSL or ssl_gnutls for GnuTLS.
 
 <bind address="" port="7000,7001" type="servers">
 <bind address="1.2.3.4" port="7005" type="servers" ssl="openssl">
@@ -185,15 +185,15 @@
 #-#-#-#-#-#-#-#-#-#-  DIE/RESTART CONFIGURATION   -#-#-#-#-#-#-#-#-#-#-
 #                                                                     #
 #   You can configure the passwords here which you wish to use for    #
-#   the /DIE and /RESTART commands. Only trusted IRCop's who will     #
+#   the /DIE and /RESTART commands. Only trusted ircops who will      #
 #   need this ability should know the die and restart password.       #
 #                                                                     #
 
 <power
        # hash: what hash these passwords are hashed with.
-       # Requires the module for selected hash (m_md5.so, m_sha256.so
-       # or m_ripemd160.so) be loaded and the password hashing module
-       # (m_password_hash.so) loaded.
+       # Requires the module for selected hash (md5, sha256, or
+       # ripemd160) be loaded and the password hashing module
+       # (password_hash) loaded.
        # Options here are: "md5", "sha256" and "ripemd160", or one of
        # these prefixed with "hmac-", e.g.: "hmac-sha256".
        # Optional, but recommended. Create hashed passwords with:
@@ -251,9 +251,8 @@
          allow="203.0.113.*"
 
          # hash: what hash this password is hashed with. requires the module
-         # for selected hash (m_md5.so, m_sha256.so or m_ripemd160.so) be
-         # loaded and the password hashing module (m_password_hash.so)
-         # loaded. Options here are: "md5", "sha256" and "ripemd160".
+         # for selected hash (md5, sha256 or ripemd160) be loaded and the
+         # password hashing module (password_hash) loaded.
          # Optional, but recommended. Create hashed passwords with:
          # /mkpasswd <hash> <password>
          #hash="sha256"
@@ -277,7 +276,7 @@
          # globalmax: Maximum global (network-wide) connections per IP (or CIDR mask, see below).
          globalmax="3"
 
-         # maxconnwarn: Enable warnings when localmax or globalmax is hit (defaults to on)
+         # maxconnwarn: Enable warnings when localmax or globalmax are reached (defaults to on)
          maxconnwarn="off"
 
          # resolvehostnames: If disabled, no DNS lookups will be performed on connecting users
@@ -285,7 +284,7 @@
          resolvehostnames="yes"
 
          # usednsbl: Defines whether or not users in this class are subject to DNSBL. Default is yes.
-         # This setting only has effect when m_dnsbl is loaded.
+         # This setting only has effect when the dnsbl module is loaded.
          #usednsbl="yes"
 
          # useident: Defines if users in this class MUST respond to a ident query or not.
@@ -295,15 +294,15 @@
          limit="5000"
 
          # modes: Usermodes that are set on users in this block on connect.
-         # Enabling this option requires that the m_conn_umodes module be loaded.
+         # Enabling this option requires that the conn_umodes module be loaded.
          # This entry is highly recommended to use for/with IP Cloaking/masking.
-         # For the example to work, this also requires that the m_cloaking
+         # For the example to work, this also requires that the "cloaking"
          # module be loaded as well.
          modes="+x"
 
          # requireident, requiressl, requireaccount: require that users of this
          # block have a valid ident response, use SSL, or have authenticated.
-         # Requires m_ident, m_sslinfo, or m_services_account respectively.
+         # Requires ident, sslinfo, or the services_account module, respectively.
          requiressl="on"
          # NOTE: For requireaccount, you must complete the signon prior to full
          # connection. Currently, this is only possible by using SASL
@@ -402,9 +401,9 @@
          limit="5000"
 
          # modes: Usermodes that are set on users in this block on connect.
-         # Enabling this option requires that the m_conn_umodes module be loaded.
+         # Enabling this option requires that the conn_umodes module be loaded.
          # This entry is highly recommended to use for/with IP Cloaking/masking.
-         # For the example to work, this also requires that the m_cloaking
+         # For the example to work, this also requires that the cloaking
          # module be loaded as well.
          modes="+x">
 
@@ -462,7 +461,7 @@
      # server: DNS server to use to attempt to resolve IP's to hostnames.
      # in most cases, you won't need to change this, as inspircd will
      # automatically detect the nameserver depending on /etc/resolv.conf
-     # (or, on windows, your set nameservers in the registry.)
+     # (or, on Windows, your set nameservers in the registry.)
      # Note that this must be an IP address and not a hostname, because
      # there is no resolver to resolve the name until this is defined!
      #
@@ -496,7 +495,7 @@
 # matched, the banlist size defaults to 64 entries.                   #
 #                                                                     #
 
-<banlist chan="#morons" limit="128">
+<banlist chan="#largechan" limit="128">
 <banlist chan="*" limit="69">
 
 #-#-#-#-#-#-#-#-#-#-#-  DISABLED FEATURES  -#-#-#-#-#-#-#-#-#-#-#-#-#-#
@@ -579,7 +578,7 @@
 
          # allowmismatch: Setting this option to yes will allow servers to link even
          # if they don't have the same "optionally common" modules loaded. Setting this to
-         # yes may introduce some desyncs and weirdness.
+         # yes may introduce some desyncs and unwanted behaviour.
          allowmismatch="no"
 
          # defaultbind: Sets the default for <bind> tags without an address. Choices are
@@ -630,7 +629,7 @@
              # somaxconn: The maximum number of connections that may be waiting
              # in the accept queue. This is *NOT* the total maximum number of
              # connections per server. Some systems may only allow this to be up
-             # to 5, while others (such as linux and *BSD) default to 128.
+             # to 5, while others (such as Linux and *BSD) default to 128.
              # Setting this above the limit imposed by your OS can have undesired
              # effects.
              somaxconn="128"
@@ -671,11 +670,6 @@
           # 'dynamic' - send invite announcements to halfops (if available) and
           #             higher ranked users. This is the recommended setting.
           announceinvites="dynamic"
-
-          # hidemodes: If enabled, then the listmodes given will be hidden
-          # from users below halfop. This is not recommended to be set on +b
-          # as it may break some functionality in popular clients such as mIRC.
-          hidemodes="eI"
 
           # hideulines: If this value is set to yes, U-lined servers will
           # be hidden from non-opers in /links and /map.
@@ -825,7 +819,7 @@
 #  - OPER - succesful and failed oper attempts
 #  - KILL - kill related messages
 #  - snomask - server notices (*all* snomasks will be logged)
-#  - FILTER - messages related to filter matches (m_filter)
+#  - FILTER - messages related to filter matches (filter module)
 #  - CONFIG - configuration related messages
 #  - COMMAND - die and restart messages, and messages related to unknown user types
 #  - SOCKET - socket engine informational/error messages
@@ -904,10 +898,10 @@
 <badhost
          # host: ident@hostname to ban.
          # Wildcards and CIDR (if you specify an IP) can be used.
-         host="*@hundredz.n.hundredz.o.1337.kiddies.example.net"
+         host="*@banneduser.example.net"
 
          # reason: Reason to display when user is disconnected
-         reason="Too many 1337 kiddiots">
+         reason="Evading Bans">
 
 <badhost host="root@*" reason="Don't IRC as root!">
 <badhost host="*@198.51.100.0/24" reason="This subnet is bad.">
@@ -954,7 +948,7 @@
 #                                                                     #
 #   You should already know what to do here :)                        #
 
-<die value="User error. Insert new user and press any key. (you didn't edit your config properly.)">
+<die value="User error. You didn't edit your config properly. Go back and try again.">
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-# MODULES #-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 #    ____                _   _____ _     _       ____  _ _   _        #

@@ -49,7 +49,7 @@ class CloakUser : public ModeHandler
 
 	CloakUser(Module* source)
 		: ModeHandler(source, "cloak", 'x', PARAM_NONE, MODETYPE_USER),
-		ext("cloaked_host", source), debounce_ts(0), debounce_count(0)
+		ext("cloaked_host", ExtensionItem::EXT_USER, source), debounce_ts(0), debounce_count(0)
 	{
 	}
 
@@ -192,7 +192,7 @@ class ModuleCloaking : public Module
 		input.append(1, '\0'); // null does not terminate a C++ string
 		input.append(item);
 
-		std::string rv = Hash->sum(input).substr(0,len);
+		std::string rv = Hash->GenerateRaw(input).substr(0,len);
 		for(int i=0; i < len; i++)
 		{
 			// this discards 3 bits per byte. We have an

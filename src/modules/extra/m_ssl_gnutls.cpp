@@ -22,59 +22,74 @@
 
 
 #include "inspircd.h"
-#include <gnutls/gnutls.h>
-#include <gnutls/x509.h>
 #include "modules/ssl.h"
 #include <memory>
 
-#if ((GNUTLS_VERSION_MAJOR > 2) || (GNUTLS_VERSION_MAJOR == 2 && GNUTLS_VERSION_MINOR > 9) || (GNUTLS_VERSION_MAJOR == 2 && GNUTLS_VERSION_MINOR == 9 && GNUTLS_VERSION_PATCH >= 8))
+// Fix warnings about the use of commas at end of enumerator lists on C++03.
+#if defined __clang__
+# pragma clang diagnostic ignored "-Wc++11-extensions"
+#elif defined __GNUC__
+# pragma GCC diagnostic ignored "-pedantic"
+#endif
+
+#include <gnutls/gnutls.h>
+#include <gnutls/x509.h>
+
+#ifndef GNUTLS_VERSION_NUMBER
+#define GNUTLS_VERSION_NUMBER LIBGNUTLS_VERSION_NUMBER
+#endif
+
+// Check if the GnuTLS library is at least version major.minor.patch
+#define INSPIRCD_GNUTLS_HAS_VERSION(major, minor, patch) (GNUTLS_VERSION_NUMBER >= ((major << 16) | (minor << 8) | patch))
+
+#if INSPIRCD_GNUTLS_HAS_VERSION(2, 9, 8)
 #define GNUTLS_HAS_MAC_GET_ID
 #include <gnutls/crypto.h>
 #endif
 
-#if (GNUTLS_VERSION_MAJOR > 2 || GNUTLS_VERSION_MAJOR == 2 && GNUTLS_VERSION_MINOR > 12)
+#if INSPIRCD_GNUTLS_HAS_VERSION(2, 12, 0)
 # define GNUTLS_HAS_RND
 #else
 # include <gcrypt.h>
 #endif
 
 #ifdef _WIN32
-# pragma comment(lib, "libgnutls.lib")
-# pragma comment(lib, "libgcrypt.lib")
-# pragma comment(lib, "libgpg-error.lib")
-# pragma comment(lib, "user32.lib")
-# pragma comment(lib, "advapi32.lib")
-# pragma comment(lib, "libgcc.lib")
-# pragma comment(lib, "libmingwex.lib")
-# pragma comment(lib, "gdi32.lib")
+# pragma comment(lib, "libgnutls-28.lib")
 #endif
 
-/* $CompileFlags: pkgconfincludes("gnutls","/gnutls/gnutls.h","") eval("print `libgcrypt-config --cflags | tr -d \r` if `pkg-config --modversion gnutls 2>/dev/null | tr -d \r` lt '2.12'") -Wno-pedantic */
+/* $CompileFlags: pkgconfincludes("gnutls","/gnutls/gnutls.h","") eval("print `libgcrypt-config --cflags | tr -d \r` if `pkg-config --modversion gnutls 2>/dev/null | tr -d \r` lt '2.12'") */
 /* $LinkerFlags: rpath("pkg-config --libs gnutls") pkgconflibs("gnutls","/libgnutls.so","-lgnutls") eval("print `libgcrypt-config --libs | tr -d \r` if `pkg-config --modversion gnutls 2>/dev/null | tr -d \r` lt '2.12'") */
 
-#ifndef GNUTLS_VERSION_MAJOR
-#define GNUTLS_VERSION_MAJOR LIBGNUTLS_VERSION_MAJOR
-#define GNUTLS_VERSION_MINOR LIBGNUTLS_VERSION_MINOR
-#define GNUTLS_VERSION_PATCH LIBGNUTLS_VERSION_PATCH
-#endif
-
 // These don't exist in older GnuTLS versions
-#if ((GNUTLS_VERSION_MAJOR > 2) || (GNUTLS_VERSION_MAJOR == 2 && GNUTLS_VERSION_MINOR > 1) || (GNUTLS_VERSION_MAJOR == 2 && GNUTLS_VERSION_MINOR == 1 && GNUTLS_VERSION_PATCH >= 7))
+#if INSPIRCD_GNUTLS_HAS_VERSION(2, 1, 7)
 #define GNUTLS_NEW_PRIO_API
 #endif
 
-#if(GNUTLS_VERSION_MAJOR < 2)
+#if (!INSPIRCD_GNUTLS_HAS_VERSION(2, 0, 0))
 typedef gnutls_certificate_credentials_t gnutls_certificate_credentials;
 typedef gnutls_dh_params_t gnutls_dh_params;
 #endif
 
-enum issl_status { ISSL_NONE, ISSL_HANDSHAKING_READ, ISSL_HANDSHAKING_WRITE, ISSL_HANDSHAKEN, ISSL_CLOSING, ISSL_CLOSED };
+enum issl_status { ISSL_NONE, ISSL_HANDSHAKING, ISSL_HANDSHAKEN };
 
-#if (GNUTLS_VERSION_MAJOR > 2 || (GNUTLS_VERSION_MAJOR == 2 && GNUTLS_VERSION_MINOR >= 12))
+#if INSPIRCD_GNUTLS_HAS_VERSION(2, 12, 0)
+#define INSPIRCD_GNUTLS_HAS_VECTOR_PUSH
 #define GNUTLS_NEW_CERT_CALLBACK_API
 typedef gnutls_retr2_st cert_cb_last_param_type;
 #else
 typedef gnutls_retr_st cert_cb_last_param_type;
+#endif
+
+#if INSPIRCD_GNUTLS_HAS_VERSION(3, 3, 5)
+#define INSPIRCD_GNUTLS_HAS_RECV_PACKET
+#endif
+
+#if INSPIRCD_GNUTLS_HAS_VERSION(2, 99, 0)
+// The second parameter of gnutls_init() has changed in 2.99.0 from gnutls_connection_end_t to unsigned int
+// (it became a general flags parameter) and the enum has been deprecated and generates a warning on use.
+typedef unsigned int inspircd_gnutls_session_init_flags_t;
+#else
+typedef gnutls_connection_end_t inspircd_gnutls_session_init_flags_t;
 #endif
 
 class RandGen : public HandlerBase2<void, char*, size_t>
@@ -158,6 +173,10 @@ namespace GnuTLS
 				hash = GNUTLS_DIG_MD5;
 			else if (hashname == "sha1")
 				hash = GNUTLS_DIG_SHA1;
+#ifdef INSPIRCD_GNUTLS_ENABLE_SHA256_FINGERPRINT
+			else if (hashname == "sha256")
+				hash = GNUTLS_DIG_SHA256;
+#endif
 			else
 				throw Exception("Unknown hash type " + hashname);
 #endif
@@ -445,6 +464,51 @@ namespace GnuTLS
 		}
 	};
 
+	class DataReader
+	{
+		int retval;
+#ifdef INSPIRCD_GNUTLS_HAS_RECV_PACKET
+		gnutls_packet_t packet;
+
+	 public:
+		DataReader(gnutls_session_t sess)
+		{
+			// Using the packet API avoids the final copy of the data which GnuTLS does if we supply
+			// our own buffer. Instead, we get the buffer containing the data from GnuTLS and copy it
+			// to the recvq directly from there in appendto().
+			retval = gnutls_record_recv_packet(sess, &packet);
+		}
+
+		void appendto(std::string& recvq)
+		{
+			// Copy data from GnuTLS buffers to recvq
+			gnutls_datum_t datum;
+			gnutls_packet_get(packet, &datum, NULL);
+			recvq.append(reinterpret_cast<const char*>(datum.data), datum.size);
+
+			gnutls_packet_deinit(packet);
+		}
+#else
+		char* const buffer;
+
+	 public:
+		DataReader(gnutls_session_t sess)
+			: buffer(ServerInstance->GetReadBuffer())
+		{
+			// Read data from GnuTLS buffers into ReadBuffer
+			retval = gnutls_record_recv(sess, buffer, ServerInstance->Config->NetBufferSize);
+		}
+
+		void appendto(std::string& recvq)
+		{
+			// Copy data from ReadBuffer to recvq
+			recvq.append(buffer, retval);
+		}
+#endif
+
+		int ret() const { return retval; }
+	};
+
 	class Profile : public refcountbase
 	{
 		/** Name of this profile
@@ -533,6 +597,9 @@ namespace GnuTLS
 			priority.SetupSession(sess);
 			x509cred.SetupSession(sess);
 			gnutls_dh_set_prime_bits(sess, min_dh_bits);
+
+			// Request client certificate if we are a server, no-op if we're a client
+			gnutls_certificate_server_set_request(sess, GNUTLS_CERT_REQUEST);
 		}
 
 		const std::string& GetName() const { return name; }
@@ -548,19 +615,6 @@ class GnuTLSIOHook : public SSLIOHook
 	issl_status status;
 	reference<GnuTLS::Profile> profile;
 
-	void InitSession(StreamSocket* user, bool me_server)
-	{
-		gnutls_init(&sess, me_server ? GNUTLS_SERVER : GNUTLS_CLIENT);
-
-		profile->SetupSession(sess);
-		gnutls_transport_set_ptr(sess, reinterpret_cast<gnutls_transport_ptr_t>(user));
-		gnutls_transport_set_push_function(sess, gnutls_push_wrapper);
-		gnutls_transport_set_pull_function(sess, gnutls_pull_wrapper);
-
-		if (me_server)
-			gnutls_certificate_server_set_request(sess, GNUTLS_CERT_REQUEST); // Request client certificate if any.
-	}
-
 	void CloseSession()
 	{
 		if (this->sess)
@@ -573,7 +627,8 @@ class GnuTLSIOHook : public SSLIOHook
 		status = ISSL_NONE;
 	}
 
-	bool Handshake(StreamSocket* user)
+	// Returns 1 if handshake succeeded, 0 if it is still in progress, -1 if it failed
+	int Handshake(StreamSocket* user)
 	{
 		int ret = gnutls_handshake(this->sess);
 
@@ -582,28 +637,27 @@ class GnuTLSIOHook : public SSLIOHook
 			if(ret == GNUTLS_E_AGAIN || ret == GNUTLS_E_INTERRUPTED)
 			{
 				// Handshake needs resuming later, read() or write() would have blocked.
+				this->status = ISSL_HANDSHAKING;
 
 				if (gnutls_record_get_direction(this->sess) == 0)
 				{
 					// gnutls_handshake() wants to read() again.
-					this->status = ISSL_HANDSHAKING_READ;
 					SocketEngine::ChangeEventMask(user, FD_WANT_POLL_READ | FD_WANT_NO_WRITE);
 				}
 				else
 				{
 					// gnutls_handshake() wants to write() again.
-					this->status = ISSL_HANDSHAKING_WRITE;
 					SocketEngine::ChangeEventMask(user, FD_WANT_NO_READ | FD_WANT_SINGLE_WRITE);
 				}
+
+				return 0;
 			}
 			else
 			{
 				user->SetError("Handshake Failed - " + std::string(gnutls_strerror(ret)));
 				CloseSession();
-				this->status = ISSL_CLOSING;
+				return -1;
 			}
-
-			return false;
 		}
 		else
 		{
@@ -615,7 +669,7 @@ class GnuTLSIOHook : public SSLIOHook
 			// Finish writing, if any left
 			SocketEngine::ChangeEventMask(user, FD_WANT_POLL_READ | FD_WANT_NO_WRITE | FD_ADD_TRIAL_WRITE);
 
-			return true;
+			return 1;
 		}
 	}
 
@@ -685,11 +739,23 @@ class GnuTLSIOHook : public SSLIOHook
 			goto info_done_dealloc;
 		}
 
-		gnutls_x509_crt_get_dn(cert, str, &name_size);
-		certinfo->dn = str;
+		if (gnutls_x509_crt_get_dn(cert, str, &name_size) == 0)
+		{
+			std::string& dn = certinfo->dn;
+			dn = str;
+			// Make sure there are no chars in the string that we consider invalid
+			if (dn.find_first_of("\r\n") != std::string::npos)
+				dn.clear();
+		}
 
-		gnutls_x509_crt_get_issuer_dn(cert, str, &name_size);
-		certinfo->issuer = str;
+		name_size = sizeof(str);
+		if (gnutls_x509_crt_get_issuer_dn(cert, str, &name_size) == 0)
+		{
+			std::string& issuer = certinfo->issuer;
+			issuer = str;
+			if (issuer.find_first_of("\r\n") != std::string::npos)
+				issuer.clear();
+		}
 
 		if ((ret = gnutls_x509_crt_get_fingerprint(cert, profile->GetHash(), digest, &digest_size)) < 0)
 		{
@@ -709,6 +775,22 @@ class GnuTLSIOHook : public SSLIOHook
 
 info_done_dealloc:
 		gnutls_x509_crt_deinit(cert);
+	}
+
+	// Returns 1 if application I/O should proceed, 0 if it must wait for the underlying protocol to progress, -1 on fatal error
+	int PrepareIO(StreamSocket* sock)
+	{
+		if (status == ISSL_HANDSHAKEN)
+			return 1;
+		else if (status == ISSL_HANDSHAKING)
+		{
+			// The handshake isn't finished, try to finish it
+			return Handshake(sock);
+		}
+
+		CloseSession();
+		sock->SetError("No SSL session");
+		return -1;
 	}
 
 	static const char* UnknownIfNULL(const char* str)
@@ -752,6 +834,42 @@ info_done_dealloc:
 		return rv;
 	}
 
+#ifdef INSPIRCD_GNUTLS_HAS_VECTOR_PUSH
+	static ssize_t VectorPush(gnutls_transport_ptr_t transportptr, const giovec_t* iov, int iovcnt)
+	{
+		StreamSocket* sock = reinterpret_cast<StreamSocket*>(transportptr);
+#ifdef _WIN32
+		GnuTLSIOHook* session = static_cast<GnuTLSIOHook*>(sock->GetIOHook());
+#endif
+
+		if (sock->GetEventMask() & FD_WRITE_WILL_BLOCK)
+		{
+#ifdef _WIN32
+			gnutls_transport_set_errno(session->sess, EAGAIN);
+#else
+			errno = EAGAIN;
+#endif
+			return -1;
+		}
+
+		// Cast the giovec_t to iovec not to IOVector so the correct function is called on Windows
+		int ret = SocketEngine::WriteV(sock, reinterpret_cast<const iovec*>(iov), iovcnt);
+#ifdef _WIN32
+		// See the function above for more info about the usage of gnutls_transport_set_errno() on Windows
+		if (ret < 0)
+			gnutls_transport_set_errno(session->sess, SocketEngine::IgnoreError() ? EAGAIN : errno);
+#endif
+
+		int size = 0;
+		for (int i = 0; i < iovcnt; i++)
+			size += iov[i].iov_len;
+
+		if (ret < size)
+			SocketEngine::ChangeEventMask(sock, FD_WRITE_WILL_BLOCK);
+		return ret;
+	}
+
+#else // INSPIRCD_GNUTLS_HAS_VECTOR_PUSH
 	static ssize_t gnutls_push_wrapper(gnutls_transport_ptr_t session_wrap, const void* buffer, size_t size)
 	{
 		StreamSocket* sock = reinterpret_cast<StreamSocket*>(session_wrap);
@@ -787,15 +905,25 @@ info_done_dealloc:
 			SocketEngine::ChangeEventMask(sock, FD_WRITE_WILL_BLOCK);
 		return rv;
 	}
+#endif // INSPIRCD_GNUTLS_HAS_VECTOR_PUSH
 
  public:
-	GnuTLSIOHook(IOHookProvider* hookprov, StreamSocket* sock, bool outbound, const reference<GnuTLS::Profile>& sslprofile)
+	GnuTLSIOHook(IOHookProvider* hookprov, StreamSocket* sock, inspircd_gnutls_session_init_flags_t flags, const reference<GnuTLS::Profile>& sslprofile)
 		: SSLIOHook(hookprov)
 		, sess(NULL)
 		, status(ISSL_NONE)
 		, profile(sslprofile)
 	{
-		InitSession(sock, outbound);
+		gnutls_init(&sess, flags);
+		gnutls_transport_set_ptr(sess, reinterpret_cast<gnutls_transport_ptr_t>(sock));
+#ifdef INSPIRCD_GNUTLS_HAS_VECTOR_PUSH
+		gnutls_transport_set_vec_push_function(sess, VectorPush);
+#else
+		gnutls_transport_set_push_function(sess, gnutls_push_wrapper);
+#endif
+		gnutls_transport_set_pull_function(sess, gnutls_pull_wrapper);
+		profile->SetupSession(sess);
+
 		sock->AddIOHook(this);
 		Handshake(sock);
 	}
@@ -807,35 +935,18 @@ info_done_dealloc:
 
 	int OnStreamSocketRead(StreamSocket* user, std::string& recvq) CXX11_OVERRIDE
 	{
-		if (!this->sess)
-		{
-			CloseSession();
-			user->SetError("No SSL session");
-			return -1;
-		}
-
-		if (this->status == ISSL_HANDSHAKING_READ || this->status == ISSL_HANDSHAKING_WRITE)
-		{
-			// The handshake isn't finished, try to finish it.
-
-			if (!Handshake(user))
-			{
-				if (this->status != ISSL_CLOSING)
-					return 0;
-				return -1;
-			}
-		}
+		// Finish handshake if needed
+		int prepret = PrepareIO(user);
+		if (prepret <= 0)
+			return prepret;
 
 		// If we resumed the handshake then this->status will be ISSL_HANDSHAKEN.
-
-		if (this->status == ISSL_HANDSHAKEN)
 		{
-			char* buffer = ServerInstance->GetReadBuffer();
-			size_t bufsiz = ServerInstance->Config->NetBufferSize;
-			int ret = gnutls_record_recv(this->sess, buffer, bufsiz);
+			GnuTLS::DataReader reader(sess);
+			int ret = reader.ret();
 			if (ret > 0)
 			{
-				recvq.append(buffer, ret);
+				reader.appendto(recvq);
 				return 1;
 			}
 			else if (ret == GNUTLS_E_AGAIN || ret == GNUTLS_E_INTERRUPTED)
@@ -855,33 +966,18 @@ info_done_dealloc:
 				return -1;
 			}
 		}
-		else if (this->status == ISSL_CLOSING)
-			return -1;
-
-		return 0;
 	}
 
 	int OnStreamSocketWrite(StreamSocket* user, std::string& sendq) CXX11_OVERRIDE
 	{
-		if (!this->sess)
-		{
-			CloseSession();
-			user->SetError("No SSL session");
-			return -1;
-		}
+		// Finish handshake if needed
+		int prepret = PrepareIO(user);
+		if (prepret <= 0)
+			return prepret;
 
-		if (this->status == ISSL_HANDSHAKING_WRITE || this->status == ISSL_HANDSHAKING_READ)
-		{
-			// The handshake isn't finished, try to finish it.
-			Handshake(user);
-			if (this->status != ISSL_CLOSING)
-				return 0;
-			return -1;
-		}
-
+		// Session is ready for transferring application data
 		int ret = 0;
 
-		if (this->status == ISSL_HANDSHAKEN)
 		{
 			ret = gnutls_record_send(this->sess, sendq.data(), sendq.length());
 
@@ -892,7 +988,7 @@ info_done_dealloc:
 			}
 			else if (ret > 0)
 			{
-				sendq = sendq.substr(ret);
+				sendq.erase(0, ret);
 				SocketEngine::ChangeEventMask(user, FD_WANT_SINGLE_WRITE);
 				return 0;
 			}
@@ -908,8 +1004,6 @@ info_done_dealloc:
 				return -1;
 			}
 		}
-
-		return 0;
 	}
 
 	void TellCiphersAndFingerprint(LocalUser* user)
@@ -917,19 +1011,25 @@ info_done_dealloc:
 		if (sess)
 		{
 			std::string text = "*** You are connected using SSL cipher '";
-
-			text += UnknownIfNULL(gnutls_kx_get_name(gnutls_kx_get(sess)));
-			text.append("-").append(UnknownIfNULL(gnutls_cipher_get_name(gnutls_cipher_get(sess)))).append("-");
-			text.append(UnknownIfNULL(gnutls_mac_get_name(gnutls_mac_get(sess)))).append("'");
-
+			GetCiphersuite(text);
+			text += '\'';
 			if (!certificate->fingerprint.empty())
-				text += " and your SSL fingerprint is " + certificate->fingerprint;
+				text += " and your SSL certificate fingerprint is " + certificate->fingerprint;
 
 			user->WriteNotice(text);
 		}
 	}
 
+	void GetCiphersuite(std::string& out) const
+	{
+		out.append(UnknownIfNULL(gnutls_protocol_get_name(gnutls_protocol_get_version(sess)))).push_back('-');
+		out.append(UnknownIfNULL(gnutls_kx_get_name(gnutls_kx_get(sess)))).push_back('-');
+		out.append(UnknownIfNULL(gnutls_cipher_get_name(gnutls_cipher_get(sess)))).push_back('-');
+		out.append(UnknownIfNULL(gnutls_mac_get_name(gnutls_mac_get(sess))));
+	}
+
 	GnuTLS::Profile* GetProfile() { return profile; }
+	bool IsHandshakeDone() const { return (status == ISSL_HANDSHAKEN); }
 };
 
 int GnuTLS::X509Credentials::cert_callback(gnutls_session_t sess, const gnutls_datum_t* req_ca_rdn, int nreqs, const gnutls_pk_algorithm_t* sign_algos, int sign_algos_length, cert_cb_last_param_type* st)
@@ -970,12 +1070,12 @@ class GnuTLSIOHookProvider : public refcountbase, public IOHookProvider
 
 	void OnAccept(StreamSocket* sock, irc::sockets::sockaddrs* client, irc::sockets::sockaddrs* server) CXX11_OVERRIDE
 	{
-		new GnuTLSIOHook(this, sock, true, profile);
+		new GnuTLSIOHook(this, sock, GNUTLS_SERVER, profile);
 	}
 
 	void OnConnect(StreamSocket* sock) CXX11_OVERRIDE
 	{
-		new GnuTLSIOHook(this, sock, false, profile);
+		new GnuTLSIOHook(this, sock, GNUTLS_CLIENT, profile);
 	}
 };
 
@@ -1104,6 +1204,18 @@ class ModuleSSLGnuTLS : public Module
 		IOHook* hook = user->eh.GetIOHook();
 		if (hook && hook->prov->creator == this)
 			static_cast<GnuTLSIOHook*>(hook)->TellCiphersAndFingerprint(user);
+	}
+
+	ModResult OnCheckReady(LocalUser* user) CXX11_OVERRIDE
+	{
+		if ((user->eh.GetIOHook()) && (user->eh.GetIOHook()->prov->creator == this))
+		{
+			GnuTLSIOHook* iohook = static_cast<GnuTLSIOHook*>(user->eh.GetIOHook());
+			if (!iohook->IsHandshakeDone())
+				return MOD_RES_DENY;
+		}
+
+		return MOD_RES_PASSTHRU;
 	}
 };
 

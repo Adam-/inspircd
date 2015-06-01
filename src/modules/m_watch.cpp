@@ -156,9 +156,6 @@ class CommandWatch : public Command
 			/* Yup, is on my list */
 			watchlist::iterator n = wl->find(nick);
 
-			if (!wl)
-				return CMD_FAILURE;
-
 			if (n != wl->end())
 			{
 				if (!n->second.empty())
@@ -207,7 +204,7 @@ class CommandWatch : public Command
 			ext.set(user, wl);
 		}
 
-		if (wl->size() == MAX_WATCH)
+		if (wl->size() >= MAX_WATCH)
 		{
 			user->WriteNumeric(512, "%s :Too many WATCH entries", nick);
 			return CMD_FAILURE;
@@ -250,7 +247,7 @@ class CommandWatch : public Command
 		return CMD_SUCCESS;
 	}
 
-	CommandWatch(Module* parent, unsigned int &maxwatch) : Command(parent,"WATCH", 0), MAX_WATCH(maxwatch), ext("watchlist", parent)
+	CommandWatch(Module* parent, unsigned int &maxwatch) : Command(parent,"WATCH", 0), MAX_WATCH(maxwatch), ext("watchlist", ExtensionItem::EXT_USER, parent)
 	{
 		syntax = "[C|L|S]|[+|-<nick>]";
 	}

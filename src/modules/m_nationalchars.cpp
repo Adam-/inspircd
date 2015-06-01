@@ -223,11 +223,40 @@ class ModuleNationalChars : public Module
 	caller1<bool, const std::string&> rememberer;
 	bool forcequit;
 	const unsigned char * lowermap_rememberer;
+	unsigned char prev_map[256];
+
+	template <typename T>
+	void RehashHashmap(T& hashmap)
+	{
+		T newhash(hashmap.bucket_count());
+		for (typename T::const_iterator i = hashmap.begin(); i != hashmap.end(); ++i)
+			newhash.insert(std::make_pair(i->first, i->second));
+		hashmap.swap(newhash);
+	}
+
+	void CheckRehash()
+	{
+		// See if anything changed
+		if (!memcmp(prev_map, national_case_insensitive_map, sizeof(prev_map)))
+			return;
+
+		memcpy(prev_map, national_case_insensitive_map, sizeof(prev_map));
+
+		RehashHashmap(ServerInstance->Users.clientlist);
+		RehashHashmap(ServerInstance->Users.uuidlist);
+		RehashHashmap(ServerInstance->chanlist);
+
+		// The OnGarbageCollect() method in m_watch rebuilds the hashmap used by it
+		Module* mod = ServerInstance->Modules->Find("m_watch.so");
+		if (mod)
+			mod->OnGarbageCollect();
+	}
 
  public:
 	ModuleNationalChars()
 		: rememberer(ServerInstance->IsNick), lowermap_rememberer(national_case_insensitive_map)
 	{
+		memcpy(prev_map, national_case_insensitive_map, sizeof(prev_map));
 	}
 
 	void init() CXX11_OVERRIDE
@@ -254,6 +283,7 @@ class ModuleNationalChars : public Module
 		loadtables(charset, tables, 8, 5);
 		forcequit = tag->getBool("forcequit");
 		CheckForceQuit("National character set changed");
+		CheckRehash();
 	}
 
 	void CheckForceQuit(const char * message)
@@ -261,10 +291,13 @@ class ModuleNationalChars : public Module
 		if (!forcequit)
 			return;
 
-		for (LocalUserList::const_iterator iter = ServerInstance->Users->local_users.begin(); iter != ServerInstance->Users->local_users.end(); ++iter)
+		const UserManager::LocalList& list = ServerInstance->Users.GetLocalUsers();
+		for (UserManager::LocalList::const_iterator iter = list.begin(); iter != list.end(); )
 		{
 			/* Fix by Brain: Dont quit UID users */
+			// Quitting the user removes it from the list
 			User* n = *iter;
+			++iter;
 			if (!isdigit(n->nick[0]) && !ServerInstance->IsNick(n->nick))
 				ServerInstance->Users->QuitUser(n, message);
 		}
@@ -275,6 +308,7 @@ class ModuleNationalChars : public Module
 		ServerInstance->IsNick = rememberer;
 		national_case_insensitive_map = lowermap_rememberer;
 		CheckForceQuit("National characters module unloaded");
+		CheckRehash();
 	}
 
 	Version GetVersion() CXX11_OVERRIDE

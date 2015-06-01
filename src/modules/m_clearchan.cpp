@@ -93,11 +93,11 @@ class CommandClearChan : public Command
 
 		std::string mask;
 		// Now remove all local non-opers from the channel
-		UserMembList& users = chan->userlist;
-		for (UserMembIter i = users.begin(); i != users.end(); )
+		Channel::MemberMap& users = chan->userlist;
+		for (Channel::MemberMap::iterator i = users.begin(); i != users.end(); )
 		{
 			User* curr = i->first;
-			const UserMembIter currit = i;
+			const Channel::MemberMap::iterator currit = i;
 			++i;
 
 			if (!IS_LOCAL(curr) || curr->IsOper())
@@ -170,8 +170,8 @@ class ModuleClearChan : public Module
 			}
 		}
 
-		const UserMembList* users = cmd.activechan->GetUsers();
-		for (UserMembCIter i = users->begin(); i != users->end(); ++i)
+		const Channel::MemberMap& users = cmd.activechan->GetUsers();
+		for (Channel::MemberMap::const_iterator i = users.begin(); i != users.end(); ++i)
 		{
 			LocalUser* curr = IS_LOCAL(i->first);
 			if (!curr)
@@ -200,8 +200,8 @@ class ModuleClearChan : public Module
 	{
 		// Hide the KICK from all non-opers
 		User* leaving = memb->user;
-		const UserMembList* users = memb->chan->GetUsers();
-		for (UserMembCIter i = users->begin(); i != users->end(); ++i)
+		const Channel::MemberMap& users = memb->chan->GetUsers();
+		for (Channel::MemberMap::const_iterator i = users.begin(); i != users.end(); ++i)
 		{
 			User* curr = i->first;
 			if ((IS_LOCAL(curr)) && (!curr->IsOper()) && (curr != leaving))

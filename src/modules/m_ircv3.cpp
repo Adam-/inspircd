@@ -20,57 +20,38 @@
 #include "modules/account.h"
 #include "modules/cap.h"
 
-class ModuleIRCv3 : public Module
+class WriteNeighboursWithExt : public User::ForEachNeighborHandler
+{
+	const LocalIntExt& ext;
+	const std::string& msg;
+
+	void Execute(LocalUser* user) CXX11_OVERRIDE
+	{
+		if (ext.get(user))
+			user->Write(msg);
+	}
+
+ public:
+	WriteNeighboursWithExt(User* user, const std::string& message, const LocalIntExt& extension)
+		: ext(extension)
+		, msg(message)
+	{
+		user->ForEachNeighbor(*this, false);
+	}
+};
+
+class ModuleIRCv3 : public Module, public AccountEventListener
 {
 	GenericCap cap_accountnotify;
 	GenericCap cap_awaynotify;
 	GenericCap cap_extendedjoin;
-	bool accountnotify;
-	bool awaynotify;
-	bool extendedjoin;
 
 	CUList last_excepts;
 
-	void WriteNeighboursWithExt(User* user, const std::string& line, const LocalIntExt& ext)
-	{
-		IncludeChanList chans(user->chans.begin(), user->chans.end());
-
-		std::map<User*, bool> exceptions;
-		FOREACH_MOD(OnBuildNeighborList, (user, chans, exceptions));
-
-		// Send it to all local users who were explicitly marked as neighbours by modules and have the required ext
-		for (std::map<User*, bool>::const_iterator i = exceptions.begin(); i != exceptions.end(); ++i)
-		{
-			LocalUser* u = IS_LOCAL(i->first);
-			if ((u) && (i->second) && (ext.get(u)))
-				u->Write(line);
-		}
-
-		// Now consider sending it to all other users who has at least a common channel with the user
-		std::set<User*> already_sent;
-		for (IncludeChanList::const_iterator i = chans.begin(); i != chans.end(); ++i)
-		{
-			const UserMembList* userlist = (*i)->chan->GetUsers();
-			for (UserMembList::const_iterator m = userlist->begin(); m != userlist->end(); ++m)
-			{
-				/*
-				 * Send the line if the channel member in question meets all of the following criteria:
-				 * - local
-				 * - not the user who is doing the action (i.e. whose channels we're iterating)
-				 * - has the given extension
-				 * - not on the except list built by modules
-				 * - we haven't sent the line to the member yet
-				 *
-				 */
-				LocalUser* member = IS_LOCAL(m->first);
-				if ((member) && (member != user) && (ext.get(member)) && (exceptions.find(member) == exceptions.end()) && (already_sent.insert(member).second))
-					member->Write(line);
-			}
-		}
-	}
-
  public:
-	ModuleIRCv3() : cap_accountnotify(this, "account-notify"),
+	ModuleIRCv3()
+		: AccountEventListener(this)
+		, cap_accountnotify(this, "account-notify"),
 					cap_awaynotify(this, "away-notify"),
 					cap_extendedjoin(this, "extended-join")
 	{
@@ -79,47 +60,32 @@ class ModuleIRCv3 : public Module
 	void ReadConfig(ConfigStatus& status) CXX11_OVERRIDE
 	{
 		ConfigTag* conf = ServerInstance->Config->ConfValue("ircv3");
-		accountnotify = conf->getBool("accountnotify", true);
-		awaynotify = conf->getBool("awaynotify", true);
-		extendedjoin = conf->getBool("extendedjoin", true);
+		cap_accountnotify.SetActive(conf->getBool("accountnotify", true));
+		cap_awaynotify.SetActive(conf->getBool("awaynotify", true));
+		cap_extendedjoin.SetActive(conf->getBool("extendedjoin", true));
 	}
 
-	void OnEvent(Event& ev) CXX11_OVERRIDE
+	void OnAccountChange(User* user, const std::string& newaccount) CXX11_OVERRIDE
 	{
-		if (awaynotify)
-			cap_awaynotify.HandleEvent(ev);
-		if (extendedjoin)
-			cap_extendedjoin.HandleEvent(ev);
+		// :nick!user@host ACCOUNT account
+		// or
+		// :nick!user@host ACCOUNT *
+		std::string line = ":" + user->GetFullHost() + " ACCOUNT ";
+		if (newaccount.empty())
+			line += "*";
+		else
+			line += newaccount;
 
-		if (accountnotify)
-		{
-			cap_accountnotify.HandleEvent(ev);
-
-			if (ev.id == "account_login")
-			{
-				AccountEvent* ae = static_cast<AccountEvent*>(&ev);
-
-				// :nick!user@host ACCOUNT account
-				// or
-				// :nick!user@host ACCOUNT *
-				std::string line =  ":" + ae->user->GetFullHost() + " ACCOUNT ";
-				if (ae->account.empty())
-					line += "*";
-				else
-					line += std::string(ae->account);
-
-				WriteNeighboursWithExt(ae->user, line, cap_accountnotify.ext);
-			}
-		}
+		WriteNeighboursWithExt(user, line, cap_accountnotify.ext);
 	}
 
 	void OnUserJoin(Membership* memb, bool sync, bool created, CUList& excepts) CXX11_OVERRIDE
 	{
 		// Remember who is not going to see the JOIN because of other modules
-		if ((awaynotify) && (memb->user->IsAway()))
+		if ((cap_awaynotify.IsActive()) && (memb->user->IsAway()))
 			last_excepts = excepts;
 
-		if (!extendedjoin)
+		if (!cap_extendedjoin.IsActive())
 			return;
 
 		/*
@@ -134,8 +100,8 @@ class ModuleIRCv3 : public Module
 		std::string line;
 		std::string mode;
 
-		const UserMembList* userlist = memb->chan->GetUsers();
-		for (UserMembCIter it = userlist->begin(); it != userlist->end(); ++it)
+		const Channel::MemberMap& userlist = memb->chan->GetUsers();
+		for (Channel::MemberMap::const_iterator it = userlist.begin(); it != userlist.end(); ++it)
 		{
 			// Send the extended join line if the current member is local, has the extended-join cap and isn't excepted
 			User* member = IS_LOCAL(it->first);
@@ -188,7 +154,7 @@ class ModuleIRCv3 : public Module
 
 	ModResult OnSetAway(User* user, const std::string &awaymsg) CXX11_OVERRIDE
 	{
-		if (awaynotify)
+		if (cap_awaynotify.IsActive())
 		{
 			// Going away: n!u@h AWAY :reason
 			// Back from away: n!u@h AWAY
@@ -203,13 +169,13 @@ class ModuleIRCv3 : public Module
 
 	void OnPostJoin(Membership *memb) CXX11_OVERRIDE
 	{
-		if ((!awaynotify) || (!memb->user->IsAway()))
+		if ((!cap_awaynotify.IsActive()) || (!memb->user->IsAway()))
 			return;
 
 		std::string line = ":" + memb->user->GetFullHost() + " AWAY :" + memb->user->awaymsg;
 
-		const UserMembList* userlist = memb->chan->GetUsers();
-		for (UserMembCIter it = userlist->begin(); it != userlist->end(); ++it)
+		const Channel::MemberMap& userlist = memb->chan->GetUsers();
+		for (Channel::MemberMap::const_iterator it = userlist.begin(); it != userlist.end(); ++it)
 		{
 			// Send the away notify line if the current member is local, has the away-notify cap and isn't excepted
 			User* member = IS_LOCAL(it->first);

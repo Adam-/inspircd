@@ -25,14 +25,15 @@
 #include "modules/httpd.h"
 #include "xline.h"
 
-class ModuleHttpStats : public Module
+class ModuleHttpStats : public Module, public HTTPRequestEventListener
 {
-	static std::map<char, char const*> const &entities;
+	static const insp::flat_map<char, char const*>& entities;
 	HTTPdAPI API;
 
  public:
 	ModuleHttpStats()
-		: API(this)
+		: HTTPRequestEventListener(this)
+		, API(this)
 	{
 	}
 
@@ -43,7 +44,7 @@ class ModuleHttpStats : public Module
 
 		for (std::string::const_iterator x = str.begin(); x != str.end(); ++x)
 		{
-			std::map<char, char const*>::const_iterator it = entities.find(*x);
+			insp::flat_map<char, char const*>::const_iterator it = entities.find(*x);
 
 			if (it != entities.end())
 			{
@@ -87,14 +88,12 @@ class ModuleHttpStats : public Module
 		data << "</metadata>";
 	}
 
-	void OnEvent(Event& event) CXX11_OVERRIDE
+	ModResult HandleRequest(HTTPRequest* http)
 	{
 		std::stringstream data("");
 
-		if (event.id == "httpd_url")
 		{
 			ServerInstance->Logs->Log(MODNAME, LOG_DEBUG, "Handling httpd event");
-			HTTPRequest* http = (HTTPRequest*)&event;
 
 			if ((http->GetURI() == "/stats") || (http->GetURI() == "/stats/"))
 			{
@@ -107,13 +106,7 @@ class ModuleHttpStats : public Module
 				data << "<channelcount>" << ServerInstance->GetChans().size() << "</channelcount>";
 				data << "<opercount>" << ServerInstance->Users->all_opers.size() << "</opercount>";
 				data << "<socketcount>" << (SocketEngine::GetUsedFds()) << "</socketcount><socketmax>" << SocketEngine::GetMaxFds() << "</socketmax><socketengine>" INSPIRCD_SOCKETENGINE_NAME "</socketengine>";
-
-				time_t current_time = 0;
-				current_time = ServerInstance->Time();
-				time_t server_uptime = current_time - ServerInstance->startup_time;
-				struct tm* stime;
-				stime = gmtime(&server_uptime);
-				data << "<uptime><days>" << stime->tm_yday << "</days><hours>" << stime->tm_hour << "</hours><mins>" << stime->tm_min << "</mins><secs>" << stime->tm_sec << "</secs><boot_time_t>" << ServerInstance->startup_time << "</boot_time_t></uptime>";
+				data << "<uptime><boot_time_t>" << ServerInstance->startup_time << "</boot_time_t></uptime>";
 
 				data << "<isupport>";
 				const std::vector<std::string>& isupport = ServerInstance->ISupport.GetLines();
@@ -155,16 +148,16 @@ class ModuleHttpStats : public Module
 					Channel* c = i->second;
 
 					data << "<channel>";
-					data << "<usercount>" << c->GetUsers()->size() << "</usercount><channelname>" << Sanitize(c->name) << "</channelname>";
+					data << "<usercount>" << c->GetUsers().size() << "</usercount><channelname>" << Sanitize(c->name) << "</channelname>";
 					data << "<channeltopic>";
 					data << "<topictext>" << Sanitize(c->topic) << "</topictext>";
 					data << "<setby>" << Sanitize(c->setby) << "</setby>";
 					data << "<settime>" << c->topicset << "</settime>";
 					data << "</channeltopic>";
 					data << "<channelmodes>" << Sanitize(c->ChanModes(true)) << "</channelmodes>";
-					const UserMembList* ulist = c->GetUsers();
 
-					for (UserMembCIter x = ulist->begin(); x != ulist->end(); ++x)
+					const Channel::MemberMap& ulist = c->GetUsers();
+					for (Channel::MemberMap::const_iterator x = ulist.begin(); x != ulist.end(); ++x)
 					{
 						Membership* memb = x->second;
 						data << "<channelmember><uid>" << memb->user->uuid << "</uid><privs>"
@@ -189,7 +182,7 @@ class ModuleHttpStats : public Module
 					data << "<user>";
 					data << "<nickname>" << u->nick << "</nickname><uuid>" << u->uuid << "</uuid><realhost>"
 						<< u->host << "</realhost><displayhost>" << u->dhost << "</displayhost><gecos>"
-						<< Sanitize(u->fullname) << "</gecos><server>" << u->server << "</server>";
+						<< Sanitize(u->fullname) << "</gecos><server>" << u->server->GetName() << "</server>";
 					if (u->IsAway())
 						data << "<away>" << Sanitize(u->awaymsg) << "</away><awaytime>" << u->awaytime << "</awaytime>";
 					if (u->IsOper())
@@ -231,8 +224,15 @@ class ModuleHttpStats : public Module
 				response.headers.SetHeader("X-Powered-By", MODNAME);
 				response.headers.SetHeader("Content-Type", "text/xml");
 				API->SendResponse(response);
+				return MOD_RES_DENY; // Handled
 			}
 		}
+		return MOD_RES_PASSTHRU;
+	}
+
+	ModResult OnHTTPRequest(HTTPRequest& req) CXX11_OVERRIDE
+	{
+		return HandleRequest(&req);
 	}
 
 	Version GetVersion() CXX11_OVERRIDE
@@ -241,9 +241,9 @@ class ModuleHttpStats : public Module
 	}
 };
 
-static std::map<char, char const*> const &init_entities()
+static const insp::flat_map<char, char const*>& init_entities()
 {
-	static std::map<char, char const*> entities;
+	static insp::flat_map<char, char const*> entities;
 	entities['<'] = "lt";
 	entities['>'] = "gt";
 	entities['&'] = "amp";
@@ -251,6 +251,6 @@ static std::map<char, char const*> const &init_entities()
 	return entities;
 }
 
-std::map<char, char const*> const &ModuleHttpStats::entities = init_entities ();
+const insp::flat_map<char, char const*>& ModuleHttpStats::entities = init_entities();
 
 MODULE_INIT(ModuleHttpStats)

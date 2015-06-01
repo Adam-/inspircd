@@ -46,13 +46,9 @@ void InspIRCd::Exit(int status)
 #ifdef _WIN32
 	SetServiceStopped(status);
 #endif
-	if (this)
-	{
-		this->SendError("Exiting with status " + ConvToStr(status) + " (" + std::string(ExitCodes[status]) + ")");
-		this->Cleanup();
-		delete this;
-		ServerInstance = NULL;
-	}
+	this->Cleanup();
+	ServerInstance = NULL;
+	delete this;
 	exit (status);
 }
 
@@ -198,10 +194,9 @@ void ISupportManager::Build()
 	}
 
 	// Transform the map into a list of lines, ready to be sent to clients
-	std::vector<std::string>& lines = this->Lines;
 	std::string line;
 	unsigned int token_count = 0;
-	lines.clear();
+	cachedlines.clear();
 
 	for (std::map<std::string, std::string>::const_iterator it = tokens.begin(); it != tokens.end(); ++it)
 	{
@@ -220,7 +215,7 @@ void ISupportManager::Build()
 			// Reached maximum number of tokens for this line or the current token
 			// is the last one; finalize the line and store it for later use
 			line.append(":are supported by this server");
-			lines.push_back(line);
+			cachedlines.push_back(line);
 			line.clear();
 		}
 	}
@@ -228,6 +223,6 @@ void ISupportManager::Build()
 
 void ISupportManager::SendTo(LocalUser* user)
 {
-	for (std::vector<std::string>::const_iterator i = this->Lines.begin(); i != this->Lines.end(); ++i)
+	for (std::vector<std::string>::const_iterator i = cachedlines.begin(); i != cachedlines.end(); ++i)
 		user->WriteNumeric(RPL_ISUPPORT, *i);
 }

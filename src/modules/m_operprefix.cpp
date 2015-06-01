@@ -29,12 +29,12 @@
 class OperPrefixMode : public PrefixMode
 {
 	public:
-		OperPrefixMode(Module* Creator) : PrefixMode(Creator, "operprefix", 'y')
+		OperPrefixMode(Module* Creator)
+			: PrefixMode(Creator, "operprefix", 'y', OPERPREFIX_VALUE)
 		{
 			std::string pfx = ServerInstance->Config->ConfValue("operprefix")->getString("prefix", "!");
 			prefix = pfx.empty() ? '!' : pfx[0];
 			levelrequired = INT_MAX;
-			prefixrank = OPERPREFIX_VALUE;
 		}
 };
 
@@ -72,18 +72,26 @@ class ModuleOperPrefixMode : public Module
 		return MOD_RES_PASSTHRU;
 	}
 
+	void OnPostJoin(Membership* memb)
+	{
+		if ((!IS_LOCAL(memb->user)) || (!memb->user->IsOper()) || (memb->user->IsModeSet(hideopermode)))
+			return;
+
+		if (memb->hasMode(opm.GetModeChar()))
+			return;
+
+		// The user was force joined and OnUserPreJoin() did not run. Set the operprefix now.
+		Modes::ChangeList changelist;
+		changelist.push_add(&opm, memb->user->nick);
+		ServerInstance->Modes.Process(ServerInstance->FakeClient, memb->chan, NULL, changelist);
+	}
+
 	void SetOperPrefix(User* user, bool add)
 	{
-		std::vector<std::string> modechange;
-		modechange.push_back("");
-		modechange.push_back(add ? "+" : "-");
-		modechange[1].push_back(opm.GetModeChar());
-		modechange.push_back(user->nick);
-		for (UCListIter v = user->chans.begin(); v != user->chans.end(); v++)
-		{
-			modechange[0] = (*v)->chan->name;
-			ServerInstance->Modes->Process(modechange, ServerInstance->FakeClient);
-		}
+		Modes::ChangeList changelist;
+		changelist.push(&opm, add, user->nick);
+		for (User::ChanList::iterator v = user->chans.begin(); v != user->chans.end(); v++)
+			ServerInstance->Modes->Process(ServerInstance->FakeClient, (*v)->chan, NULL, changelist);
 	}
 
 	void OnPostOper(User* user, const std::string& opername, const std::string& opertype) CXX11_OVERRIDE

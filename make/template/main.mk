@@ -37,12 +37,13 @@ COMPILER = @COMPILER_NAME@
 SYSTEM = @SYSTEM_NAME@
 BUILDPATH ?= $(PWD)/build
 SOCKETENGINE = @SOCKETENGINE@
-CORECXXFLAGS = -fPIC -pipe -Iinclude -Wall -Wextra -Wfatal-errors -Wno-unused-parameter -Wshadow
+CORECXXFLAGS = -fPIC -fvisibility=hidden -fvisibility-inlines-hidden -pipe -Iinclude -Wall -Wextra -Wfatal-errors -Wno-unused-parameter -Wshadow
 LDLIBS = -lstdc++
 CORELDFLAGS = -rdynamic -L. $(LDFLAGS)
 PICLDFLAGS = -fPIC -shared -rdynamic $(LDFLAGS)
 BASE = "$(DESTDIR)@BASE_DIR@"
 CONPATH = "$(DESTDIR)@CONFIG_DIR@"
+MANPATH = "$(DESTDIR)@MANUAL_DIR@"
 MODPATH = "$(DESTDIR)@MODULE_DIR@"
 DATPATH = "$(DESTDIR)@DATA_DIR@"
 BINPATH = "$(DESTDIR)@BINARY_DIR@"
@@ -53,10 +54,9 @@ INSTMODE_BIN = 0750
 INSTMODE_LIB = 0640
 
 @IFNEQ $(COMPILER) ICC
-  CORECXXFLAGS += -pedantic -Woverloaded-virtual -Wshadow -Wformat=2 -Wmissing-format-attribute
-@ENDIF
-
-@IFNEQ $(SYSTEM)-$(COMPILER) darwin-GCC
+  CORECXXFLAGS += -Woverloaded-virtual -Wshadow
+@IFNEQ $(SYSTEM) openbsd
+    CORECXXFLAGS += -pedantic -Wformat=2 -Wmissing-format-attribute
 @ENDIF
 
 @IFNEQ $(SYSTEM) darwin
@@ -88,7 +88,7 @@ INSTMODE_LIB = 0640
 
 DBGOK=0
 @IFEQ $(D) 0
-  CORECXXFLAGS += -O2
+  CORECXXFLAGS += -fno-rtti -O2
 @IFEQ $(COMPILER) GCC
     CORECXXFLAGS += -g1
 @ENDIF
@@ -96,12 +96,12 @@ DBGOK=0
   DBGOK=1
 @ENDIF
 @IFEQ $(D) 1
-  CORECXXFLAGS += -O0 -g3 -Werror
+  CORECXXFLAGS += -O0 -g3 -Werror -DINSPIRCD_ENABLE_RTTI
   HEADER = debug-header
   DBGOK=1
 @ENDIF
 @IFEQ $(D) 2
-  CORECXXFLAGS += -O2 -g3
+  CORECXXFLAGS += -fno-rtti -O2 -g3
   HEADER = debug-header
   DBGOK=1
 @ENDIF
@@ -113,14 +113,11 @@ FOOTER = finishmessage
 @TARGET BSD_MAKE SOURCEPATH != /bin/pwd
 
 @IFDEF V
-  RUNCC = $(CXX)
-  RUNLD = $(CXX)
   VERBOSE = -v
 @ELSE
   @TARGET GNU_MAKE MAKEFLAGS += --silent
   @TARGET BSD_MAKE MAKE += -s
-  RUNCC = perl $(SOURCEPATH)/make/run-cc.pl $(CXX)
-  RUNLD = perl $(SOURCEPATH)/make/run-cc.pl $(CXX)
+  VERBOSE =
 @ENDIF
 
 @IFDEF PURE_STATIC
@@ -131,7 +128,7 @@ FOOTER = finishmessage
 # things like -Wfatal-errors if they wish to.
 CORECXXFLAGS += $(CXXFLAGS)
 
-@DO_EXPORT RUNCC RUNLD CORECXXFLAGS LDLIBS PICLDFLAGS VERBOSE SOCKETENGINE CORELDFLAGS
+@DO_EXPORT CXX CORECXXFLAGS LDLIBS PICLDFLAGS VERBOSE SOCKETENGINE CORELDFLAGS
 @DO_EXPORT SOURCEPATH BUILDPATH PURE_STATIC
 
 # Default target
@@ -224,6 +221,7 @@ install: target
 	@-$(INSTALL) -d -m $(INSTMODE_DIR) $(BINPATH)
 	@-$(INSTALL) -d -m $(INSTMODE_DIR) $(CONPATH)/examples/aliases
 	@-$(INSTALL) -d -m $(INSTMODE_DIR) $(CONPATH)/examples/modules
+	@-$(INSTALL) -d -m $(INSTMODE_DIR) $(MANPATH)
 	@-$(INSTALL) -d -m $(INSTMODE_DIR) $(MODPATH)
 	[ $(BUILDPATH)/bin/ -ef $(BINPATH) ] || $(INSTALL) -m $(INSTMODE_BIN) $(BUILDPATH)/bin/inspircd $(BINPATH)
 @IFNDEF PURE_STATIC
@@ -234,8 +232,14 @@ install: target
 @IFEQ $(SYSTEM) darwin
 	-$(INSTALL) -m $(INSTMODE_BIN) org.inspircd.plist $(BASE) 2>/dev/null
 @ENDIF
+@IFEQ $(SYSTEM) linux
+	-$(INSTALL) -m $(INSTMODE_LIB) inspircd.service $(BASE) 2>/dev/null
+@ENDIF
+	-$(INSTALL) -m $(INSTMODE_LIB) inspircd.1 $(MANPATH) 2>/dev/null
+	-$(INSTALL) -m $(INSTMODE_LIB) inspircd-genssl.1 $(MANPATH) 2>/dev/null
 	-$(INSTALL) -m $(INSTMODE_BIN) tools/genssl $(BINPATH)/inspircd-genssl 2>/dev/null
 	-$(INSTALL) -m $(INSTMODE_LIB) docs/conf/*.example $(CONPATH)/examples
+	-$(INSTALL) -m $(INSTMODE_LIB) *.pem $(CONPATH) 2>/dev/null
 	-$(INSTALL) -m $(INSTMODE_LIB) docs/conf/aliases/*.example $(CONPATH)/examples/aliases
 	-$(INSTALL) -m $(INSTMODE_LIB) docs/conf/modules/*.example $(CONPATH)/examples/modules
 	@echo ""
@@ -252,8 +256,8 @@ install: target
 	@echo 'Remember to create your config file:' $(CONPATH)/inspircd.conf
 	@echo 'Examples are available at:' $(CONPATH)/examples/
 
-GNUmakefile BSDmakefile: make/template/main.mk src/version.sh configure .config.cache
-	./configure -update
+GNUmakefile BSDmakefile: make/template/main.mk src/version.sh configure @CONFIGURE_CACHE_FILE@
+	./configure --update
 @TARGET BSD_MAKE .MAKEFILEDEPS: BSDmakefile
 
 clean:
@@ -267,17 +271,23 @@ clean:
 deinstall:
 	-rm -f $(BINPATH)/inspircd
 	-rm -rf $(CONPATH)/examples
+	-rm -f $(MANPATH)/inspircd.1
+	-rm -f $(MANPATH)/inspircd-genssl.1
 	-rm -f $(MODPATH)/*.so
 	-rm -f $(BASE)/.gdbargs
+	-rm -f $(BASE)/inspircd.service
 	-rm -f $(BASE)/org.inspircd.plist
 
 configureclean:
-	rm -f .config.cache
 	rm -f BSDmakefile
 	rm -f GNUmakefile
 	rm -f include/config.h
 	rm -f inspircd
+	rm -f inspircd.1
+	rm -f inspircd-genssl.1
+	-rm -f inspircd.service
 	-rm -f org.inspircd.plist
+	-rm -f @CONFIGURE_CACHE_FILE@
 
 distclean: clean configureclean
 	-rm -rf $(SOURCEPATH)/run

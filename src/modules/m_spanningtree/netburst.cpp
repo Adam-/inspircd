@@ -104,25 +104,29 @@ void TreeSocket::DoBurst(TreeServer* s)
 {
 	ServerInstance->SNO->WriteToSnoMask('l',"Bursting to \2%s\2 (Authentication: %s%s).",
 		s->GetName().c_str(),
-		capab->auth_fingerprint ? "SSL Fingerprint and " : "",
+		capab->auth_fingerprint ? "SSL certificate fingerprint and " : "",
 		capab->auth_challenge ? "challenge-response" : "plaintext password");
 	this->CleanNegotiationInfo();
-	this->WriteLine(":" + ServerInstance->Config->GetSID() + " BURST " + ConvToStr(ServerInstance->Time()));
-	/* Send server tree */
+	this->WriteLine(CmdBuilder("BURST").push_int(ServerInstance->Time()));
+	// Introduce all servers behind us
 	this->SendServers(Utils->TreeRoot, s);
 
 	BurstState bs(this);
-	/* Send users and their oper status */
+	// Introduce all users
 	this->SendUsers(bs);
 
+	// Sync all channels
 	const chan_hash& chans = ServerInstance->GetChans();
 	for (chan_hash::const_iterator i = chans.begin(); i != chans.end(); ++i)
 		SyncChannel(i->second, bs);
 
+	// Send all xlines
 	this->SendXLines();
 	FOREACH_MOD(OnSyncNetwork, (bs.server));
-	this->WriteLine(":" + ServerInstance->Config->GetSID() + " ENDBURST");
+	this->WriteLine(CmdBuilder("ENDBURST"));
 	ServerInstance->SNO->WriteToSnoMask('l',"Finished bursting to \2"+ s->GetName()+"\2.");
+
+	this->burstsent = true;
 }
 
 void TreeSocket::SendServerInfo(TreeServer* from)
@@ -139,7 +143,6 @@ void TreeSocket::SendServerInfo(TreeServer* from)
  * (and any of ITS servers too) of what servers we know about.
  * If at any point any of these servers already exist on the other
  * end, our connection may be terminated.
- * The hopcount parameter (3rd) is deprecated, and is always 0.
  */
 void TreeSocket::SendServers(TreeServer* Current, TreeServer* s)
 {
@@ -159,17 +162,14 @@ void TreeSocket::SendServers(TreeServer* Current, TreeServer* s)
 }
 
 /** Send one or more FJOINs for a channel of users.
- * If the length of a single line is more than 480-NICKMAX
- * in length, it is split over multiple lines.
- * Send one or more FMODEs for a channel with the
- * channel bans, if there's any.
+ * If the length of a single line is too long, it is split over multiple lines.
  */
 void TreeSocket::SendFJoins(Channel* c)
 {
 	CommandFJoin::Builder fjoin(c);
-	const UserMembList *ulist = c->GetUsers();
 
-	for (UserMembCIter i = ulist->begin(); i != ulist->end(); ++i)
+	const Channel::MemberMap& ulist = c->GetUsers();
+	for (Channel::MemberMap::const_iterator i = ulist.begin(); i != ulist.end(); ++i)
 	{
 		Membership* memb = i->second;
 		if (!fjoin.has_room(memb))
@@ -241,7 +241,7 @@ void TreeSocket::SendListModes(Channel* chan)
 		this->WriteLine(fmode.finalize());
 }
 
-/** Send channel topic, modes and metadata */
+/** Send channel users, topic, modes and global metadata */
 void TreeSocket::SyncChannel(Channel* chan, BurstState& bs)
 {
 	SendFJoins(chan);
@@ -270,7 +270,7 @@ void TreeSocket::SyncChannel(Channel* chan)
 	SyncChannel(chan, bs);
 }
 
-/** send all users and their oper state/modes */
+/** Send all users and their state, including oper and away status and global metadata */
 void TreeSocket::SendUsers(BurstState& bs)
 {
 	ProtocolInterface::Server& piserver = bs.server;

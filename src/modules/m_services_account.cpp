@@ -104,17 +104,18 @@ class AChannel_M : public SimpleChannelModeHandler
 
 class AccountExtItemImpl : public AccountExtItem
 {
+	Events::ModuleEventProvider eventprov;
+
  public:
 	AccountExtItemImpl(Module* mod)
-		: AccountExtItem("accountname", mod)
+		: AccountExtItem("accountname", ExtensionItem::EXT_USER, mod)
+		, eventprov(mod, "event/account")
 	{
 	}
 
 	void unserialize(SerializeFormat format, Extensible* container, const std::string& value)
 	{
-		User* user = dynamic_cast<User*>(container);
-		if (!user)
-			return;
+		User* user = static_cast<User*>(container);
 
 		StringExtItem::unserialize(format, container, value);
 		if (!value.empty())
@@ -125,14 +126,10 @@ class AccountExtItemImpl : public AccountExtItem
 				user->WriteNumeric(900, "%s %s :You are now logged in as %s",
 					user->GetFullHost().c_str(), value.c_str(), value.c_str());
 			}
+		}
+		// If value is empty then logged out
 
-			AccountEvent(creator, user, value).Send();
-		}
-		else
-		{
-			// Logged out
-			AccountEvent(creator, user, "").Send();
-		}
+		FOREACH_MOD_CUSTOM(eventprov, AccountEventListener, OnAccountChange, (user, value));
 	}
 };
 
@@ -148,6 +145,7 @@ class ModuleServicesAccount : public Module
  public:
 	ModuleServicesAccount() : m1(this), m2(this), m3(this), m4(this), m5(this),
 		accountname(this)
+		, checking_ban(false)
 	{
 	}
 
@@ -158,19 +156,19 @@ class ModuleServicesAccount : public Module
 	}
 
 	/* <- :twisted.oscnet.org 330 w00t2 w00t2 w00t :is logged in as */
-	void OnWhois(User* source, User* dest) CXX11_OVERRIDE
+	void OnWhois(Whois::Context& whois) CXX11_OVERRIDE
 	{
-		std::string *account = accountname.get(dest);
+		std::string* account = accountname.get(whois.GetTarget());
 
 		if (account)
 		{
-			ServerInstance->SendWhoisLine(source, dest, 330, "%s %s :is logged in as", dest->nick.c_str(), account->c_str());
+			whois.SendLine(330, "%s :is logged in as", account->c_str());
 		}
 
-		if (dest->IsModeSet(m5))
+		if (whois.GetTarget()->IsModeSet(m5))
 		{
 			/* user is registered */
-			ServerInstance->SendWhoisLine(source, dest, 307, "%s :is a registered nick", dest->nick.c_str());
+			whois.SendLine(307, ":is a registered nick");
 		}
 	}
 
@@ -178,12 +176,7 @@ class ModuleServicesAccount : public Module
 	{
 		/* On nickchange, if they have +r, remove it */
 		if (user->IsModeSet(m5) && assign(user->nick) != oldnick)
-		{
-			std::vector<std::string> modechange;
-			modechange.push_back(user->nick);
-			modechange.push_back("-r");
-			ServerInstance->Modes->Process(modechange, ServerInstance->FakeClient, ModeParser::MODE_LOCALONLY);
-		}
+			m5.RemoveMode(user);
 	}
 
 	ModResult OnUserPreMessage(User* user, void* dest, int target_type, std::string& text, char status, CUList& exempt_list, MessageType msgtype) CXX11_OVERRIDE

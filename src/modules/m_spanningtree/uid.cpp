@@ -27,7 +27,7 @@
 
 CmdResult CommandUID::HandleServer(TreeServer* remoteserver, std::vector<std::string>& params)
 {
-	/** Do we have enough parameters:
+	/**
 	 *      0    1    2    3    4    5        6        7     8        9       (n-1)
 	 * UID uuid age nick host dhost ident ip.string signon +modes (modepara) :gecos
 	 */
@@ -36,33 +36,43 @@ CmdResult CommandUID::HandleServer(TreeServer* remoteserver, std::vector<std::st
 	std::string empty;
 	const std::string& modestr = params[8];
 
-	/* Is this a valid UID, and not misrouted? */
+	// Check if the length of the uuid is correct and confirm the sid portion of the uuid matches the sid of the server introducing the user
 	if (params[0].length() != UIDGenerator::UUID_LENGTH || params[0].compare(0, 3, remoteserver->GetID()))
 		throw ProtocolException("Bogus UUID");
-	/* Check parameters for validity before introducing the client, discovered by dmb */
+	// Sanity check on mode string: must begin with '+'
 	if (modestr[0] != '+')
 		throw ProtocolException("Invalid mode string");
 
-	/* check for collision */
+	// See if there is a nick collision
 	User* collideswith = ServerInstance->FindNickOnly(params[2]);
-	if (collideswith)
+	if ((collideswith) && (collideswith->registered != REG_ALL))
 	{
-		/*
-		 * Nick collision.
-		 */
-		int collide = Utils->DoCollision(collideswith, remoteserver, age_t, params[5], params[6], params[0]);
-		ServerInstance->Logs->Log(MODNAME, LOG_DEBUG, "*** Collision on %s, collide=%d", params[2].c_str(), collide);
+		// User that the incoming user is colliding with is not fully registered, we force nick change the
+		// unregistered user to their uuid and tell them what happened
+		collideswith->WriteFrom(collideswith, "NICK %s", collideswith->uuid.c_str());
+		collideswith->WriteNumeric(ERR_NICKNAMEINUSE, "%s :Nickname overruled.", collideswith->nick.c_str());
 
-		if (collide != 1)
+		// Clear the bit before calling User::ChangeNick() to make it NOT run the OnUserPostNick() hook
+		collideswith->registered &= ~REG_NICK;
+		collideswith->ChangeNick(collideswith->uuid);
+	}
+	else if (collideswith)
+	{
+		// The user on this side is registered, handle the collision
+		bool they_change = Utils->DoCollision(collideswith, remoteserver, age_t, params[5], params[6], params[0]);
+		ServerInstance->Logs->Log(MODNAME, LOG_DEBUG, "Collision on %s %d", params[2].c_str(), they_change);
+
+		if (they_change)
 		{
-			// Remote client lost, make sure we change their nick for the hash too
+			// The client being introduced needs to change nick to uuid, change the nick in the message before
+			// processing/forwarding it. Also change the nick TS to CommandSave::SavedTimestamp.
+			age_t = CommandSave::SavedTimestamp;
+			params[1] = ConvToStr(CommandSave::SavedTimestamp);
 			params[2] = params[0];
 		}
 	}
 
-	/* IMPORTANT NOTE: For remote users, we pass the UUID in the constructor. This automatically
-	 * sets it up in the UUID hash for us.
-	 *
+	/* For remote users, we pass the UUID they sent to the constructor.
 	 * If the UUID already exists User::User() throws an exception which causes this connection to be closed.
 	 */
 	RemoteUser* _new = new RemoteUser(params[0], remoteserver);
@@ -117,7 +127,7 @@ CmdResult CommandUID::HandleServer(TreeServer* remoteserver, std::vector<std::st
 
 	bool dosend = true;
 
-	if ((Utils->quiet_bursts && remoteserver->bursting) || _new->server->IsSilentULine())
+	if ((Utils->quiet_bursts && remoteserver->IsBehindBursting()) || _new->server->IsSilentULine())
 		dosend = false;
 
 	if (dosend)

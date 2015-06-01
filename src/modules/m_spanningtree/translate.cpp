@@ -1,10 +1,7 @@
 /*
  * InspIRCd -- Internet Relay Chat Daemon
  *
- *   Copyright (C) 2009 Daniel De Graaf <danieldg@inspircd.org>
- *   Copyright (C) 2007 Robin Burchell <robin+git@viroteck.net>
- *   Copyright (C) 2007 Dennis Friis <peavey@inspircd.org>
- *   Copyright (C) 2006 Craig Edwards <craigedwards@brainbox.cc>
+ *   Copyright (C) 2014 Attila Molnar <attilamolnar@hush.com>
  *
  * This file is part of InspIRCd.  InspIRCd is free software: you can
  * redistribute it and/or modify it under the terms of the GNU General Public
@@ -21,11 +18,31 @@
 
 
 #include "inspircd.h"
-#include "builtinmodes.h"
+#include "translate.h"
 
-ModeChannelOp::ModeChannelOp() : PrefixMode(NULL, "op", 'o')
+std::string Translate::ModeChangeListToParams(const Modes::ChangeList::List& modes)
 {
-	prefix = '@';
-	levelrequired = OP_VALUE;
-	prefixrank = OP_VALUE;
+	std::string ret;
+	for (Modes::ChangeList::List::const_iterator i = modes.begin(); i != modes.end(); ++i)
+	{
+		const Modes::Change& item = *i;
+		ModeHandler* mh = item.mh;
+		if (!mh->GetNumParams(item.adding))
+			continue;
+
+		ret.push_back(' ');
+
+		if (mh->IsPrefixMode())
+		{
+			User* target = ServerInstance->FindNick(item.param);
+			if (target)
+			{
+				ret.append(target->uuid);
+				continue;
+			}
+		}
+
+		ret.append(item.param);
+	}
+	return ret;
 }

@@ -23,10 +23,6 @@
 #include <pthread.h>
 #include <fcntl.h>
 
-ThreadEngine::ThreadEngine()
-{
-}
-
 static void* entry_point(void* parameter)
 {
 	/* Recommended by nenolod, signal safety on a per-thread basis */
@@ -43,25 +39,14 @@ static void* entry_point(void* parameter)
 
 void ThreadEngine::Start(Thread* thread)
 {
-	ThreadData* data = new ThreadData;
-	thread->state = data;
-
-	if (pthread_create(&data->pthread_id, NULL, entry_point, thread) != 0)
-	{
-		thread->state = NULL;
-		delete data;
+	if (pthread_create(&thread->state.pthread_id, NULL, entry_point, thread) != 0)
 		throw CoreException("Unable to create new thread: " + std::string(strerror(errno)));
-	}
 }
 
-ThreadEngine::~ThreadEngine()
-{
-}
-
-void ThreadData::FreeThread(Thread* thread)
+void ThreadEngine::Stop(Thread* thread)
 {
 	thread->SetExitFlag();
-	pthread_join(pthread_id, NULL);
+	pthread_join(thread->state.pthread_id, NULL);
 }
 
 #ifdef HAS_EVENTFD
@@ -87,18 +72,21 @@ class ThreadSignalSocket : public EventHandler
 		eventfd_write(fd, 1);
 	}
 
-	void HandleEvent(EventType et, int errornum)
+	void OnEventHandlerRead() CXX11_OVERRIDE
 	{
-		if (et == EVENT_READ)
-		{
-			eventfd_t dummy;
-			eventfd_read(fd, &dummy);
-			parent->OnNotify();
-		}
-		else
-		{
-			ServerInstance->GlobalCulls.AddItem(this);
-		}
+		eventfd_t dummy;
+		eventfd_read(fd, &dummy);
+		parent->OnNotify();
+	}
+
+	void OnEventHandlerWrite() CXX11_OVERRIDE
+	{
+		ServerInstance->GlobalCulls.AddItem(this);
+	}
+
+	void OnEventHandlerError(int errcode) CXX11_OVERRIDE
+	{
+		ThreadSignalSocket::OnEventHandlerWrite();
 	}
 };
 
@@ -107,7 +95,7 @@ SocketThread::SocketThread()
 	signal.sock = NULL;
 	int fd = eventfd(0, EFD_NONBLOCK);
 	if (fd < 0)
-		throw new CoreException("Could not create pipe " + std::string(strerror(errno)));
+		throw CoreException("Could not create pipe " + std::string(strerror(errno)));
 	signal.sock = new ThreadSignalSocket(this, fd);
 }
 #else
@@ -137,18 +125,21 @@ class ThreadSignalSocket : public EventHandler
 		write(send_fd, &dummy, 1);
 	}
 
-	void HandleEvent(EventType et, int errornum)
+	void OnEventHandlerRead() CXX11_OVERRIDE
 	{
-		if (et == EVENT_READ)
-		{
-			char dummy[128];
-			read(fd, dummy, 128);
-			parent->OnNotify();
-		}
-		else
-		{
-			ServerInstance->GlobalCulls.AddItem(this);
-		}
+		char dummy[128];
+		read(fd, dummy, 128);
+		parent->OnNotify();
+	}
+
+	void OnEventHandlerWrite() CXX11_OVERRIDE
+	{
+		ServerInstance->GlobalCulls.AddItem(this);
+	}
+
+	void OnEventHandlerError(int errcode) CXX11_OVERRIDE
+	{
+		ThreadSignalSocket::OnEventHandlerWrite();
 	}
 };
 
@@ -157,7 +148,7 @@ SocketThread::SocketThread()
 	signal.sock = NULL;
 	int fds[2];
 	if (pipe(fds))
-		throw new CoreException("Could not create pipe " + std::string(strerror(errno)));
+		throw CoreException("Could not create pipe " + std::string(strerror(errno)));
 	signal.sock = new ThreadSignalSocket(this, fds[0], fds[1]);
 }
 #endif

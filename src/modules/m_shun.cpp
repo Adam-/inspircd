@@ -168,7 +168,7 @@ class ModuleShun : public Module
 {
 	CommandShun cmd;
 	ShunFactory f;
-	std::set<std::string> ShunEnabledCommands;
+	insp::flat_set<std::string> ShunEnabledCommands;
 	bool NotifyOfShun;
 	bool affectopers;
 
@@ -191,7 +191,7 @@ class ModuleShun : public Module
 	void Prioritize()
 	{
 		Module* alias = ServerInstance->Modules->Find("m_alias.so");
-		ServerInstance->Modules->SetPriority(this, I_OnPreCommand, PRIORITY_BEFORE, &alias);
+		ServerInstance->Modules->SetPriority(this, I_OnPreCommand, PRIORITY_BEFORE, alias);
 	}
 
 	ModResult OnStats(char symbol, User* user, string_list& out) CXX11_OVERRIDE
@@ -243,9 +243,7 @@ class ModuleShun : public Module
 			return MOD_RES_PASSTHRU;
 		}
 
-		std::set<std::string>::iterator i = ShunEnabledCommands.find(command);
-
-		if (i == ShunEnabledCommands.end())
+		if (!ShunEnabledCommands.count(command))
 		{
 			if (NotifyOfShun)
 				user->WriteNotice("*** Command " + command + " not processed, as you have been blocked from issuing commands (SHUN)");

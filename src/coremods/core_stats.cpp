@@ -50,6 +50,18 @@ class CommandStats : public Command
 	}
 };
 
+static void GenerateStatsLl(User* user, string_list& results, char c)
+{
+	results.push_back(InspIRCd::Format("211 %s nick[ident@%s] sendq cmds_out bytes_out cmds_in bytes_in time_open", user->nick.c_str(), (c == 'l' ? "host" : "ip")));
+
+	const UserManager::LocalList& list = ServerInstance->Users.GetLocalUsers();
+	for (UserManager::LocalList::const_iterator i = list.begin(); i != list.end(); ++i)
+	{
+		LocalUser* u = *i;
+		results.push_back("211 "+user->nick+" "+u->nick+"["+u->ident+"@"+(c == 'l' ? u->dhost : u->GetIPString())+"] "+ConvToStr(u->eh.getSendQSize())+" "+ConvToStr(u->cmds_out)+" "+ConvToStr(u->bytes_out)+" "+ConvToStr(u->cmds_in)+" "+ConvToStr(u->bytes_in)+" "+ConvToStr(ServerInstance->Time() - u->signon));
+	}
+}
+
 void CommandStats::DoStats(char statschar, User* user, string_list &results)
 {
 	bool isPublic = ServerInstance->Config->UserStats.find(statschar) != std::string::npos;
@@ -87,6 +99,11 @@ void CommandStats::DoStats(char statschar, User* user, string_list &results)
 				std::string ip = ls->bind_addr;
 				if (ip.empty())
 					ip.assign("*");
+				else if (ip.find_first_of(':') != std::string::npos)
+				{
+					ip.insert(ip.begin(), '[');
+					ip.insert(ip.end(),  ']');
+				}
 				std::string type = ls->bind_tag->getString("type", "clients");
 				std::string hook = ls->bind_tag->getString("ssl", "plaintext");
 
@@ -103,7 +120,7 @@ void CommandStats::DoStats(char statschar, User* user, string_list &results)
 
 		case 'i':
 		{
-			for (ClassVector::iterator i = ServerInstance->Config->Classes.begin(); i != ServerInstance->Config->Classes.end(); i++)
+			for (ServerConfig::ClassVector::const_iterator i = ServerInstance->Config->Classes.begin(); i != ServerInstance->Config->Classes.end(); ++i)
 			{
 				ConnectClass* c = *i;
 				std::stringstream res;
@@ -132,7 +149,7 @@ void CommandStats::DoStats(char statschar, User* user, string_list &results)
 		case 'Y':
 		{
 			int idx = 0;
-			for (ClassVector::iterator i = ServerInstance->Config->Classes.begin(); i != ServerInstance->Config->Classes.end(); i++)
+			for (ServerConfig::ClassVector::const_iterator i = ServerInstance->Config->Classes.begin(); i != ServerInstance->Config->Classes.end(); i++)
 			{
 				ConnectClass* c = *i;
 				results.push_back("215 "+user->nick+" i NOMATCH * "+c->GetHost()+" "+ConvToStr(c->limit ? c->limit : SocketEngine::GetMaxFds())+" "+ConvToStr(idx)+" "+ServerInstance->Config->ServerName+" *");
@@ -317,13 +334,13 @@ void CommandStats::DoStats(char statschar, User* user, string_list &results)
 		break;
 		case 'O':
 		{
-			for (OperIndex::const_iterator i = ServerInstance->Config->OperTypes.begin(); i != ServerInstance->Config->OperTypes.end(); ++i)
+			for (ServerConfig::OperIndex::const_iterator i = ServerInstance->Config->OperTypes.begin(); i != ServerInstance->Config->OperTypes.end(); ++i)
 			{
 				OperInfo* tag = i->second;
 				tag->init();
 				std::string umodes;
 				std::string cmodes;
-				for(char c='A'; c < 'z'; c++)
+				for(char c='A'; c <= 'z'; c++)
 				{
 					ModeHandler* mh = ServerInstance->Modes->FindMode(c, MODETYPE_USER);
 					if (mh && mh->NeedsOper() && tag->AllowedUserModes[c - 'A'])
@@ -339,46 +356,17 @@ void CommandStats::DoStats(char statschar, User* user, string_list &results)
 
 		/* stats l (show user I/O stats) */
 		case 'l':
-			results.push_back("211 "+user->nick+" :nick[ident@host] sendq cmds_out bytes_out cmds_in bytes_in time_open");
-			for (LocalUserList::iterator n = ServerInstance->Users->local_users.begin(); n != ServerInstance->Users->local_users.end(); n++)
-			{
-				LocalUser* i = *n;
-				results.push_back("211 "+user->nick+" "+i->nick+"["+i->ident+"@"+i->dhost+"] "+ConvToStr(i->eh.getSendQSize())+" "+ConvToStr(i->cmds_out)+" "+ConvToStr(i->bytes_out)+" "+ConvToStr(i->cmds_in)+" "+ConvToStr(i->bytes_in)+" "+ConvToStr(ServerInstance->Time() - i->age));
-			}
-		break;
-
 		/* stats L (show user I/O stats with IP addresses) */
 		case 'L':
-			results.push_back("211 "+user->nick+" :nick[ident@ip] sendq cmds_out bytes_out cmds_in bytes_in time_open");
-			for (LocalUserList::iterator n = ServerInstance->Users->local_users.begin(); n != ServerInstance->Users->local_users.end(); n++)
-			{
-				LocalUser* i = *n;
-				results.push_back("211 "+user->nick+" "+i->nick+"["+i->ident+"@"+i->GetIPString()+"] "+ConvToStr(i->eh.getSendQSize())+" "+ConvToStr(i->cmds_out)+" "+ConvToStr(i->bytes_out)+" "+ConvToStr(i->cmds_in)+" "+ConvToStr(i->bytes_in)+" "+ConvToStr(ServerInstance->Time() - i->age));
-			}
+			GenerateStatsLl(user, results, statschar);
 		break;
 
 		/* stats u (show server uptime) */
 		case 'u':
 		{
-			time_t current_time = 0;
-			current_time = ServerInstance->Time();
-			time_t server_uptime = current_time - ServerInstance->startup_time;
-			struct tm* stime;
-			stime = gmtime(&server_uptime);
-			/* i dont know who the hell would have an ircd running for over a year nonstop, but
-			 * Craig suggested this, and it seemed a good idea so in it went */
-			if (stime->tm_year > 70)
-			{
-				results.push_back(InspIRCd::Format("242 %s :Server up %d years, %d days, %.2d:%.2d:%.2d",
-					user->nick.c_str(), stime->tm_year - 70, stime->tm_yday, stime->tm_hour,
-					stime->tm_min, stime->tm_sec));
-			}
-			else
-			{
-				results.push_back(InspIRCd::Format("242 %s :Server up %d days, %.2d:%.2d:%.2d",
-					user->nick.c_str(), stime->tm_yday, stime->tm_hour, stime->tm_min,
-					stime->tm_sec));
-			}
+			unsigned int up = static_cast<unsigned int>(ServerInstance->Time() - ServerInstance->startup_time);
+			results.push_back(InspIRCd::Format("242 %s :Server up %u days, %.2u:%.2u:%.2u", user->nick.c_str(),
+				up / 86400, (up / 3600) % 24, (up / 60) % 60, up % 60));
 		}
 		break;
 
@@ -395,7 +383,13 @@ void CommandStats::DoStats(char statschar, User* user, string_list &results)
 CmdResult CommandStats::Handle (const std::vector<std::string>& parameters, User *user)
 {
 	if (parameters.size() > 1 && parameters[1] != ServerInstance->Config->ServerName)
+	{
+		// Give extra penalty if a non-oper does /STATS <remoteserver>
+		LocalUser* localuser = IS_LOCAL(user);
+		if ((localuser) && (!user->IsOper()))
+			localuser->CommandFloodPenalty += 2000;
 		return CMD_SUCCESS;
+	}
 	string_list values;
 	char search = parameters[0][0];
 	DoStats(search, user, values);

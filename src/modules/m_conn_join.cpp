@@ -43,7 +43,7 @@ class JoinTimer : public Timer
 
  public:
 	JoinTimer(LocalUser* u, SimpleExtItem<JoinTimer>& ex, const std::string& chans, unsigned int delay)
-		: Timer(delay, ServerInstance->Time(), false)
+		: Timer(delay, false)
 		, user(u), channels(chans), ext(ex)
 	{
 		ServerInstance->Timers.AddTimer(this);
@@ -66,7 +66,8 @@ class ModuleConnJoin : public Module
 	unsigned int defdelay;
 
  public:
-	ModuleConnJoin() : ext("join_timer", this)
+	ModuleConnJoin()
+		: ext("join_timer", ExtensionItem::EXT_USER, this)
 	{
 	}
 

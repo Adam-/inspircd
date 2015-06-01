@@ -64,6 +64,8 @@ class ModuleChannelNames : public Module
 
 	void ValidateChans()
 	{
+		Modes::ChangeList removepermchan;
+
 		badchan = true;
 		const chan_hash& chans = ServerInstance->GetChans();
 		for (chan_hash::const_iterator i = chans.begin(); i != chans.end(); )
@@ -76,19 +78,18 @@ class ModuleChannelNames : public Module
 
 			if (c->IsModeSet(permchannelmode) && c->GetUserCounter())
 			{
-				std::vector<std::string> modes;
-				modes.push_back(c->name);
-				modes.push_back(std::string("-") + permchannelmode->GetModeChar());
-
-				ServerInstance->Modes->Process(modes, ServerInstance->FakeClient);
+				removepermchan.clear();
+				removepermchan.push_remove(*permchannelmode);
+				ServerInstance->Modes->Process(ServerInstance->FakeClient, c, NULL, removepermchan);
 			}
-			UserMembList& users = c->userlist;
-			for (UserMembIter j = users.begin(); j != users.end(); )
+
+			Channel::MemberMap& users = c->userlist;
+			for (Channel::MemberMap::iterator j = users.begin(); j != users.end(); )
 			{
 				if (IS_LOCAL(j->first))
 				{
 					// KickUser invalidates the iterator
-					UserMembIter it = j++;
+					Channel::MemberMap::iterator it = j++;
 					c->KickUser(ServerInstance->FakeClient, it, "Channel name no longer valid");
 				}
 				else
@@ -132,8 +133,8 @@ class ModuleChannelNames : public Module
 	{
 		if (badchan)
 		{
-			const UserMembList* users = memb->chan->GetUsers();
-			for(UserMembCIter i = users->begin(); i != users->end(); i++)
+			const Channel::MemberMap& users = memb->chan->GetUsers();
+			for (Channel::MemberMap::const_iterator i = users.begin(); i != users.end(); ++i)
 				if (i->first != memb->user)
 					except_list.insert(i->first);
 		}

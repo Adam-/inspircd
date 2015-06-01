@@ -97,8 +97,6 @@ LocalUser::LocalUser(int myfd, irc::sockets::sockaddrs* client, irc::sockets::so
 
 User::~User()
 {
-	if (ServerInstance->FindUUID(uuid))
-		ServerInstance->Logs->Log("USERS", LOG_DEFAULT, "User destructor for %s called without cull", uuid.c_str());
 }
 
 const std::string& User::MakeHost()
@@ -279,7 +277,7 @@ void UserIOHandler::OnDataReady()
 		return;
 eol_found:
 		// just found a newline. Terminate the string, and pull it out of recvq
-		recvq = recvq.substr(qpos);
+		recvq.erase(0, qpos);
 
 		// TODO should this be moved to when it was inserted in recvq?
 		ServerInstance->stats.Recv += qpos;
@@ -330,7 +328,6 @@ CullResult User::cull()
 
 CullResult LocalUser::cull()
 {
-	ServerInstance->Users->local_users.erase(this);
 	ClearInvites();
 	eh.cull();
 	return User::cull();
@@ -341,7 +338,7 @@ CullResult FakeUser::cull()
 	// Fake users don't quit, they just get culled.
 	quitting = true;
 	// Fake users are not inserted into UserManager::clientlist, they're only in the uuidlist
-	ServerInstance->Users->uuidlist.erase(uuid);
+	// and they are removed from there by the linking mod when the server splits
 	return User::cull();
 }
 
@@ -417,7 +414,7 @@ void OperInfo::init()
 			{
 				this->AllowedUserModes.set();
 			}
-			else if (*c >= 'A' && *c < 'z')
+			else if (*c >= 'A' && *c <= 'z')
 			{
 				this->AllowedUserModes[*c - 'A'] = true;
 			}
@@ -430,7 +427,7 @@ void OperInfo::init()
 			{
 				this->AllowedChanModes.set();
 			}
-			else if (*c >= 'A' && *c < 'z')
+			else if (*c >= 'A' && *c <= 'z')
 			{
 				this->AllowedChanModes[*c - 'A'] = true;
 			}
@@ -452,21 +449,16 @@ void User::UnOper()
 
 
 	/* Remove all oper only modes from the user when the deoper - Bug #466*/
-	std::string moderemove("-");
-
-	for (unsigned char letter = 'A'; letter <= 'z'; letter++)
+	Modes::ChangeList changelist;
+	const ModeParser::ModeHandlerMap& usermodes = ServerInstance->Modes->GetModes(MODETYPE_USER);
+	for (ModeParser::ModeHandlerMap::const_iterator i = usermodes.begin(); i != usermodes.end(); ++i)
 	{
-		ModeHandler* mh = ServerInstance->Modes->FindMode(letter, MODETYPE_USER);
-		if (mh && mh->NeedsOper())
-			moderemove += letter;
+		ModeHandler* mh = i->second;
+		if (mh->NeedsOper())
+			changelist.push_remove(mh);
 	}
 
-
-	std::vector<std::string> parameters;
-	parameters.push_back(this->nick);
-	parameters.push_back(moderemove);
-
-	ServerInstance->Modes->Process(parameters, this);
+	ServerInstance->Modes->Process(this, NULL, this, changelist);
 
 	// Remove the user from the oper list
 	stdalgo::vector::swaperase(ServerInstance->Users->all_opers, this);
@@ -611,7 +603,7 @@ void User::InvalidateCache()
 	cached_fullrealhost.clear();
 }
 
-bool User::ChangeNick(const std::string& newnick, bool force, time_t newts)
+bool User::ChangeNick(const std::string& newnick, time_t newts)
 {
 	if (quitting)
 	{
@@ -619,33 +611,8 @@ bool User::ChangeNick(const std::string& newnick, bool force, time_t newts)
 		return false;
 	}
 
-	LocalUser* const localuser = IS_LOCAL(this);
-	if (!force && localuser)
-	{
-		ModResult MOD_RESULT;
-		FIRST_MOD_RESULT(OnUserPreNick, MOD_RESULT, (localuser, newnick));
-
-		// If a module denied the change, abort now
-		if (MOD_RESULT == MOD_RES_DENY)
-			return false;
-
-		// Disallow the nick change if <security:restrictbannedusers> is on and there is a ban matching this user in
-		// one of the channels they are on
-		if (ServerInstance->Config->RestrictBannedUsers)
-		{
-			for (UCListIter i = this->chans.begin(); i != this->chans.end(); ++i)
-			{
-				Channel* chan = (*i)->chan;
-				if (chan->GetPrefixValue(this) < VOICE_VALUE && chan->IsBanned(this))
-				{
-					this->WriteNumeric(ERR_CANNOTSENDTOCHAN, "%s :Cannot send to channel (you're banned)", chan->name.c_str());
-					return false;
-				}
-			}
-		}
-	}
-
-	if (assign(newnick) == assign(nick))
+	User* const InUse = ServerInstance->FindNickOnly(newnick);
+	if (InUse == this)
 	{
 		// case change, don't need to check campers
 		// and, if it's identical including case, we can leave right now
@@ -664,8 +631,7 @@ bool User::ChangeNick(const std::string& newnick, bool force, time_t newts)
 		 * If the guy using the nick is already using it, tell the incoming nick change to gtfo,
 		 * because the nick is already (rightfully) in use. -- w00t
 		 */
-		User* InUse = ServerInstance->FindNickOnly(newnick);
-		if (InUse && (InUse != this))
+		if (InUse)
 		{
 			if (InUse->registered != REG_ALL)
 			{
@@ -673,12 +639,8 @@ bool User::ChangeNick(const std::string& newnick, bool force, time_t newts)
 				InUse->WriteFrom(InUse, "NICK %s", InUse->uuid.c_str());
 				InUse->WriteNumeric(ERR_NICKNAMEINUSE, "%s :Nickname overruled.", InUse->nick.c_str());
 
-				ServerInstance->Users->clientlist.erase(InUse->nick);
-				ServerInstance->Users->clientlist[InUse->uuid] = InUse;
-
-				InUse->nick = InUse->uuid;
-				InUse->InvalidateCache();
 				InUse->registered &= ~REG_NICK;
+				InUse->ChangeNick(InUse->uuid);
 			}
 			else
 			{
@@ -802,7 +764,7 @@ void LocalUser::Write(const std::string& text)
 	if (text.length() > ServerInstance->Config->Limits.MaxLine - 2)
 	{
 		// this should happen rarely or never. Crop the string at 512 and try again.
-		std::string try_again = text.substr(0, ServerInstance->Config->Limits.MaxLine - 2);
+		std::string try_again(text, 0, ServerInstance->Config->Limits.MaxLine - 2);
 		Write(try_again);
 		return;
 	}
@@ -883,11 +845,27 @@ void User::WriteFrom(User *user, const char* text, ...)
 	this->WriteFrom(user, textbuffer);
 }
 
+namespace
+{
+	class WriteCommonRawHandler : public User::ForEachNeighborHandler
+	{
+		const std::string& msg;
+
+		void Execute(LocalUser* user) CXX11_OVERRIDE
+		{
+			user->Write(msg);
+		}
+
+	 public:
+		WriteCommonRawHandler(const std::string& message)
+			: msg(message)
+		{
+		}
+	};
+}
+
 void User::WriteCommon(const char* text, ...)
 {
-	if (this->registered != REG_ALL || quitting)
-		return;
-
 	std::string textbuffer;
 	VAFORMAT(textbuffer, text, text);
 	textbuffer = ":" + this->GetFullHost() + " " + textbuffer;
@@ -896,79 +874,58 @@ void User::WriteCommon(const char* text, ...)
 
 void User::WriteCommonRaw(const std::string &line, bool include_self)
 {
-	if (this->registered != REG_ALL || quitting)
-		return;
-
-	LocalUser::already_sent_id++;
-
-	IncludeChanList include_c(chans.begin(), chans.end());
-	std::map<User*,bool> exceptions;
-
-	exceptions[this] = include_self;
-
-	FOREACH_MOD(OnBuildNeighborList, (this, include_c, exceptions));
-
-	for (std::map<User*,bool>::iterator i = exceptions.begin(); i != exceptions.end(); ++i)
-	{
-		LocalUser* u = IS_LOCAL(i->first);
-		if (u && !u->quitting)
-		{
-			u->already_sent = LocalUser::already_sent_id;
-			if (i->second)
-				u->Write(line);
-		}
-	}
-	for (IncludeChanList::const_iterator v = include_c.begin(); v != include_c.end(); ++v)
-	{
-		Channel* c = (*v)->chan;
-		const UserMembList* ulist = c->GetUsers();
-		for (UserMembList::const_iterator i = ulist->begin(); i != ulist->end(); i++)
-		{
-			LocalUser* u = IS_LOCAL(i->first);
-			if (u && u->already_sent != LocalUser::already_sent_id)
-			{
-				u->already_sent = LocalUser::already_sent_id;
-				u->Write(line);
-			}
-		}
-	}
+	WriteCommonRawHandler handler(line);
+	ForEachNeighbor(handler, include_self);
 }
 
-void User::WriteCommonQuit(const std::string &normal_text, const std::string &oper_text)
+void User::ForEachNeighbor(ForEachNeighborHandler& handler, bool include_self)
 {
-	if (this->registered != REG_ALL)
-		return;
+	// The basic logic for visiting the neighbors of a user is to iterate the channel list of the user
+	// and visit all users on those channels. Because two users may share more than one common channel,
+	// we must skip users that we have already visited.
+	// To do this, we make use of a global counter and an integral 'already_sent' field in LocalUser.
+	// The global counter is incremented every time we do something for each neighbor of a user. Then,
+	// before visiting a member we examine user->already_sent. If it's equal to the current counter, we
+	// skip the member. Otherwise, we set it to the current counter and visit the member.
 
-	already_sent_t uniq_id = ++LocalUser::already_sent_id;
+	// Ask modules to build a list of exceptions.
+	// Mods may also exclude entire channels by erasing them from include_chans.
+	IncludeChanList include_chans(chans.begin(), chans.end());
+	std::map<User*, bool> exceptions;
+	exceptions[this] = include_self;
+	FOREACH_MOD(OnBuildNeighborList, (this, include_chans, exceptions));
 
-	const std::string normalMessage = ":" + this->GetFullHost() + " QUIT :" + normal_text;
-	const std::string operMessage = ":" + this->GetFullHost() + " QUIT :" + oper_text;
+	// Get next id, guaranteed to differ from the already_sent field of all users
+	const already_sent_t newid = ++LocalUser::already_sent_id;
 
-	IncludeChanList include_c(chans.begin(), chans.end());
-	std::map<User*,bool> exceptions;
-
-	FOREACH_MOD(OnBuildNeighborList, (this, include_c, exceptions));
-
-	for (std::map<User*,bool>::iterator i = exceptions.begin(); i != exceptions.end(); ++i)
+	// Handle exceptions first
+	for (std::map<User*, bool>::const_iterator i = exceptions.begin(); i != exceptions.end(); ++i)
 	{
-		LocalUser* u = IS_LOCAL(i->first);
-		if (u && !u->quitting)
+		LocalUser* curr = IS_LOCAL(i->first);
+		if (curr)
 		{
-			u->already_sent = uniq_id;
-			if (i->second)
-				u->Write(u->IsOper() ? operMessage : normalMessage);
+			// Mark as visited to ensure we won't visit again if there is a common channel
+			curr->already_sent = newid;
+			// Always treat quitting users as excluded
+			if ((i->second) && (!curr->quitting))
+				handler.Execute(curr);
 		}
 	}
-	for (IncludeChanList::const_iterator v = include_c.begin(); v != include_c.end(); ++v)
+
+	// Now consider the real neighbors
+	for (IncludeChanList::const_iterator i = include_chans.begin(); i != include_chans.end(); ++i)
 	{
-		const UserMembList* ulist = (*v)->chan->GetUsers();
-		for (UserMembList::const_iterator i = ulist->begin(); i != ulist->end(); i++)
+		Channel* chan = (*i)->chan;
+		const Channel::MemberMap& userlist = chan->GetUsers();
+		for (Channel::MemberMap::const_iterator j = userlist.begin(); j != userlist.end(); ++j)
 		{
-			LocalUser* u = IS_LOCAL(i->first);
-			if (u && (u->already_sent != uniq_id))
+			LocalUser* curr = IS_LOCAL(j->first);
+			// User not yet visited?
+			if ((curr) && (curr->already_sent != newid))
 			{
-				u->already_sent = uniq_id;
-				u->Write(u->IsOper() ? operMessage : normalMessage);
+				// Mark as visited and execute function
+				curr->already_sent = newid;
+				handler.Execute(curr);
 			}
 		}
 	}
@@ -1027,7 +984,7 @@ void User::SendText(const std::string& linePrefix, std::stringstream& textStream
 bool User::SharesChannelWith(User *other)
 {
 	/* Outer loop */
-	for (UCListIter i = this->chans.begin(); i != this->chans.end(); i++)
+	for (User::ChanList::iterator i = this->chans.begin(); i != this->chans.end(); ++i)
 	{
 		/* Eliminate the inner loop (which used to be ~equal in size to the outer loop)
 		 * by replacing it with a map::find which *should* be more efficient
@@ -1108,7 +1065,7 @@ void LocalUser::SetClass(const std::string &explicit_name)
 
 	if (!explicit_name.empty())
 	{
-		for (ClassVector::iterator i = ServerInstance->Config->Classes.begin(); i != ServerInstance->Config->Classes.end(); i++)
+		for (ServerConfig::ClassVector::const_iterator i = ServerInstance->Config->Classes.begin(); i != ServerInstance->Config->Classes.end(); ++i)
 		{
 			ConnectClass* c = *i;
 
@@ -1121,7 +1078,7 @@ void LocalUser::SetClass(const std::string &explicit_name)
 	}
 	else
 	{
-		for (ClassVector::iterator i = ServerInstance->Config->Classes.begin(); i != ServerInstance->Config->Classes.end(); i++)
+		for (ServerConfig::ClassVector::const_iterator i = ServerInstance->Config->Classes.begin(); i != ServerInstance->Config->Classes.end(); ++i)
 		{
 			ConnectClass* c = *i;
 			ServerInstance->Logs->Log("CONNECTCLASS", LOG_DEBUG, "Checking %s", c->GetName().c_str());
@@ -1200,7 +1157,7 @@ void LocalUser::SetClass(const std::string &explicit_name)
 void User::PurgeEmptyChannels()
 {
 	// firstly decrement the count on each channel
-	for (UCListIter i = this->chans.begin(); i != this->chans.end(); )
+	for (User::ChanList::iterator i = this->chans.begin(); i != this->chans.end(); )
 	{
 		Channel* c = (*i)->chan;
 		++i;

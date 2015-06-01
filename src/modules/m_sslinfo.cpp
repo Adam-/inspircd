@@ -22,7 +22,11 @@
 
 class SSLCertExt : public ExtensionItem {
  public:
-	SSLCertExt(Module* parent) : ExtensionItem("ssl_cert", parent) {}
+	SSLCertExt(Module* parent)
+		: ExtensionItem("ssl_cert", ExtensionItem::EXT_USER, parent)
+	{
+	}
+
 	ssl_cert* get(const Extensible* item) const
 	{
 		return static_cast<ssl_cert*>(get_raw(item));
@@ -135,14 +139,16 @@ class UserCertificateAPIImpl : public UserCertificateAPIBase
  	}
 };
 
-class ModuleSSLInfo : public Module
+class ModuleSSLInfo : public Module, public Whois::EventListener
 {
 	CommandSSLInfo cmd;
 	UserCertificateAPIImpl APIImpl;
 
  public:
 	ModuleSSLInfo()
-		: cmd(this), APIImpl(this, cmd.CertExt)
+		: Whois::EventListener(this)
+		, cmd(this)
+		, APIImpl(this, cmd.CertExt)
 	{
 	}
 
@@ -151,16 +157,15 @@ class ModuleSSLInfo : public Module
 		return Version("SSL Certificate Utilities", VF_VENDOR);
 	}
 
-	void OnWhois(User* source, User* dest) CXX11_OVERRIDE
+	void OnWhois(Whois::Context& whois) CXX11_OVERRIDE
 	{
-		ssl_cert* cert = cmd.CertExt.get(dest);
+		ssl_cert* cert = cmd.CertExt.get(whois.GetTarget());
 		if (cert)
 		{
-			ServerInstance->SendWhoisLine(source, dest, 671, "%s :is using a secure connection", dest->nick.c_str());
+			whois.SendLine(671, ":is using a secure connection");
 			bool operonlyfp = ServerInstance->Config->ConfValue("sslinfo")->getBool("operonly");
-			if ((!operonlyfp || source == dest || source->IsOper()) && !cert->fingerprint.empty())
-				ServerInstance->SendWhoisLine(source, dest, 276, "%s :has client certificate fingerprint %s",
-					dest->nick.c_str(), cert->fingerprint.c_str());
+			if ((!operonlyfp || whois.IsSelfWhois() || whois.GetSource()->IsOper()) && !cert->fingerprint.empty())
+				whois.SendLine(276, ":has client certificate fingerprint %s", cert->fingerprint.c_str());
 		}
 	}
 
@@ -168,7 +173,7 @@ class ModuleSSLInfo : public Module
 	{
 		if ((command == "OPER") && (validated))
 		{
-			OperIndex::iterator i = ServerInstance->Config->oper_blocks.find(parameters[0]);
+			ServerConfig::OperIndex::const_iterator i = ServerInstance->Config->oper_blocks.find(parameters[0]);
 			if (i != ServerInstance->Config->oper_blocks.end())
 			{
 				OperInfo* ifo = i->second;
@@ -184,7 +189,7 @@ class ModuleSSLInfo : public Module
 				std::string fingerprint;
 				if (ifo->oper_block->readString("fingerprint", fingerprint) && (!cert || cert->GetFingerprint() != fingerprint))
 				{
-					user->WriteNumeric(491, ":This oper login requires a matching SSL fingerprint.");
+					user->WriteNumeric(491, ":This oper login requires a matching SSL certificate fingerprint.");
 					user->CommandFloodPenalty += 10000;
 					return MOD_RES_DENY;
 				}
@@ -208,7 +213,7 @@ class ModuleSSLInfo : public Module
 		if (!cert || cert->fingerprint.empty())
 			return;
 		// find an auto-oper block for this user
-		for(OperIndex::iterator i = ServerInstance->Config->oper_blocks.begin(); i != ServerInstance->Config->oper_blocks.end(); i++)
+		for (ServerConfig::OperIndex::const_iterator i = ServerInstance->Config->oper_blocks.begin(); i != ServerInstance->Config->oper_blocks.end(); ++i)
 		{
 			OperInfo* ifo = i->second;
 			std::string fp = ifo->oper_block->getString("fingerprint");

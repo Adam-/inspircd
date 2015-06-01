@@ -62,7 +62,7 @@ class CommandDccallow : public Command
 		: Command(parent, "DCCALLOW", 0)
 		, ext(Ext)
 	{
-		syntax = "{[+|-]<nick> <time>|HELP|LIST}";
+		syntax = "[(+|-)<nick> [<time>]]|[LIST|HELP]";
 		/* XXX we need to fix this so it can work with translation stuff (i.e. move +- into a seperate param */
 	}
 
@@ -101,7 +101,7 @@ class CommandDccallow : public Command
 				}
 			}
 
-			std::string nick = parameters[0].substr(1);
+			std::string nick(parameters[0], 1);
 			User *target = ServerInstance->FindNickOnly(nick);
 
 			if ((target) && (!IS_SERVER(target)) && (!target->quitting) && (target->registered == REG_ALL))
@@ -205,7 +205,7 @@ class CommandDccallow : public Command
 
 	void DisplayHelp(User* user)
 	{
-		user->WriteNumeric(998, ":DCCALLOW [<+|->nick [time]] [list] [help]");
+		user->WriteNumeric(998, ":DCCALLOW [(+|-)<nick> [<time>]]|[LIST|HELP]");
 		user->WriteNumeric(998, ":You may allow DCCs from specific users by specifying a");
 		user->WriteNumeric(998, ":DCC allow for the user you want to receive DCCs from.");
 		user->WriteNumeric(998, ":For example, to allow the user Brain to send you inspircd.exe");
@@ -257,7 +257,7 @@ class ModuleDCCAllow : public Module
 
  public:
 	ModuleDCCAllow()
-		: ext("dccallow", this)
+		: ext("dccallow", ExtensionItem::EXT_USER, this)
 		, cmd(this, ext)
 	{
 	}
@@ -268,11 +268,7 @@ class ModuleDCCAllow : public Module
 
 		// remove their DCCALLOW list if they have one
 		if (udl)
-		{
-			userlist::iterator it = std::find(ul.begin(), ul.end(), user);
-			if (it != ul.end())
-				ul.erase(it);
-		}
+			stdalgo::erase(ul, user);
 
 		// remove them from any DCCALLOW lists
 		// they are currently on
@@ -322,6 +318,9 @@ class ModuleDCCAllow : public Module
 					while (ss >> buf)
 						tokens.push_back(buf);
 
+					if (tokens.size() < 2)
+						return MOD_RES_PASSTHRU;
+
 					irc::string type = tokens[1].c_str();
 
 					ConfigTag* conftag = ServerInstance->Config->ConfValue("dccallow");
@@ -329,6 +328,9 @@ class ModuleDCCAllow : public Module
 
 					if (type == "SEND")
 					{
+						if (tokens.size() < 3)
+							return MOD_RES_PASSTHRU;
+
 						std::string defaultaction = conftag->getString("action");
 						std::string filename = tokens[2];
 

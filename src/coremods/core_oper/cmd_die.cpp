@@ -29,6 +29,33 @@ CommandDie::CommandDie(Module* parent)
 	syntax = "<password>";
 }
 
+static void QuitAll()
+{
+	const std::string quitmsg = "Server shutdown";
+	const UserManager::LocalList& list = ServerInstance->Users.GetLocalUsers();
+	while (!list.empty())
+		ServerInstance->Users.QuitUser(list.front(), quitmsg);
+}
+
+void DieRestart::SendError(const std::string& message)
+{
+	const std::string unregline = "ERROR :" + message;
+	const UserManager::LocalList& list = ServerInstance->Users.GetLocalUsers();
+	for (UserManager::LocalList::const_iterator i = list.begin(); i != list.end(); ++i)
+	{
+		LocalUser* user = *i;
+		if (user->registered == REG_ALL)
+		{
+			user->WriteNotice(message);
+		}
+		else
+		{
+			// Unregistered connections receive ERROR, not a NOTICE
+			user->Write(unregline);
+		}
+	}
+}
+
 /** Handle /DIE
  */
 CmdResult CommandDie::Handle (const std::vector<std::string>& parameters, User *user)
@@ -38,9 +65,10 @@ CmdResult CommandDie::Handle (const std::vector<std::string>& parameters, User *
 		{
 			std::string diebuf = "*** DIE command from " + user->GetFullHost() + ". Terminating.";
 			ServerInstance->Logs->Log("COMMAND", LOG_SPARSE, diebuf);
-			ServerInstance->SendError(diebuf);
+			DieRestart::SendError(diebuf);
 		}
 
+		QuitAll();
 		ServerInstance->Exit(EXIT_STATUS_DIE);
 	}
 	else

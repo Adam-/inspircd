@@ -1,10 +1,7 @@
 /*
  * InspIRCd -- Internet Relay Chat Daemon
  *
- *   Copyright (C) 2009 Daniel De Graaf <danieldg@inspircd.org>
- *   Copyright (C) 2007 Robin Burchell <robin+git@viroteck.net>
- *   Copyright (C) 2007 Dennis Friis <peavey@inspircd.org>
- *   Copyright (C) 2006 Craig Edwards <craigedwards@brainbox.cc>
+ *   Copyright (C) 2014 Attila Molnar <attilamolnar@hush.com>
  *
  * This file is part of InspIRCd.  InspIRCd is free software: you can
  * redistribute it and/or modify it under the terms of the GNU General Public
@@ -20,12 +17,34 @@
  */
 
 
-#include "inspircd.h"
-#include "builtinmodes.h"
+#pragma once
 
-ModeChannelVoice::ModeChannelVoice() : PrefixMode(NULL, "voice", 'v')
+namespace insp
 {
-	prefix = '+';
-	levelrequired = HALFOP_VALUE;
-	prefixrank = VOICE_VALUE;
+	template <typename T> class aligned_storage;
 }
+
+template <typename T>
+class insp::aligned_storage
+{
+	mutable typename TR1NS::aligned_storage<sizeof(T), TR1NS::alignment_of<T>::value>::type data;
+
+ public:
+	aligned_storage()
+	{
+	}
+
+	aligned_storage(const aligned_storage& other)
+	{
+	}
+
+	T* operator->() const
+	{
+		return static_cast<T*>(static_cast<void*>(&data));
+	}
+
+	operator T*() const
+	{
+		return operator->();
+	}
+};

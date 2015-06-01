@@ -25,24 +25,69 @@
 
 #include "inspircd.h"
 
-typedef std::map<std::string, time_t> delaylist;
-
-struct KickRejoinData
+class KickRejoinData
 {
-	delaylist kicked;
-	unsigned int delay;
+	struct KickedUser
+	{
+		std::string uuid;
+		time_t expire;
+
+		KickedUser(User* user, unsigned int Delay)
+			: uuid(user->uuid)
+			, expire(ServerInstance->Time() + Delay)
+		{
+		}
+	};
+
+	typedef std::vector<KickedUser> KickedList;
+
+	mutable KickedList kicked;
+
+ public:
+	const unsigned int delay;
 
 	KickRejoinData(unsigned int Delay) : delay(Delay) { }
+
+	bool canjoin(LocalUser* user) const
+	{
+		for (KickedList::iterator i = kicked.begin(); i != kicked.end(); )
+		{
+			KickedUser& rec = *i;
+			if (rec.expire > ServerInstance->Time())
+			{
+				if (rec.uuid == user->uuid)
+					return false;
+				++i;
+			}
+			else
+			{
+				// Expired record, remove.
+				stdalgo::vector::swaperase(kicked, i);
+				if (kicked.empty())
+					break;
+			}
+		}
+		return true;
+	}
+
+	void add(User* user)
+	{
+		// One user can be in the list multiple times if the user gets kicked, force joins
+		// (skipping OnUserPreJoin) and gets kicked again, but that's okay because canjoin()
+		// works correctly in this case as well
+		kicked.push_back(KickedUser(user, delay));
+	}
 };
 
 /** Handles channel mode +J
  */
 class KickRejoin : public ParamMode<KickRejoin, SimpleExtItem<KickRejoinData> >
 {
-	static const unsigned int max = 60;
+	const unsigned int max;
  public:
 	KickRejoin(Module* Creator)
 		: ParamMode<KickRejoin, SimpleExtItem<KickRejoinData> >(Creator, "kicknorejoin", 'J')
+		, max(60)
 	{
 	}
 
@@ -63,6 +108,11 @@ class KickRejoin : public ParamMode<KickRejoin, SimpleExtItem<KickRejoinData> >
 	{
 		out.append(ConvToStr(krd->delay));
 	}
+
+	std::string GetModuleSettings() const
+	{
+		return ConvToStr(max);
+	}
 };
 
 class ModuleKickNoRejoin : public Module
@@ -79,28 +129,11 @@ public:
 	{
 		if (chan)
 		{
-			KickRejoinData* data = kr.ext.get(chan);
-			if (data)
+			const KickRejoinData* data = kr.ext.get(chan);
+			if ((data) && (!data->canjoin(user)))
 			{
-				delaylist& kicked = data->kicked;
-				for (delaylist::iterator iter = kicked.begin(); iter != kicked.end(); )
-				{
-					if (iter->second > ServerInstance->Time())
-					{
-						if (iter->first == user->uuid)
-						{
-							user->WriteNumeric(ERR_DELAYREJOIN, "%s :You must wait %u seconds after being kicked to rejoin (+J)",
-								chan->name.c_str(), data->delay);
-							return MOD_RES_DENY;
-						}
-						++iter;
-					}
-					else
-					{
-						// Expired record, remove.
-						kicked.erase(iter++);
-					}
-				}
+				user->WriteNumeric(ERR_DELAYREJOIN, "%s :You must wait %u seconds after being kicked to rejoin (+J)", chan->name.c_str(), data->delay);
+				return MOD_RES_DENY;
 			}
 		}
 		return MOD_RES_PASSTHRU;
@@ -114,13 +147,13 @@ public:
 		KickRejoinData* data = kr.ext.get(memb->chan);
 		if (data)
 		{
-			data->kicked[memb->user->uuid] = ServerInstance->Time() + data->delay;
+			data->add(memb->user);
 		}
 	}
 
 	Version GetVersion() CXX11_OVERRIDE
 	{
-		return Version("Channel mode to delay rejoin after kick", VF_VENDOR);
+		return Version("Channel mode to delay rejoin after kick", VF_VENDOR | VF_COMMON, kr.GetModuleSettings());
 	}
 };
 

@@ -108,11 +108,6 @@ void InspIRCd::Cleanup()
 	}
 	ports.clear();
 
-	/* Close all client sockets, or the new process inherits them */
-	LocalUserList& list = Users->local_users;
-	for (LocalUserList::iterator i = list.begin(); i != list.end(); ++i)
-		Users->QuitUser(*i, "Server shutdown");
-
 	GlobalCulls.Apply();
 	Modules->UnloadAll();
 
@@ -229,7 +224,7 @@ InspIRCd::InspIRCd(int argc, char** argv) :
 	  * THIS MUST MATCH THE ORDER OF DECLARATION OF THE FUNCTORS, e.g. the methods
 	  * themselves within the class.
 	  */
-	 OperQuit("operquit", NULL),
+	 OperQuit("operquit", ExtensionItem::EXT_USER, NULL),
 	 GenRandom(&HandleGenRandom),
 	 IsChannel(&HandleIsChannel),
 	 IsNick(&HandleIsNick),
@@ -371,7 +366,7 @@ InspIRCd::InspIRCd(int argc, char** argv) :
 		}
 	}
 
-	std::cout << con_green << "Inspire Internet Relay Chat Server" << con_reset << ", compiled on " __DATE__ " at " __TIME__ << std::endl;
+	std::cout << con_green << "InspIRCd - Internet Relay Chat Daemon" << con_reset << ", compiled on " __DATE__ " at " __TIME__ << std::endl;
 	std::cout << con_green << "(C) InspIRCd Development Team." << con_reset << std::endl << std::endl;
 	std::cout << "Developers:" << std::endl;
 	std::cout << con_green << "\tBrain, FrostyCoolSlug, w00t, Om, Special, peavey" << std::endl;

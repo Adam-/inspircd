@@ -53,8 +53,8 @@ bool irc::sockets::MatchCIDR(const std::string &address, const std::string &cidr
 		}
 		else
 		{
-			address_copy = address.substr(username_addr_pos + 1);
-			cidr_copy = cidr_mask.substr(username_mask_pos + 1);
+			address_copy.assign(address, username_addr_pos + 1, std::string::npos);
+			cidr_copy.assign(cidr_mask, username_mask_pos + 1, std::string::npos);
 		}
 	}
 	else
@@ -66,7 +66,7 @@ bool irc::sockets::MatchCIDR(const std::string &address, const std::string &cidr
 	const std::string::size_type per_pos = cidr_copy.rfind('/');
 	if ((per_pos == std::string::npos) || (per_pos == cidr_copy.length()-1)
 		|| (cidr_copy.find_first_not_of("0123456789", per_pos+1) != std::string::npos)
-		|| (cidr_copy.find_first_not_of("0123456789abcdef.:") < per_pos))
+		|| (cidr_copy.find_first_not_of("0123456789abcdefABCDEF.:") < per_pos))
 	{
 		// The CIDR mask is invalid
 		return false;

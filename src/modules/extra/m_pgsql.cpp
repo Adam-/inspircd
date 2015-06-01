@@ -41,7 +41,7 @@
 class SQLConn;
 class ModulePgSQL;
 
-typedef std::map<std::string, SQLConn*> ConnMap;
+typedef insp::flat_map<std::string, SQLConn*> ConnMap;
 
 /* CREAD,	Connecting and wants read event
  * CWRITE,	Connecting and wants write event
@@ -57,7 +57,7 @@ class ReconnectTimer : public Timer
  private:
 	ModulePgSQL* mod;
  public:
-	ReconnectTimer(ModulePgSQL* m) : Timer(5, ServerInstance->Time(), false), mod(m)
+	ReconnectTimer(ModulePgSQL* m) : Timer(5, false), mod(m)
 	{
 	}
 	bool Tick(time_t TIME);
@@ -178,18 +178,19 @@ class SQLConn : public SQLProvider, public EventHandler
 		}
 	}
 
-	void HandleEvent(EventType et, int errornum)
+	void OnEventHandlerRead() CXX11_OVERRIDE
 	{
-		switch (et)
-		{
-			case EVENT_READ:
-			case EVENT_WRITE:
-				DoEvent();
-			break;
+		DoEvent();
+	}
 
-			case EVENT_ERROR:
-				DelayReconnect();
-		}
+	void OnEventHandlerWrite() CXX11_OVERRIDE
+	{
+		DoEvent();
+	}
+
+	void OnEventHandlerError(int errornum) CXX11_OVERRIDE
+	{
+		DelayReconnect();
 	}
 
 	std::string GetDSN()

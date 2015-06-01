@@ -39,7 +39,6 @@
  */
 enum ModuleFlags {
 	VF_NONE = 0,		// module is not special at all
-	VF_STATIC = 1,		// module is static, cannot be /unloadmodule'd
 	VF_VENDOR = 2,		// module is a vendor module (came in the original tarball, not 3rd party)
 	VF_COMMON = 4,		// module needs to be common on all servers in a network to link
 	VF_OPTCOMMON = 8,	// module should be common on all servers for unsurprising behavior
@@ -208,34 +207,6 @@ class CoreExport Version
 	virtual ~Version() {}
 };
 
-/** The Event class is a unicast message directed at all modules.
- * When the class is properly instantiated it may be sent to all modules
- * using the Send() method, which will trigger the OnEvent method in
- * all modules passing the object as its parameter.
- */
-class CoreExport Event : public classbase
-{
- public:
-	/** This is a pointer to the sender of the message, which can be used to
-	 * directly trigger events, or to create a reply.
-	 */
-	ModuleRef source;
-	/** The event identifier.
-	 * This is arbitary text which should be used to distinguish
-	 * one type of event from another.
-	 */
-	const std::string id;
-
-	/** Create a new Event
-	 */
-	Event(Module* src, const std::string &eventid);
-	/** Send the Event.
-	 * The return result of an Event::Send() will always be NULL as
-	 * no replies are expected.
-	 */
-	void Send();
-};
-
 class CoreExport DataProvider : public ServiceProvider
 {
  public:
@@ -251,9 +222,8 @@ enum Priority { PRIORITY_FIRST, PRIORITY_LAST, PRIORITY_BEFORE, PRIORITY_AFTER }
  */
 enum Implementation
 {
-	I_BEGIN,
 	I_OnUserConnect, I_OnUserQuit, I_OnUserDisconnect, I_OnUserJoin, I_OnUserPart,
-	I_OnSendSnotice, I_OnUserPreJoin, I_OnUserPreKick, I_OnUserKick, I_OnOper, I_OnInfo, I_OnWhois,
+	I_OnSendSnotice, I_OnUserPreJoin, I_OnUserPreKick, I_OnUserKick, I_OnOper, I_OnInfo,
 	I_OnUserPreInvite, I_OnUserInvite, I_OnUserPreMessage, I_OnUserPreNick,
 	I_OnUserMessage, I_OnMode, I_OnSyncUser,
 	I_OnSyncChannel, I_OnDecodeMetaData, I_OnAcceptConnection, I_OnUserInit,
@@ -262,10 +232,10 @@ enum Implementation
 	I_OnUnloadModule, I_OnBackgroundTimer, I_OnPreCommand, I_OnCheckReady, I_OnCheckInvite,
 	I_OnRawMode, I_OnCheckKey, I_OnCheckLimit, I_OnCheckBan, I_OnCheckChannelBan, I_OnExtBanCheck,
 	I_OnStats, I_OnChangeLocalUserHost, I_OnPreTopicChange,
-	I_OnPostTopicChange, I_OnEvent, I_OnGlobalOper, I_OnPostConnect,
+	I_OnPostTopicChange, I_OnPostConnect,
 	I_OnChangeLocalUserGECOS, I_OnUserRegister, I_OnChannelPreDelete, I_OnChannelDelete,
 	I_OnPostOper, I_OnSyncNetwork, I_OnSetAway, I_OnPostCommand, I_OnPostJoin,
-	I_OnWhoisLine, I_OnBuildNeighborList, I_OnGarbageCollect, I_OnSetConnectClass,
+	I_OnBuildNeighborList, I_OnGarbageCollect, I_OnSetConnectClass,
 	I_OnText, I_OnPassCompare, I_OnNamesListItem, I_OnNumeric,
 	I_OnPreRehash, I_OnModuleRehash, I_OnSendWhoLine, I_OnChangeIdent, I_OnSetUserIP,
 	I_END
@@ -500,14 +470,6 @@ class CoreExport Module : public classbase, public usecountbase
 	 */
 	virtual void OnInfo(User* user);
 
-	/** Called whenever a /WHOIS is performed on a local user.
-	 * The source parameter contains the details of the user who issued the WHOIS command, and
-	 * the dest parameter contains the information of the user they are whoising.
-	 * @param source The user issuing the WHOIS command
-	 * @param dest The user who is being WHOISed
-	 */
-	virtual void OnWhois(User* source, User* dest);
-
 	/** Called whenever a user is about to invite another user into a channel, before any processing is done.
 	 * Returning 1 from this function stops the process immediately, causing no
 	 * output to be sent to the user by the core. If you do this you must produce your own numerics,
@@ -600,15 +562,16 @@ class CoreExport Module : public classbase, public usecountbase
 	/** Called after every MODE command sent from a user
 	 * Either the usertarget or the chantarget variable contains the target of the modes,
 	 * the actual target will have a non-NULL pointer.
-	 * The modes vector contains the remainder of the mode string after the target,
-	 * e.g.: "+wsi" or ["+ooo", "nick1", "nick2", "nick3"].
+	 * All changed modes are available in the changelist object.
 	 * @param user The user sending the MODEs
 	 * @param usertarget The target user of the modes, NULL if the target is a channel
 	 * @param chantarget The target channel of the modes, NULL if the target is a user
-	 * @param modes The actual modes and their parameters if any
-	 * @param translate The translation types of the mode parameters
+	 * @param changelist The changed modes.
+	 * @param processflags Flags passed to ModeParser::Process(), see ModeParser::ModeProcessFlags
+	 * for the possible flags.
+	 * @param output_mode Changed modes, including '+' and '-' characters, not including any parameters
 	 */
-	virtual void OnMode(User* user, User* usertarget, Channel* chantarget, const std::vector<std::string>& modes, const std::vector<TranslateType>& translate);
+	virtual void OnMode(User* user, User* usertarget, Channel* chantarget, const Modes::ChangeList& changelist, ModeParser::ModeProcessFlag processflags, const std::string& output_mode);
 
 	/** Allows modules to synchronize data which relates to users during a netburst.
 	 * When this function is called, it will be called from the module which implements
@@ -710,7 +673,7 @@ class CoreExport Module : public classbase, public usecountbase
 	 */
 	virtual void OnUserPostNick(User* user, const std::string &oldnick);
 
-	/** Called before any mode change, to allow a single access check for
+	/** Called before a mode change via the MODE command, to allow a single access check for
 	 * a full mode change (use OnRawMode to check individual modes)
 	 *
 	 * Returning MOD_RES_ALLOW will skip prefix level checks, but can be overridden by
@@ -719,9 +682,9 @@ class CoreExport Module : public classbase, public usecountbase
 	 * @param source the user making the mode change
 	 * @param dest the user destination of the umode change (NULL if a channel mode)
 	 * @param channel the channel destination of the mode change
-	 * @param parameters raw mode parameters; parameters[0] is the user/channel being changed
+	 * @param modes Modes being changed, can be edited
 	 */
-	virtual ModResult OnPreMode(User* source, User* dest, Channel* channel, const std::vector<std::string>& parameters);
+	virtual ModResult OnPreMode(User* source, User* dest, Channel* channel, Modes::ChangeList& modes);
 
 	/** Called when a 005 numeric is about to be output.
 	 * The module should modify the 005 numeric if needed to indicate its features.
@@ -953,12 +916,6 @@ class CoreExport Module : public classbase, public usecountbase
 	 */
 	virtual void OnPostTopicChange(User* user, Channel* chan, const std::string &topic);
 
-	/** Called whenever an Event class is sent to all modules by another module.
-	 * You should *always* check the value of Event::id to determine the event type.
-	 * @param event The Event class being received
-	 */
-	virtual void OnEvent(Event& event);
-
 	/** Called whenever a password check is to be made. Replaces the old OldOperCompare API.
 	 * The password field (from the config file) is in 'password' and is to be compared against
 	 * 'input'. This method allows for encryption of passwords (oper, connect:allow, die/restart, etc).
@@ -970,14 +927,6 @@ class CoreExport Module : public classbase, public usecountbase
 	 * @return 0 to do nothing (pass on to next module/default), 1 == password is OK, -1 == password is not OK
 	 */
 	virtual ModResult OnPassCompare(Extensible* ex, const std::string &password, const std::string &input, const std::string& hashtype);
-
-	/** Called whenever a user is given usermode +o, anywhere on the network.
-	 * You cannot override this and prevent it from happening as it is already happened and
-	 * such a task must be performed by another server. You can however bounce modes by sending
-	 * servermodes out to reverse mode changes.
-	 * @param user The user who is opering
-	 */
-	virtual void OnGlobalOper(User* user);
 
 	/** Called after a user has fully connected and all modules have executed OnUserConnect
 	 * This event is informational only. You should not change any user information in this
@@ -1005,19 +954,6 @@ class CoreExport Module : public classbase, public usecountbase
 	 * @return nonzero if the away message should be blocked - should ONLY be nonzero for LOCAL users (IS_LOCAL) (no output is returned by core)
 	 */
 	virtual ModResult OnSetAway(User* user, const std::string &awaymsg);
-
-	/** Called whenever a line of WHOIS output is sent to a user.
-	 * You may change the numeric and the text of the output by changing
-	 * the values numeric and text, but you cannot change the user the
-	 * numeric is sent to. You may however change the user's User values.
-	 * @param user The user the numeric is being sent to
-	 * @param dest The user being WHOISed
-	 * @param numeric The numeric of the line being sent
-	 * @param text The text of the numeric, including any parameters
-	 * @return nonzero to drop the line completely so that the user does not
-	 * receive it, or zero to allow the line to be sent.
-	 */
-	virtual ModResult OnWhoisLine(User* user, User* dest, int &numeric, std::string &text);
 
 	/** Called at intervals for modules to garbage-collect any hashes etc.
 	 * Certain data types such as hash_map 'leak' buckets, which must be
@@ -1113,6 +1049,13 @@ class CoreExport ModuleManager : public fakederef<ModuleManager>
 	 */
 	bool PrioritizeHooks();
 
+	/** Expands the name of a module by prepending "m_" and appending ".so".
+	 * No-op if the name already has the ".so" extension.
+	 * @param modname Module name to expand
+	 * @return Module name starting with "m_" and ending with ".so"
+	 */
+	static std::string ExpandModName(const std::string& modname);
+
  public:
 	typedef std::map<std::string, Module*> ModuleMap;
 
@@ -1160,12 +1103,6 @@ class CoreExport ModuleManager : public fakederef<ModuleManager>
 	 */
 	bool SetPriority(Module* mod, Implementation i, Priority s, Module* which = NULL);
 
-	/** Backwards compat interface */
-	inline bool SetPriority(Module* mod, Implementation i, Priority s, Module** dptr)
-	{
-		return SetPriority(mod, i, s, *dptr);
-	}
-
 	/** Change the priority of all events in a module.
 	 * @param mod The module to set the priority of
 	 * @param s The priority of all events in the module.
@@ -1174,7 +1111,7 @@ class CoreExport ModuleManager : public fakederef<ModuleManager>
 	 * SetPriority method for this, where you may specify other modules to
 	 * be prioritized against.
 	 */
-	bool SetPriority(Module* mod, Priority s);
+	void SetPriority(Module* mod, Priority s);
 
 	/** Attach an event to a module.
 	 * You may later detatch the event with ModuleManager::Detach().
@@ -1333,7 +1270,8 @@ struct AllModuleList {
 				break; \
 		} \
 		return TRUE; \
-	}
+	} \
+	extern "C" DllExport const char inspircd_src_version[] = INSPIRCD_VERSION " " INSPIRCD_REVISION;
 
 #else
 

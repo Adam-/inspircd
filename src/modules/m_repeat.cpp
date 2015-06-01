@@ -122,15 +122,15 @@ class RepeatMode : public ParamMode<RepeatMode, SimpleExtItem<ChannelSettings> >
 
 	RepeatMode(Module* Creator)
 		: ParamMode<RepeatMode, SimpleExtItem<ChannelSettings> >(Creator, "repeat", 'E')
-		, MemberInfoExt("repeat_memb", Creator)
+		, MemberInfoExt("repeat_memb", ExtensionItem::EXT_MEMBERSHIP, Creator)
 	{
 	}
 
 	void OnUnset(User* source, Channel* chan)
 	{
 		// Unset the per-membership extension when the mode is removed
-		const UserMembList* users = chan->GetUsers();
-		for (UserMembCIter i = users->begin(); i != users->end(); ++i)
+		const Channel::MemberMap& users = chan->GetUsers();
+		for (Channel::MemberMap::const_iterator i = users.begin(); i != users.end(); ++i)
 			MemberInfoExt.unset(i->second);
 	}
 
@@ -376,11 +376,9 @@ class RepeatModule : public Module
 
 			if (settings->Action == ChannelSettings::ACT_BAN)
 			{
-				std::vector<std::string> parameters;
-				parameters.push_back(memb->chan->name);
-				parameters.push_back("+b");
-				parameters.push_back("*!*@" + user->dhost);
-				ServerInstance->Modes->Process(parameters, ServerInstance->FakeClient);
+				Modes::ChangeList changelist;
+				changelist.push_add(ServerInstance->Modes->FindMode('b', MODETYPE_CHANNEL), "*!*@" + user->dhost);
+				ServerInstance->Modes->Process(ServerInstance->FakeClient, chan, NULL, changelist);
 			}
 
 			memb->chan->KickUser(ServerInstance->FakeClient, user, "Repeat flood");

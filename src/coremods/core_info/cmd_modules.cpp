@@ -58,19 +58,19 @@ CmdResult CommandModules::Handle (const std::vector<std::string>& parameters, Us
 
 		if (IS_LOCAL(user) && user->HasPrivPermission("servers/auspex"))
 		{
-			std::string flags("SvcC");
+			std::string flags("vcC");
 			int pos = 0;
-			for (int mult = 1; mult <= VF_OPTCOMMON; mult *= 2, ++pos)
+			for (int mult = 2; mult <= VF_OPTCOMMON; mult *= 2, ++pos)
 				if (!(V.Flags & mult))
 					flags[pos] = '-';
 
 #ifdef PURE_STATIC
-			user->SendText(":%s 702 %s :%p %s %s :%s", ServerInstance->Config->ServerName.c_str(),
-				user->nick.c_str(), (void*)m, m->ModuleSourceFile.c_str(), flags.c_str(), V.description.c_str());
+			user->SendText(":%s 702 %s :%s %s :%s", ServerInstance->Config->ServerName.c_str(),
+				user->nick.c_str(), m->ModuleSourceFile.c_str(), flags.c_str(), V.description.c_str());
 #else
 			std::string srcrev = m->ModuleDLLManager->GetVersion();
-			user->SendText(":%s 702 %s :%p %s %s :%s - %s", ServerInstance->Config->ServerName.c_str(),
-				user->nick.c_str(), (void*)m, m->ModuleSourceFile.c_str(), flags.c_str(), V.description.c_str(), srcrev.c_str());
+			user->SendText(":%s 702 %s :%s %s :%s - %s", ServerInstance->Config->ServerName.c_str(),
+				user->nick.c_str(), m->ModuleSourceFile.c_str(), flags.c_str(), V.description.c_str(), srcrev.c_str());
 #endif
 		}
 		else

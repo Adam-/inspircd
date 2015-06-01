@@ -248,6 +248,22 @@ class CoreExport User : public Extensible
 	std::bitset<ModeParser::MODEID_MAX> modes;
 
  public:
+	/** To execute a function for each local neighbor of a user, inherit from this class and
+	 * pass an instance of it to User::ForEachNeighbor().
+	 */
+	class ForEachNeighborHandler
+	{
+	 public:
+		/** Method to execute for each local neighbor of a user.
+		 * Derived classes must implement this.
+		 * @param user Current neighbor
+		 */
+		virtual void Execute(LocalUser* user) = 0;
+	};
+
+	/** List of Memberships for this user
+	 */
+	typedef insp::intrusive_list<Membership> ChanList;
 
 	/** Hostname of connection.
 	 * This should be valid as per RFC1035.
@@ -302,7 +318,7 @@ class CoreExport User : public Extensible
 
 	/** Channels this user is on
 	 */
-	UserChanList chans;
+	ChanList chans;
 
 	/** The server the user is connected to.
 	 */
@@ -462,15 +478,6 @@ class CoreExport User : public Extensible
 	 */
 	void Oper(OperInfo* info);
 
-	/** Force a nickname change.
-	 * If the nickname change fails (for example, because the nick in question
-	 * already exists) this function will return false, and you must then either
-	 * output an error message, or quit the user for nickname collision.
-	 * @param newnick The nickname to change to
-	 * @return True if the nickchange was successful.
-	 */
-	bool ForceNickChange(const std::string& newnick, time_t newts = 0) { return ChangeNick(newnick, true, newts); }
-
 	/** Oper down.
 	 * This will clear the +o usermode and unset the user's oper type
 	 */
@@ -541,12 +548,15 @@ class CoreExport User : public Extensible
 	 */
 	void WriteCommon(const char* text, ...) CUSTOM_PRINTF(2, 3);
 
-	/** Write a quit message to all common users, as in User::WriteCommonExcept but with a specific
-	 * quit message for opers only.
-	 * @param normal_text Normal user quit message
-	 * @param oper_text Oper only quit message
+	/** Execute a function once for each local neighbor of this user. By default, the neighbors of a user are the users
+	 * who have at least one common channel with the user. Modules are allowed to alter the set of neighbors freely.
+	 * This function is used for example to send something conditionally to neighbors, or to send different messages
+	 * to different users depending on their oper status.
+	 * @param handler Function object to call, inherited from ForEachNeighborHandler.
+	 * @param include_self True to include this user in the set of neighbors, false otherwise.
+	 * Modules may override this. Has no effect if this user is not local.
 	 */
-	void WriteCommonQuit(const std::string &normal_text, const std::string &oper_text);
+	void ForEachNeighbor(ForEachNeighborHandler& handler, bool include_self = true);
 
 	/** Dump text to a user target, splitting it appropriately to fit
 	 * @param linePrefix text to prefix each complete line with
@@ -597,11 +607,10 @@ class CoreExport User : public Extensible
 	bool ChangeName(const std::string& gecos);
 
 	/** Change a user's nick
-	 * @param newnick The new nick
-	 * @param force True if the change is being forced (should not be blocked by modes like +N)
+	 * @param newnick The new nick. If equal to the users uuid, the nick change always succeeds.
 	 * @return True if the change succeeded
 	 */
-	bool ChangeNick(const std::string& newnick, bool force = false, time_t newts = 0);
+	bool ChangeNick(const std::string& newnick, time_t newts = 0);
 
 	/** Remove this user from all channels they are on, and delete any that are now empty.
 	 * This is used by QUIT, and will not send part messages!
@@ -632,7 +641,7 @@ class CoreExport UserIOHandler : public StreamSocket
 
 typedef unsigned int already_sent_t;
 
-class CoreExport LocalUser : public User, public InviteBase<LocalUser>, public intrusive_list_node<LocalUser>
+class CoreExport LocalUser : public User, public InviteBase<LocalUser>, public insp::intrusive_list_node<LocalUser>
 {
  public:
 	LocalUser(int fd, irc::sockets::sockaddrs* client, irc::sockets::sockaddrs* server);

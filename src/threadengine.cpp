@@ -26,14 +26,5 @@ void Thread::SetExitFlag()
 
 void Thread::join()
 {
-		state->FreeThread(this);
-		delete state;
-		state = 0;
-}
-
-/** If this thread has a Creator set, call it to
- * free the thread
- */
-Thread::~Thread()
-{
+	ServerInstance->Threads.Stop(this);
 }

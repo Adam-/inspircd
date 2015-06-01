@@ -33,6 +33,11 @@ std::string TreeSocket::MyModules(int filter)
 	std::string capabilities;
 	for (ModuleManager::ModuleMap::const_iterator i = modlist.begin(); i != modlist.end(); ++i)
 	{
+		// 2.2 advertises its settings for the benefit of services
+		// 2.0 would bork on this
+		if (proto_version < 1205 && i->second->ModuleSourceFile == "m_kicknorejoin.so")
+			continue;
+
 		Version v = i->second->GetVersion();
 		if (!(v.Flags & filter))
 			continue;
@@ -153,7 +158,13 @@ void TreeSocket::SendCapabilities(int phase)
 			extra+
 			" PREFIX="+ServerInstance->Modes->BuildPrefixes()+
 			" CHANMODES="+ServerInstance->Modes->GiveModeList(MODETYPE_CHANNEL)+
-			" USERMODES="+ServerInstance->Modes->GiveModeList(MODETYPE_USER)
+			" USERMODES="+ServerInstance->Modes->GiveModeList(MODETYPE_USER)+
+			// XXX: Advertise the presence or absence of m_globops in CAPAB CAPABILITIES.
+			// Services want to know about it, and since m_globops was not marked as VF_(OPT)COMMON
+			// in 2.0, we advertise it here to not break linking to previous versions.
+			// Protocol version 1201 (1.2) does not have this issue because we advertise m_globops
+			// to 1201 protocol servers irrespectively of its module flags.
+			(ServerInstance->Modules->Find("m_globops.so") != NULL ? " GLOBOPS=1" : " GLOBOPS=0")
 			);
 
 	this->WriteLine("CAPAB END");
@@ -380,8 +391,8 @@ bool TreeSocket::Capab(const parameterlist &params)
 			std::string::size_type equals = item.find('=');
 			if (equals != std::string::npos)
 			{
-				std::string var = item.substr(0, equals);
-				std::string value = item.substr(equals+1, item.length());
+				std::string var(item, 0, equals);
+				std::string value(item, equals+1);
 				capab->CapKeys[var] = value;
 			}
 		}

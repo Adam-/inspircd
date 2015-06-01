@@ -32,13 +32,13 @@
 	#include <dirent.h>
 #endif
 
-static intrusive_list<dynamic_reference_base>* dynrefs = NULL;
+static insp::intrusive_list<dynamic_reference_base>* dynrefs = NULL;
 
 void dynamic_reference_base::reset_all()
 {
 	if (!dynrefs)
 		return;
-	for (intrusive_list<dynamic_reference_base>::iterator i = dynrefs->begin(); i != dynrefs->end(); ++i)
+	for (insp::intrusive_list<dynamic_reference_base>::iterator i = dynrefs->begin(); i != dynrefs->end(); ++i)
 		(*i)->resolve();
 }
 
@@ -50,13 +50,6 @@ Version::Version(const std::string &desc, int flags) : description(desc), Flags(
 Version::Version(const std::string &desc, int flags, const std::string& linkdata)
 : description(desc), Flags(flags), link_data(linkdata)
 {
-}
-
-Event::Event(Module* src, const std::string &eventid) : source(src), id(eventid) { }
-
-void Event::Send()
-{
-	FOREACH_MOD(OnEvent, (*this));
 }
 
 // These declarations define the behavours of the base class Module (which does nothing at all)
@@ -86,16 +79,15 @@ void		Module::OnUserPart(Membership*, std::string&, CUList&) { DetachEvent(I_OnU
 void		Module::OnPreRehash(User*, const std::string&) { DetachEvent(I_OnPreRehash); }
 void		Module::OnModuleRehash(User*, const std::string&) { DetachEvent(I_OnModuleRehash); }
 ModResult	Module::OnUserPreJoin(LocalUser*, Channel*, const std::string&, std::string&, const std::string&) { DetachEvent(I_OnUserPreJoin); return MOD_RES_PASSTHRU; }
-void		Module::OnMode(User*, User*, Channel*, const std::vector<std::string>&, const std::vector<TranslateType>&) { DetachEvent(I_OnMode); }
+void		Module::OnMode(User*, User*, Channel*, const Modes::ChangeList&, ModeParser::ModeProcessFlag, const std::string&) { DetachEvent(I_OnMode); }
 void		Module::OnOper(User*, const std::string&) { DetachEvent(I_OnOper); }
 void		Module::OnPostOper(User*, const std::string&, const std::string &) { DetachEvent(I_OnPostOper); }
 void		Module::OnInfo(User*) { DetachEvent(I_OnInfo); }
-void		Module::OnWhois(User*, User*) { DetachEvent(I_OnWhois); }
 ModResult	Module::OnUserPreInvite(User*, User*, Channel*, time_t) { DetachEvent(I_OnUserPreInvite); return MOD_RES_PASSTHRU; }
 ModResult	Module::OnUserPreMessage(User*, void*, int, std::string&, char, CUList&, MessageType) { DetachEvent(I_OnUserPreMessage); return MOD_RES_PASSTHRU; }
 ModResult	Module::OnUserPreNick(LocalUser*, const std::string&) { DetachEvent(I_OnUserPreNick); return MOD_RES_PASSTHRU; }
 void		Module::OnUserPostNick(User*, const std::string&) { DetachEvent(I_OnUserPostNick); }
-ModResult	Module::OnPreMode(User*, User*, Channel*, const std::vector<std::string>&) { DetachEvent(I_OnPreMode); return MOD_RES_PASSTHRU; }
+ModResult	Module::OnPreMode(User*, User*, Channel*, Modes::ChangeList&) { DetachEvent(I_OnPreMode); return MOD_RES_PASSTHRU; }
 void		Module::On005Numeric(std::map<std::string, std::string>&) { DetachEvent(I_On005Numeric); }
 ModResult	Module::OnKill(User*, User*, const std::string&) { DetachEvent(I_OnKill); return MOD_RES_PASSTHRU; }
 void		Module::OnLoadModule(Module*) { DetachEvent(I_OnLoadModule); }
@@ -119,9 +111,7 @@ ModResult	Module::OnStats(char, User*, string_list&) { DetachEvent(I_OnStats); r
 ModResult	Module::OnChangeLocalUserHost(LocalUser*, const std::string&) { DetachEvent(I_OnChangeLocalUserHost); return MOD_RES_PASSTHRU; }
 ModResult	Module::OnChangeLocalUserGECOS(LocalUser*, const std::string&) { DetachEvent(I_OnChangeLocalUserGECOS); return MOD_RES_PASSTHRU; }
 ModResult	Module::OnPreTopicChange(User*, Channel*, const std::string&) { DetachEvent(I_OnPreTopicChange); return MOD_RES_PASSTHRU; }
-void		Module::OnEvent(Event&) { DetachEvent(I_OnEvent); }
 ModResult	Module::OnPassCompare(Extensible* ex, const std::string &password, const std::string &input, const std::string& hashtype) { DetachEvent(I_OnPassCompare); return MOD_RES_PASSTHRU; }
-void		Module::OnGlobalOper(User*) { DetachEvent(I_OnGlobalOper); }
 void		Module::OnPostConnect(User*) { DetachEvent(I_OnPostConnect); }
 void		Module::OnUserMessage(User*, void*, int, const std::string&, char, const CUList&, MessageType) { DetachEvent(I_OnUserMessage); }
 void		Module::OnUserInvite(User*, User*, Channel*, time_t) { DetachEvent(I_OnUserInvite); }
@@ -140,7 +130,6 @@ void 		Module::OnCleanup(int, void*) { }
 ModResult	Module::OnChannelPreDelete(Channel*) { DetachEvent(I_OnChannelPreDelete); return MOD_RES_PASSTHRU; }
 void		Module::OnChannelDelete(Channel*) { DetachEvent(I_OnChannelDelete); }
 ModResult	Module::OnSetAway(User*, const std::string &) { DetachEvent(I_OnSetAway); return MOD_RES_PASSTHRU; }
-ModResult	Module::OnWhoisLine(User*, User*, int&, std::string&) { DetachEvent(I_OnWhoisLine); return MOD_RES_PASSTHRU; }
 void		Module::OnBuildNeighborList(User*, IncludeChanList&, std::map<User*,bool>&) { DetachEvent(I_OnBuildNeighborList); }
 void		Module::OnGarbageCollect() { DetachEvent(I_OnGarbageCollect); }
 ModResult	Module::OnSetConnectClass(LocalUser* user, ConnectClass* myclass) { DetachEvent(I_OnSetConnectClass); return MOD_RES_PASSTHRU; }
@@ -165,12 +154,7 @@ ServiceProvider::ServiceProvider(Module* Creator, const std::string& Name, Servi
 void ServiceProvider::DisableAutoRegister()
 {
 	if ((ServerInstance) && (ServerInstance->Modules->NewServices))
-	{
-		ModuleManager::ServiceList& list = *ServerInstance->Modules->NewServices;
-		ModuleManager::ServiceList::iterator it = std::find(list.begin(), list.end(), this);
-		if (it != list.end())
-			list.erase(it);
-	}
+		stdalgo::erase(*ServerInstance->Modules->NewServices, this);
 }
 
 ModuleManager::ModuleManager()
@@ -183,7 +167,7 @@ ModuleManager::~ModuleManager()
 
 bool ModuleManager::Attach(Implementation i, Module* mod)
 {
-	if (std::find(EventHandlers[i].begin(), EventHandlers[i].end(), mod) != EventHandlers[i].end())
+	if (stdalgo::isin(EventHandlers[i], mod))
 		return false;
 
 	EventHandlers[i].push_back(mod);
@@ -192,13 +176,7 @@ bool ModuleManager::Attach(Implementation i, Module* mod)
 
 bool ModuleManager::Detach(Implementation i, Module* mod)
 {
-	EventHandlerIter x = std::find(EventHandlers[i].begin(), EventHandlers[i].end(), mod);
-
-	if (x == EventHandlers[i].end())
-		return false;
-
-	EventHandlers[i].erase(x);
-	return true;
+	return stdalgo::erase(EventHandlers[i], mod);
 }
 
 void ModuleManager::Attach(Implementation* i, Module* mod, size_t sz)
@@ -209,22 +187,20 @@ void ModuleManager::Attach(Implementation* i, Module* mod, size_t sz)
 
 void ModuleManager::AttachAll(Module* mod)
 {
-	for (size_t i = I_BEGIN + 1; i != I_END; ++i)
+	for (size_t i = 0; i != I_END; ++i)
 		Attach((Implementation)i, mod);
 }
 
 void ModuleManager::DetachAll(Module* mod)
 {
-	for (size_t n = I_BEGIN + 1; n != I_END; ++n)
+	for (size_t n = 0; n != I_END; ++n)
 		Detach((Implementation)n, mod);
 }
 
-bool ModuleManager::SetPriority(Module* mod, Priority s)
+void ModuleManager::SetPriority(Module* mod, Priority s)
 {
-	for (size_t n = I_BEGIN + 1; n != I_END; ++n)
+	for (size_t n = 0; n != I_END; ++n)
 		SetPriority(mod, (Implementation)n, s);
-
-	return true;
 }
 
 bool ModuleManager::SetPriority(Module* mod, Implementation i, Priority s, Module* which)
@@ -361,12 +337,6 @@ bool ModuleManager::CanUnload(Module* mod)
 		ServerInstance->Logs->Log("MODULE", LOG_DEFAULT, LastModuleError);
 		return false;
 	}
-	if (mod->GetVersion().Flags & VF_STATIC)
-	{
-		LastModuleError = "Module " + mod->ModuleSourceFile + " not unloadable (marked static)";
-		ServerInstance->Logs->Log("MODULE", LOG_DEFAULT, LastModuleError);
-		return false;
-	}
 
 	mod->dying = true;
 	return true;
@@ -391,8 +361,8 @@ void ModuleManager::DoSafeUnload(Module* mod)
 		++c;
 		mod->OnCleanup(TYPE_CHANNEL, chan);
 		chan->doUnhookExtensions(items);
-		const UserMembList* users = chan->GetUsers();
-		for(UserMembCIter mi = users->begin(); mi != users->end(); mi++)
+		const Channel::MemberMap& users = chan->GetUsers();
+		for (Channel::MemberMap::const_iterator mi = users.begin(); mi != users.end(); ++mi)
 			mi->second->doUnhookExtensions(items);
 	}
 
@@ -515,7 +485,7 @@ void ModuleManager::Reload(Module* mod, HandlerBase1<void, bool>* callback)
 {
 	if (CanUnload(mod))
 		ServerInstance->AtomicActions.AddAction(new ReloadAction(mod, callback));
-	else
+	else if (callback)
 		callback->Call(false);
 }
 
@@ -666,11 +636,21 @@ ServiceProvider* ModuleManager::FindService(ServiceType type, const std::string&
 	}
 }
 
+std::string ModuleManager::ExpandModName(const std::string& modname)
+{
+	// Transform "callerid" -> "m_callerid.so" unless it already has a ".so" extension,
+	// so coremods in the "core_*.so" form aren't changed
+	std::string ret = modname;
+	if ((modname.length() < 3) || (modname.compare(modname.size() - 3, 3, ".so")))
+		ret.insert(0, "m_").append(".so");
+	return ret;
+}
+
 dynamic_reference_base::dynamic_reference_base(Module* Creator, const std::string& Name)
-	: name(Name), value(NULL), creator(Creator)
+	: name(Name), hook(NULL), value(NULL), creator(Creator)
 {
 	if (!dynrefs)
-		dynrefs = new intrusive_list<dynamic_reference_base>;
+		dynrefs = new insp::intrusive_list<dynamic_reference_base>;
 	dynrefs->push_front(this);
 
 	// Resolve unless there is no ModuleManager (part of class InspIRCd)
@@ -696,16 +676,26 @@ void dynamic_reference_base::SetProvider(const std::string& newname)
 
 void dynamic_reference_base::resolve()
 {
-	std::multimap<std::string, ServiceProvider*>::iterator i = ServerInstance->Modules->DataProviders.find(name);
-	if (i != ServerInstance->Modules->DataProviders.end())
-		value = static_cast<DataProvider*>(i->second);
+	// Because find() may return any element with a matching key in case count(key) > 1 use lower_bound()
+	// to ensure a dynref with the same name as another one resolves to the same object
+	std::multimap<std::string, ServiceProvider*>::iterator i = ServerInstance->Modules.DataProviders.lower_bound(name);
+	if ((i != ServerInstance->Modules.DataProviders.end()) && (i->first == this->name))
+	{
+		ServiceProvider* newvalue = i->second;
+		if (value != newvalue)
+		{
+			value = newvalue;
+			if (hook)
+				hook->OnCapture();
+		}
+	}
 	else
 		value = NULL;
 }
 
 Module* ModuleManager::Find(const std::string &name)
 {
-	std::map<std::string, Module*>::iterator modfind = Modules.find(name);
+	std::map<std::string, Module*>::const_iterator modfind = Modules.find(ExpandModName(name));
 
 	if (modfind == Modules.end())
 		return NULL;

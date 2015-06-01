@@ -73,8 +73,10 @@ class CommandCheck : public Command
 	{
 		char timebuf[60];
 		struct tm *mytime = gmtime(&time);
-		strftime(timebuf, 59, "%Y-%m-%d %H:%M:%S UTC (%s)", mytime);
-		return std::string(timebuf);
+		strftime(timebuf, 59, "%Y-%m-%d %H:%M:%S UTC (", mytime);
+		std::string ret(timebuf);
+		ret.append(ConvToStr(time)).push_back(')');
+		return ret;
 	}
 
 	void dumpExt(User* user, const std::string& checkstr, Extensible* ext)
@@ -149,7 +151,7 @@ class CommandCheck : public Command
 				{
 					std::string umodes;
 					std::string cmodes;
-					for(char c='A'; c < 'z'; c++)
+					for(char c='A'; c <= 'z'; c++)
 					{
 						ModeHandler* mh = ServerInstance->Modes->FindMode(c, MODETYPE_USER);
 						if (mh && mh->NeedsOper() && loctarg->HasModePermission(c, MODETYPE_USER))
@@ -160,7 +162,7 @@ class CommandCheck : public Command
 					}
 					user->SendText(checkstr + " modeperms user=" + umodes + " channel=" + cmodes);
 					std::string opcmds;
-					for(std::set<std::string>::iterator i = oper->AllowedOperCommands.begin(); i != oper->AllowedOperCommands.end(); i++)
+					for (OperInfo::PrivSet::const_iterator i = oper->AllowedOperCommands.begin(); i != oper->AllowedOperCommands.end(); ++i)
 					{
 						opcmds.push_back(' ');
 						opcmds.append(*i);
@@ -168,7 +170,7 @@ class CommandCheck : public Command
 					std::stringstream opcmddump(opcmds);
 					user->SendText(checkstr + " commandperms", opcmddump);
 					std::string privs;
-					for(std::set<std::string>::iterator i = oper->AllowedPrivs.begin(); i != oper->AllowedPrivs.end(); i++)
+					for (OperInfo::PrivSet::const_iterator i = oper->AllowedPrivs.begin(); i != oper->AllowedPrivs.end(); ++i)
 					{
 						privs.push_back(' ');
 						privs.append(*i);
@@ -190,7 +192,7 @@ class CommandCheck : public Command
 			else
 				user->SendText(checkstr + " onip " + targuser->GetIPString());
 
-			for (UCListIter i = targuser->chans.begin(); i != targuser->chans.end(); i++)
+			for (User::ChanList::iterator i = targuser->chans.begin(); i != targuser->chans.end(); i++)
 			{
 				Membership* memb = *i;
 				Channel* c = memb->chan;
@@ -224,10 +226,10 @@ class CommandCheck : public Command
 
 			/* now the ugly bit, spool current members of a channel. :| */
 
-			const UserMembList *ulist= targchan->GetUsers();
+			const Channel::MemberMap& ulist = targchan->GetUsers();
 
 			/* note that unlike /names, we do NOT check +i vs in the channel */
-			for (UserMembCIter i = ulist->begin(); i != ulist->end(); i++)
+			for (Channel::MemberMap::const_iterator i = ulist.begin(); i != ulist.end(); ++i)
 			{
 				/*
 			 	 * Unlike Asuka, I define a clone as coming from the same host. --w00t

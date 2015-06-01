@@ -186,7 +186,7 @@ int SocketEngine::DispatchEvents()
 		if (ev.events & EPOLLHUP)
 		{
 			stats.ErrorEvents++;
-			eh->HandleEvent(EVENT_ERROR, 0);
+			eh->OnEventHandlerError(0);
 			continue;
 		}
 
@@ -198,7 +198,7 @@ int SocketEngine::DispatchEvents()
 			int errcode;
 			if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &errcode, &codesize) < 0)
 				errcode = errno;
-			eh->HandleEvent(EVENT_ERROR, errcode);
+			eh->OnEventHandlerError(errcode);
 			continue;
 		}
 
@@ -219,7 +219,7 @@ int SocketEngine::DispatchEvents()
 		if (ev.events & EPOLLIN)
 		{
 			stats.ReadEvents++;
-			eh->HandleEvent(EVENT_READ);
+			eh->OnEventHandlerRead();
 			if (eh != GetRef(fd))
 				// whoa! we got deleted, better not give out the write event
 				continue;
@@ -227,7 +227,7 @@ int SocketEngine::DispatchEvents()
 		if (ev.events & EPOLLOUT)
 		{
 			stats.WriteEvents++;
-			eh->HandleEvent(EVENT_WRITE);
+			eh->OnEventHandlerWrite();
 		}
 	}
 

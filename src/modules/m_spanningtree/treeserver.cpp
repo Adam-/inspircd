@@ -37,8 +37,10 @@ TreeServer::TreeServer()
 	, Parent(NULL), Route(NULL)
 	, VersionString(ServerInstance->GetVersionString())
 	, fullversion(ServerInstance->GetVersionString(true))
-	, Socket(NULL), sid(ServerInstance->Config->GetSID()), ServerUser(ServerInstance->FakeClient)
-	, age(ServerInstance->Time()), Warned(false), bursting(false), UserCount(ServerInstance->Users->local_users.size())
+	, Socket(NULL), sid(ServerInstance->Config->GetSID()), behind_bursting(0), isdead(false)
+	, pingtimer(this)
+	, ServerUser(ServerInstance->FakeClient)
+	, age(ServerInstance->Time()), UserCount(ServerInstance->Users.LocalUserCount())
 	, OperCount(0), rtt(0), StartBurst(0), Hidden(false)
 {
 	AddHashEntry();
@@ -46,20 +48,19 @@ TreeServer::TreeServer()
 
 /** When we create a new server, we call this constructor to initialize it.
  * This constructor initializes the server's Route and Parent, and sets up
- * its ping counters so that it will be pinged one minute from now.
+ * the ping timer for the server.
  */
 TreeServer::TreeServer(const std::string& Name, const std::string& Desc, const std::string& id, TreeServer* Above, TreeSocket* Sock, bool Hide)
 	: Server(Name, Desc)
-	, Parent(Above), Socket(Sock), sid(id), ServerUser(new FakeUser(id, this))
-	, age(ServerInstance->Time()), Warned(false), bursting(true), UserCount(0), OperCount(0), rtt(0), Hidden(Hide)
+	, Parent(Above), Socket(Sock), sid(id), behind_bursting(Parent->behind_bursting), isdead(false)
+	, pingtimer(this)
+	, ServerUser(new FakeUser(id, this))
+	, age(ServerInstance->Time()), UserCount(0), OperCount(0), rtt(0), StartBurst(0), Hidden(Hide)
 {
+	ServerInstance->Logs->Log(MODNAME, LOG_DEBUG, "New server %s behind_bursting %u", GetName().c_str(), behind_bursting);
 	CheckULine();
-	SetNextPingTime(ServerInstance->Time() + Utils->PingFreq);
-	SetPingFlag();
 
-	long ts = ServerInstance->Time() * 1000 + (ServerInstance->Time_ns() / 1000000);
-	this->StartBurst = ts;
-	ServerInstance->Logs->Log(MODNAME, LOG_DEBUG, "Server %s started bursting at time %lu", sid.c_str(), ts);
+	ServerInstance->Timers.AddTimer(&pingtimer);
 
 	/* find the 'route' for this server (e.g. the one directly connected
 	 * to the local server, which we can use to reach it)
@@ -113,18 +114,29 @@ TreeServer::TreeServer(const std::string& Name, const std::string& Desc, const s
 	 */
 
 	this->AddHashEntry();
+	Parent->Children.push_back(this);
 }
 
-const std::string& TreeServer::GetID()
+void TreeServer::BeginBurst(uint64_t startms)
 {
-	return sid;
+	behind_bursting++;
+
+	uint64_t now = ServerInstance->Time() * 1000 + (ServerInstance->Time_ns() / 1000000);
+	// If the start time is in the future (clocks are not synced) then use current time
+	if ((!startms) || (startms > now))
+		startms = now;
+	this->StartBurst = startms;
+	ServerInstance->Logs->Log(MODNAME, LOG_DEBUG, "Server %s started bursting at time %s behind_bursting %u", sid.c_str(), ConvToStr(startms).c_str(), behind_bursting);
 }
 
 void TreeServer::FinishBurstInternal()
 {
-	this->bursting = false;
-	SetNextPingTime(ServerInstance->Time() + Utils->PingFreq);
-	SetPingFlag();
+	// Check is needed because 1202 protocol servers don't send the bursting state of a server, so servers
+	// introduced during a netburst may later send ENDBURST which would normally decrease this counter
+	if (behind_bursting > 0)
+		behind_bursting--;
+	ServerInstance->Logs->Log(MODNAME, LOG_DEBUG, "FinishBurstInternal() %s behind_bursting %u", GetName().c_str(), behind_bursting);
+
 	for (ChildServers::const_iterator i = Children.begin(); i != Children.end(); ++i)
 	{
 		TreeServer* child = *i;
@@ -134,16 +146,67 @@ void TreeServer::FinishBurstInternal()
 
 void TreeServer::FinishBurst()
 {
-	FinishBurstInternal();
 	ServerInstance->XLines->ApplyLines();
-	long ts = ServerInstance->Time() * 1000 + (ServerInstance->Time_ns() / 1000000);
+	uint64_t ts = ServerInstance->Time() * 1000 + (ServerInstance->Time_ns() / 1000000);
 	unsigned long bursttime = ts - this->StartBurst;
 	ServerInstance->SNO->WriteToSnoMask(Parent == Utils->TreeRoot ? 'l' : 'L', "Received end of netburst from \2%s\2 (burst time: %lu %s)",
 		GetName().c_str(), (bursttime > 10000 ? bursttime / 1000 : bursttime), (bursttime > 10000 ? "secs" : "msecs"));
-	AddServerEvent(Utils->Creator, GetName());
+	FOREACH_MOD_CUSTOM(Utils->Creator->GetEventProvider(), SpanningTreeEventListener, OnServerLink, (this));
+
+	StartBurst = 0;
+	FinishBurstInternal();
 }
 
-int TreeServer::QuitUsers(const std::string &reason)
+void TreeServer::SQuitChild(TreeServer* server, const std::string& reason)
+{
+	FOREACH_MOD_CUSTOM(Utils->Creator->GetEventProvider(), SpanningTreeEventListener, OnServerSplit, (server));
+	stdalgo::erase(Children, server);
+
+	if (IsRoot())
+	{
+		// Server split from us, generate a SQUIT message and broadcast it
+		ServerInstance->SNO->WriteGlobalSno('l', "Server \002" + server->GetName() + "\002 split: " + reason);
+		CmdBuilder("SQUIT").push(server->GetID()).push_last(reason).Broadcast();
+	}
+	else
+	{
+		ServerInstance->SNO->WriteToSnoMask('L', "Server \002" + server->GetName() + "\002 split from server \002" + GetName() + "\002 with reason: " + reason);
+	}
+
+	unsigned int num_lost_servers = 0;
+	server->SQuitInternal(num_lost_servers);
+
+	const std::string quitreason = GetName() + " " + server->GetName();
+	unsigned int num_lost_users = QuitUsers(quitreason);
+
+	ServerInstance->SNO->WriteToSnoMask(IsRoot() ? 'l' : 'L', "Netsplit complete, lost \002%u\002 user%s on \002%u\002 server%s.",
+		num_lost_users, num_lost_users != 1 ? "s" : "", num_lost_servers, num_lost_servers != 1 ? "s" : "");
+
+	// No-op if the socket is already closed (i.e. it called us)
+	if (server->IsLocal())
+		server->GetSocket()->Close();
+
+	// Add the server to the cull list, the servers behind it are handled by cull() and the destructor
+	ServerInstance->GlobalCulls.AddItem(server);
+}
+
+void TreeServer::SQuitInternal(unsigned int& num_lost_servers)
+{
+	ServerInstance->Logs->Log(MODNAME, LOG_DEBUG, "Server %s lost in split", GetName().c_str());
+
+	for (ChildServers::const_iterator i = Children.begin(); i != Children.end(); ++i)
+	{
+		TreeServer* server = *i;
+		server->SQuitInternal(num_lost_servers);
+	}
+
+	// Mark server as dead
+	isdead = true;
+	num_lost_servers++;
+	RemoveHash();
+}
+
+unsigned int TreeServer::QuitUsers(const std::string& reason)
 {
 	std::string publicreason = ServerInstance->Config->HideSplits ? "*.net *.split" : reason;
 
@@ -154,7 +217,8 @@ int TreeServer::QuitUsers(const std::string &reason)
 		User* user = i->second;
 		// Increment the iterator now because QuitUser() removes the user from the container
 		++i;
-		if (user->server == this)
+		TreeServer* server = TreeServer::Get(user);
+		if (server->IsDead())
 			ServerInstance->Users->QuitUser(user, publicreason, &reason);
 	}
 	return original_size - users.size();
@@ -184,8 +248,8 @@ void TreeServer::CheckULine()
 	}
 }
 
-/** This method is used to add the structure to the
- * hash_map for linear searches. It is only called
+/** This method is used to add the server to the
+ * maps for linear searches. It is only called
  * by the constructors.
  */
 void TreeServer::AddHashEntry()
@@ -194,92 +258,15 @@ void TreeServer::AddHashEntry()
 	Utils->sidlist[sid] = this;
 }
 
-/** These accessors etc should be pretty self-
- * explanitory.
- */
-TreeServer* TreeServer::GetRoute()
-{
-	return Route;
-}
-
-const std::string& TreeServer::GetVersion()
-{
-	return VersionString;
-}
-
-void TreeServer::SetNextPingTime(time_t t)
-{
-	this->NextPing = t;
-	LastPingWasGood = false;
-}
-
-time_t TreeServer::NextPingTime()
-{
-	return NextPing;
-}
-
-bool TreeServer::AnsweredLastPing()
-{
-	return LastPingWasGood;
-}
-
-void TreeServer::SetPingFlag()
-{
-	LastPingWasGood = true;
-}
-
-TreeSocket* TreeServer::GetSocket()
-{
-	return Socket;
-}
-
-TreeServer* TreeServer::GetParent()
-{
-	return Parent;
-}
-
-void TreeServer::SetVersion(const std::string &Version)
-{
-	VersionString = Version;
-}
-
-void TreeServer::AddChild(TreeServer* Child)
-{
-	Children.push_back(Child);
-}
-
-bool TreeServer::DelChild(TreeServer* Child)
-{
-	std::vector<TreeServer*>::iterator it = std::find(Children.begin(), Children.end(), Child);
-	if (it != Children.end())
-	{
-		Children.erase(it);
-		return true;
-	}
-	return false;
-}
-
-/** Removes child nodes of this node, and of that node, etc etc.
- * This is used during netsplits to automatically tidy up the
- * server tree. It is slow, we don't use it for much else.
- */
-void TreeServer::Tidy()
-{
-	while (1)
-	{
-		std::vector<TreeServer*>::iterator a = Children.begin();
-		if (a == Children.end())
-			return;
-		TreeServer* s = *a;
-		s->Tidy();
-		s->cull();
-		Children.erase(a);
-		delete s;
-	}
-}
-
 CullResult TreeServer::cull()
 {
+	// Recursively cull all servers that are under us in the tree
+	for (ChildServers::const_iterator i = Children.begin(); i != Children.end(); ++i)
+	{
+		TreeServer* server = *i;
+		server->cull();
+	}
+
 	if (!IsRoot())
 		ServerUser->cull();
 	return classbase::cull();
@@ -287,9 +274,20 @@ CullResult TreeServer::cull()
 
 TreeServer::~TreeServer()
 {
-	/* We'd better tidy up after ourselves, eh? */
+	// Recursively delete all servers that are under us in the tree first
+	for (ChildServers::const_iterator i = Children.begin(); i != Children.end(); ++i)
+		delete *i;
+
+	// Delete server user unless it's us
 	if (!IsRoot())
 		delete ServerUser;
+}
+
+void TreeServer::RemoveHash()
+{
+	// XXX: Erase server from UserManager::uuidlist now, to allow sid reuse in the current main loop
+	// iteration, before the cull list is applied
+	ServerInstance->Users->uuidlist.erase(sid);
 
 	Utils->sidlist.erase(sid);
 	Utils->serverlist.erase(GetName());

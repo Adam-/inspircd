@@ -35,9 +35,12 @@ class CommandClose : public Command
 	{
 		std::map<std::string,int> closed;
 
-		for (LocalUserList::const_iterator u = ServerInstance->Users->local_users.begin(); u != ServerInstance->Users->local_users.end(); ++u)
+		const UserManager::LocalList& list = ServerInstance->Users.GetLocalUsers();
+		for (UserManager::LocalList::const_iterator u = list.begin(); u != list.end(); )
 		{
+			// Quitting the user removes it from the list
 			LocalUser* user = *u;
+			++u;
 			if (user->registered != REG_ALL)
 			{
 				ServerInstance->Users->QuitUser(user, "Closing all unknown connections per request");

@@ -106,7 +106,8 @@ class CommandSilence : public Command
  public:
 	SimpleExtItem<silencelist> ext;
 	CommandSilence(Module* Creator, unsigned int &max) : Command(Creator, "SILENCE", 0),
-		maxsilence(max), ext("silence_list", Creator)
+		maxsilence(max)
+		, ext("silence_list", ExtensionItem::EXT_USER, Creator)
 	{
 		allow_empty_last_param = false;
 		syntax = "{[+|-]<mask> <p|c|i|n|t|a|x>}";
@@ -134,7 +135,7 @@ class CommandSilence : public Command
 		else if (parameters.size() > 0)
 		{
 			// one or more parameters, add or delete entry from the list (only the first parameter is used)
-			std::string mask = parameters[0].substr(1);
+			std::string mask(parameters[0], 1);
 			char action = parameters[0][0];
 			// Default is private and notice so clients do not break
 			int pattern = CompilePattern("pn");
@@ -290,6 +291,7 @@ class CommandSilence : public Command
 class ModuleSilence : public Module
 {
 	unsigned int maxsilence;
+	bool ExemptULine;
 	CommandSilence cmdsilence;
 	CommandSVSSilence cmdsvssilence;
  public:
@@ -301,9 +303,13 @@ class ModuleSilence : public Module
 
 	void ReadConfig(ConfigStatus& status) CXX11_OVERRIDE
 	{
-		maxsilence = ServerInstance->Config->ConfValue("silence")->getInt("maxentries", 32);
+		ConfigTag* tag = ServerInstance->Config->ConfValue("silence");
+
+		maxsilence = tag->getInt("maxentries", 32);
 		if (!maxsilence)
 			maxsilence = 32;
+
+		ExemptULine = tag->getBool("exemptuline", true);
 	}
 
 	void On005Numeric(std::map<std::string, std::string>& tokens) CXX11_OVERRIDE
@@ -315,9 +321,9 @@ class ModuleSilence : public Module
 	void OnBuildExemptList(MessageType message_type, Channel* chan, User* sender, char status, CUList &exempt_list, const std::string &text)
 	{
 		int public_silence = (message_type == MSG_PRIVMSG ? SILENCE_CHANNEL : SILENCE_CNOTICE);
-		const UserMembList *ulist = chan->GetUsers();
 
-		for (UserMembCIter i = ulist->begin(); i != ulist->end(); i++)
+		const Channel::MemberMap& ulist = chan->GetUsers();
+		for (Channel::MemberMap::const_iterator i = ulist.begin(); i != ulist.end(); ++i)
 		{
 			if (IS_LOCAL(i->first))
 			{
@@ -350,6 +356,9 @@ class ModuleSilence : public Module
 
 	ModResult MatchPattern(User* dest, User* source, int pattern)
 	{
+		if (ExemptULine && source->server->IsULine())
+			return MOD_RES_PASSTHRU;
+
 		silencelist* sl = cmdsilence.ext.get(dest);
 		if (sl)
 		{

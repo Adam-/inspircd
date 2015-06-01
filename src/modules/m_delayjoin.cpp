@@ -39,7 +39,9 @@ class ModuleDelayJoin : public Module
 	DelayJoinMode djm;
  public:
 	LocalIntExt unjoined;
-	ModuleDelayJoin() : djm(this), unjoined("delayjoin", this)
+	ModuleDelayJoin()
+		: djm(this)
+		, unjoined("delayjoin", ExtensionItem::EXT_MEMBERSHIP, this)
 	{
 	}
 
@@ -66,8 +68,8 @@ ModeAction DelayJoinMode::OnModeChange(User* source, User* dest, Channel* channe
 		 * Make all users visible, as +D is being removed. If we don't do this,
 		 * they remain permanently invisible on this channel!
 		 */
-		const UserMembList* names = channel->GetUsers();
-		for (UserMembCIter n = names->begin(); n != names->end(); ++n)
+		const Channel::MemberMap& users = channel->GetUsers();
+		for (Channel::MemberMap::const_iterator n = users.begin(); n != users.end(); ++n)
 			creator->OnText(n->first, channel, TYPE_CHANNEL, "", 0, empty);
 	}
 	channel->SetMode(this, adding);
@@ -94,8 +96,8 @@ ModResult ModuleDelayJoin::OnNamesListItem(User* issuer, Membership* memb, std::
 
 static void populate(CUList& except, Membership* memb)
 {
-	const UserMembList* users = memb->chan->GetUsers();
-	for(UserMembCIter i = users->begin(); i != users->end(); i++)
+	const Channel::MemberMap& users = memb->chan->GetUsers();
+	for (Channel::MemberMap::const_iterator i = users.begin(); i != users.end(); ++i)
 	{
 		if (i->first == memb->user || !IS_LOCAL(i->first))
 			continue;
@@ -138,10 +140,6 @@ void ModuleDelayJoin::OnBuildNeighborList(User* source, IncludeChanList& include
 
 void ModuleDelayJoin::OnText(User* user, void* dest, int target_type, const std::string &text, char status, CUList &exempt_list)
 {
-	/* Server origin */
-	if (!user)
-		return;
-
 	if (target_type != TYPE_CHANNEL)
 		return;
 
@@ -165,7 +163,11 @@ void ModuleDelayJoin::OnText(User* user, void* dest, int target_type, const std:
 /* make the user visible if he receives any mode change */
 ModResult ModuleDelayJoin::OnRawMode(User* user, Channel* channel, ModeHandler* mh, const std::string& param, bool adding)
 {
-	if (!user || !channel || param.empty())
+	if (!channel || param.empty())
+		return MOD_RES_PASSTHRU;
+
+	// If not a prefix mode then we got nothing to do here
+	if (!mh->IsPrefixMode())
 		return MOD_RES_PASSTHRU;
 
 	User* dest;

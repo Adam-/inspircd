@@ -24,6 +24,13 @@
 
 static std::string newline("\n");
 
+void TreeSocket::WriteLineNoCompat(const std::string& line)
+{
+	ServerInstance->Logs->Log(MODNAME, LOG_RAWIO, "S[%d] O %s", this->GetFd(), line.c_str());
+	this->WriteData(line);
+	this->WriteData(newline);
+}
+
 void TreeSocket::WriteLine(const std::string& original_line)
 {
 	if (LinkState == CONNECTED)
@@ -39,7 +46,7 @@ void TreeSocket::WriteLine(const std::string& original_line)
 			std::string line = original_line;
 			std::string::size_type a = line.find(' ');
 			std::string::size_type b = line.find(' ', a + 1);
-			std::string command = line.substr(a + 1, b-a-1);
+			std::string command(line, a + 1, b-a-1);
 			// now try to find a translation entry
 			// TODO a more efficient lookup method will be needed later
 			if (proto_version < 1205)
@@ -61,7 +68,7 @@ void TreeSocket::WriteLine(const std::string& original_line)
 					{
 						// No TS or modes in the command
 						// :22DAAAAAB IJOIN #chan
-						const std::string channame = line.substr(b+1, c-b-1);
+						const std::string channame(line, b+1, c-b-1);
 						Channel* chan = ServerInstance->FindChan(channame);
 						if (!chan)
 							return;
@@ -258,17 +265,38 @@ void TreeSocket::WriteLine(const std::string& original_line)
 
 					line = line.substr(0, 5) + "VERSION" + line.substr(c);
 				}
+				else if (command == "SERVER")
+				{
+					// :001 SERVER inspircd.test 002 [<anything> ...] :gecos
+					//     A      B             C
+					std::string::size_type c = line.find(' ', b + 1);
+					if (c == std::string::npos)
+						return;
+
+					std::string::size_type d = c + 4;
+					std::string::size_type spcolon = line.find(" :", d);
+					if (spcolon == std::string::npos)
+						return;
+
+					line.erase(d, spcolon-d);
+					line.insert(c, " * 0");
+
+					if (burstsent)
+					{
+						WriteLineNoCompat(line);
+
+						// Synthesize a :<newserver> BURST <time> message
+						spcolon = line.find(" :");
+						line = CmdBuilder(line.substr(spcolon-3, 3), "BURST").push_int(ServerInstance->Time()).str();
+					}
+				}
 			}
-			ServerInstance->Logs->Log(MODNAME, LOG_RAWIO, "S[%d] O %s", this->GetFd(), line.c_str());
-			this->WriteData(line);
-			this->WriteData(newline);
+			WriteLineNoCompat(line);
 			return;
 		}
 	}
 
-	ServerInstance->Logs->Log(MODNAME, LOG_RAWIO, "S[%d] O %s", this->GetFd(), original_line.c_str());
-	this->WriteData(original_line);
-	this->WriteData(newline);
+	WriteLineNoCompat(original_line);
 }
 
 namespace
@@ -400,6 +428,57 @@ bool TreeSocket::PreProcessOldProtocolMessage(User*& who, std::string& cmd, std:
 		// :20D SINFO version :InspIRCd-2.0
 		cmd = "SINFO";
 		params.insert(params.begin(), "version");
+	}
+	else if (cmd == "JOIN")
+	{
+		// 2.0 allows and forwards legacy JOINs but we don't, so translate them to FJOINs before processing
+		if ((params.size() != 1) || (IS_SERVER(who)))
+			return false; // Huh?
+
+		cmd = "FJOIN";
+		Channel* chan = ServerInstance->FindChan(params[0]);
+		params.push_back(ConvToStr(chan ? chan->age : ServerInstance->Time()));
+		params.push_back("+");
+		params.push_back(",");
+		params.back().append(who->uuid);
+		who = TreeServer::Get(who)->ServerUser;
+	}
+	else if ((cmd == "FMODE") && (params.size() >= 2))
+	{
+		// Translate user mode changes with timestamp to MODE
+		if (params[0][0] != '#')
+		{
+			User* user = ServerInstance->FindUUID(params[0]);
+			if (!user)
+				return false;
+
+			// Emulate the old nonsensical behavior
+			if (user->age < ServerCommand::ExtractTS(params[1]))
+				return false;
+
+			cmd = "MODE";
+			params.erase(params.begin()+1);
+		}
+	}
+	else if ((cmd == "SERVER") && (params.size() > 4))
+	{
+		// This does not affect the initial SERVER line as it is sent before the link state is CONNECTED
+		// :20D SERVER <name> * 0 <sid> <desc>
+		// change to
+		// :20D SERVER <name> <sid> <desc>
+
+		params[1].swap(params[3]);
+		params.erase(params.begin()+2, params.begin()+4);
+
+		// If the source of this SERVER message is not bursting, then new servers it introduces are bursting
+		TreeServer* server = TreeServer::Get(who);
+		if (!server->IsBursting())
+			params.insert(params.begin()+2, "burst=" + ConvToStr(((uint64_t)ServerInstance->Time())*1000));
+	}
+	else if (cmd == "BURST")
+	{
+		// A server is introducing another one, drop unnecessary BURST
+		return false;
 	}
 
 	return true; // Passthru

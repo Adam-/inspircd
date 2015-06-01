@@ -28,12 +28,13 @@ enum SaslState { SASL_INIT, SASL_COMM, SASL_DONE };
 enum SaslResult { SASL_OK, SASL_FAIL, SASL_ABORT };
 
 static std::string sasl_target = "*";
+static Events::ModuleEventProvider* saslevprov;
 
 static void SendSASL(const parameterlist& params)
 {
 	if (!ServerInstance->PI->SendEncapsulatedData(sasl_target, "SASL", params))
 	{
-		SASLFallback(NULL, params);
+		FOREACH_MOD_CUSTOM(*saslevprov, SASLEventListener, OnSASLAuth, (params));
 	}
 }
 
@@ -93,6 +94,9 @@ class SaslAuthenticator
 			/* fall through */
 		 case SASL_COMM:
 			if (msg[0] != this->agent)
+				return this->state;
+
+			if (msg.size() < 4)
 				return this->state;
 
 			if (msg[2] == "C")
@@ -246,11 +250,17 @@ class ModuleSASL : public Module
 	GenericCap cap;
 	CommandAuthenticate auth;
 	CommandSASL sasl;
+	Events::ModuleEventProvider sasleventprov;
 
  public:
 	ModuleSASL()
-		: authExt("sasl_auth", this), cap(this, "sasl"), auth(this, authExt, cap), sasl(this, authExt)
+		: authExt("sasl_auth", ExtensionItem::EXT_USER, this)
+		, cap(this, "sasl")
+		, auth(this, authExt, cap)
+		, sasl(this, authExt)
+		, sasleventprov(this, "event/sasl")
 	{
+		saslevprov = &sasleventprov;
 	}
 
 	void init() CXX11_OVERRIDE
@@ -278,12 +288,7 @@ class ModuleSASL : public Module
 
 	Version GetVersion() CXX11_OVERRIDE
 	{
-		return Version("Provides support for IRC Authentication Layer (aka: atheme SASL) via AUTHENTICATE.",VF_VENDOR);
-	}
-
-	void OnEvent(Event &ev) CXX11_OVERRIDE
-	{
-		cap.HandleEvent(ev);
+		return Version("Provides support for IRC Authentication Layer (aka: SASL) via AUTHENTICATE.", VF_VENDOR);
 	}
 };
 

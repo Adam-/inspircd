@@ -24,6 +24,7 @@
 #pragma once
 
 #include "inspircd.h"
+#include "event.h"
 #include "modules/dns.h"
 #include "servercommand.h"
 #include "commands.h"
@@ -72,6 +73,10 @@ class ModuleSpanningTree : public Module
 	 */
 	SpanningTreeProtocolInterface protocolinterface;
 
+	/** Event provider for our events
+	 */
+	Events::ModuleEventProvider eventprov;
+
  public:
 	dynamic_reference<DNS::Manager> DNS;
 
@@ -81,10 +86,6 @@ class ModuleSpanningTree : public Module
 	 * xlines and other things back to their source
 	 */
 	bool loopCall;
-
-	/** True if users are quitting due to a netsplit
-	 */
-	bool SplitInProgress;
 
 	/** Constructor
 	 */
@@ -106,10 +107,6 @@ class ModuleSpanningTree : public Module
 	/** Handle remote WHOIS
 	 */
 	ModResult HandleRemoteWhois(const std::vector<std::string>& parameters, User* user);
-
-	/** Ping all local servers
-	 */
-	void DoPingChecks(time_t curtime);
 
 	/** Connect a server locally
 	 */
@@ -143,6 +140,8 @@ class ModuleSpanningTree : public Module
 	 */
 	static std::string TimeToStr(time_t secs);
 
+	const Events::ModuleEventProvider& GetEventProvider() const { return eventprov; }
+
 	/**
 	 ** *** MODULE EVENTS ***
 	 **/
@@ -172,7 +171,7 @@ class ModuleSpanningTree : public Module
 	void OnLoadModule(Module* mod) CXX11_OVERRIDE;
 	void OnUnloadModule(Module* mod) CXX11_OVERRIDE;
 	ModResult OnAcceptConnection(int newsock, ListenSocket* from, irc::sockets::sockaddrs* client, irc::sockets::sockaddrs* server) CXX11_OVERRIDE;
-	void On005Numeric(std::map<std::string, std::string>& tokens) CXX11_OVERRIDE;
+	void OnMode(User* source, User* u, Channel* c, const Modes::ChangeList& modes, ModeParser::ModeProcessFlag processflags, const std::string& output_mode) CXX11_OVERRIDE;
 	CullResult cull();
 	~ModuleSpanningTree();
 	Version GetVersion() CXX11_OVERRIDE;

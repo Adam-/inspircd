@@ -44,7 +44,9 @@
 #include <vector>
 
 #include "intrusive_list.h"
+#include "flat_map.h"
 #include "compat.h"
+#include "aligned_storage.h"
 #include "typedefs.h"
 #include "stdalgo.h"
 
@@ -90,6 +92,7 @@ struct fakederef
 #include "inspstring.h"
 #include "protocol.h"
 #include "bancache.h"
+#include "isupportmanager.h"
 
 /** Template function to convert any input type to std::string
  */
@@ -239,27 +242,6 @@ class serverstats
 		DnsGood(0), DnsBad(0), Connects(0), Sent(0), Recv(0)
 	{
 	}
-};
-
-/** This class manages the generation and transmission of ISUPPORT. */
-class CoreExport ISupportManager
-{
-private:
-	/** The generated lines which are sent to clients. */
-	std::vector<std::string> Lines;
-
-public:
-	/** (Re)build the ISUPPORT vector. */
-	void Build();
-
-	/** Returns the std::vector of ISUPPORT lines. */
-	const std::vector<std::string>& GetLines()
-	{
-		return this->Lines;
-	}
-
-	/** Send the 005 numerics (ISUPPORT) to a user. */
-	void SendTo(LocalUser* user);
 };
 
 DEFINE_HANDLER1(IsNickHandler, bool, const std::string&);
@@ -456,15 +438,6 @@ class CoreExport InspIRCd
 	 */
 	int BindPorts(FailedPortList &failed_ports);
 
-	/** Binds a socket on an already open file descriptor
-	 * @param sockfd A valid file descriptor of an open socket
-	 * @param port The port number to bind to
-	 * @param addr The address to bind to (IP only)
-	 * @param dolisten Should this port be listened on?
-	 * @return True if the port was bound successfully
-	 */
-	bool BindSocket(int sockfd, int port, const char* addr, bool dolisten = true);
-
 	/** Find a user in the nick hash.
 	 * If the user cant be found in the nick hash check the uuid hash
 	 * @param nick The nickname to find
@@ -528,11 +501,6 @@ class CoreExport InspIRCd
 	*/
 	static const char* Format(const char* formatString, ...) CUSTOM_PRINTF(1, 2);
 	static const char* Format(va_list &vaList, const char* formatString) CUSTOM_PRINTF(2, 0);
-
-	/** Send an error notice to all local users, opered and unopered
-	 * @param s The error string to send
-	 */
-	void SendError(const std::string &s);
 
 	/** Return true if a nickname is valid
 	 * @param n A nickname to verify
@@ -631,23 +599,6 @@ class CoreExport InspIRCd
 	 */
 	InspIRCd(int argc, char** argv);
 
-	/** Send a line of WHOIS data to a user.
-	 * @param user user to send the line to
-	 * @param dest user being WHOISed
-	 * @param numeric Numeric to send
-	 * @param text Text of the numeric
-	 */
-	void SendWhoisLine(User* user, User* dest, int numeric, const std::string &text);
-
-	/** Send a line of WHOIS data to a user.
-	 * @param user user to send the line to
-	 * @param dest user being WHOISed
-	 * @param numeric Numeric to send
-	 * @param format Format string for the numeric
-	 * @param ... Parameters for the format string
-	 */
-	void SendWhoisLine(User* user, User* dest, int numeric, const char* format, ...) CUSTOM_PRINTF(5, 6);
-
 	/** Called to check whether a channel restriction mode applies to a user
 	 * @param User that is attempting some action
 	 * @param Channel that the action is being performed on
@@ -662,8 +613,21 @@ class CoreExport InspIRCd
 	void Cleanup();
 
 	/** Return a time_t as a human-readable string.
+	 * @param format The format to retrieve the date/time in. See `man 3 strftime`
+	 * for more information. If NULL, "%a %b %d %T %Y" is assumed.
+	 * @param utc True to convert the time to string as-is, false to convert it to local time first.
+	 * @return A string representing the given date/time.
 	 */
-	static std::string TimeString(time_t curtime);
+	static std::string TimeString(time_t curtime, const char* format = NULL, bool utc = false);
+
+	/** Compare two strings in a timing-safe way. If the lengths of the strings differ, the function
+	 * returns false immediately (leaking information about the length), otherwise it compares each
+	 * character and only returns after all characters have been compared.
+	 * @param one First string
+	 * @param two Second string
+	 * @return True if the strings match, false if they don't
+	 */
+	static bool TimingSafeCompare(const std::string& one, const std::string& two);
 
 	/** Begin execution of the server.
 	 * NOTE: this function NEVER returns. Internally,
@@ -699,3 +663,5 @@ inline void stdalgo::culldeleter::operator()(classbase* item)
 	if (item)
 		ServerInstance->GlobalCulls.AddItem(item);
 }
+
+#include "modules/whois.h"

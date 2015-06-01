@@ -68,13 +68,40 @@ class ModuleHideOper : public Module
 		if (user->IsModeSet(hm) && !source->HasPrivPermission("users/auspex"))
 		{
 			// hide the "*" that marks the user as an oper from the /WHO line
-			std::string::size_type pos = line.find("*");
+			std::string::size_type spcolon = line.find(" :");
+			if (spcolon == std::string::npos)
+				return; // Another module hid the user completely
+			std::string::size_type sp = line.rfind(' ', spcolon-1);
+			std::string::size_type pos = line.find('*', sp);
 			if (pos != std::string::npos)
 				line.erase(pos, 1);
 			// hide the line completely if doing a "/who * o" query
 			if (params.size() > 1 && params[1].find('o') != std::string::npos)
 				line.clear();
 		}
+	}
+
+	ModResult OnStats(char symbol, User* user, string_list& results) CXX11_OVERRIDE
+	{
+		if (symbol != 'P')
+			return MOD_RES_PASSTHRU;
+
+		unsigned int count = 0;
+		const UserManager::OperList& opers = ServerInstance->Users->all_opers;
+		for (UserManager::OperList::const_iterator i = opers.begin(); i != opers.end(); ++i)
+		{
+			User* oper = *i;
+			if (!oper->server->IsULine() && (user->IsOper() || !oper->IsModeSet(hm)))
+			{
+				LocalUser* lu = IS_LOCAL(oper);
+				results.push_back("249 " + user->nick + " :" + oper->nick + " (" + oper->ident + "@" + oper->dhost + ") Idle: " +
+						(lu ? ConvToStr(ServerInstance->Time() - lu->idle_lastmsg) + " secs" : "unavailable"));
+				count++;
+			}
+		}
+		results.push_back("249 "+user->nick+" :"+ConvToStr(count)+" OPER(s)");
+
+		return MOD_RES_DENY;
 	}
 };
 

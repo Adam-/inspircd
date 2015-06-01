@@ -64,7 +64,7 @@ class CommandNicklock : public Command
 			locked.set(target, 1);
 
 			std::string oldnick = target->nick;
-			if (target->ForceNickChange(parameters[1]))
+			if (target->ChangeNick(parameters[1]))
 				ServerInstance->SNO->WriteGlobalSno('a', user->nick+" used NICKLOCK to change and hold "+oldnick+" to "+parameters[1]);
 			else
 			{
@@ -144,7 +144,9 @@ class ModuleNickLock : public Module
 	CommandNickunlock cmd2;
  public:
 	ModuleNickLock()
-		: locked("nick_locked", this), cmd1(this, locked), cmd2(this, locked)
+		: locked("nick_locked", ExtensionItem::EXT_USER, this)
+		, cmd1(this, locked)
+		, cmd2(this, locked)
 	{
 	}
 
@@ -166,7 +168,7 @@ class ModuleNickLock : public Module
 	void Prioritize()
 	{
 		Module *nflood = ServerInstance->Modules->Find("m_nickflood.so");
-		ServerInstance->Modules->SetPriority(this, I_OnUserPreNick, PRIORITY_BEFORE, &nflood);
+		ServerInstance->Modules->SetPriority(this, I_OnUserPreNick, PRIORITY_BEFORE, nflood);
 	}
 };
 

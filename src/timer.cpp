@@ -30,6 +30,13 @@ void Timer::SetInterval(time_t newinterval)
 	ServerInstance->Timers.AddTimer(this);
 }
 
+Timer::Timer(unsigned int secs_from_now, bool repeating)
+	: trigger(ServerInstance->Time() + secs_from_now)
+	, secs(secs_from_now)
+	, repeat(repeating)
+{
+}
+
 Timer::~Timer()
 {
 	ServerInstance->Timers.DelTimer(this);

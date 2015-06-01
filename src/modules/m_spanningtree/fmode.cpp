@@ -21,51 +21,35 @@
 #include "inspircd.h"
 #include "commands.h"
 
-/** FMODE command - server mode with timestamp checks */
+/** FMODE command - channel mode change with timestamp checks */
 CmdResult CommandFMode::Handle(User* who, std::vector<std::string>& params)
 {
 	time_t TS = ServerCommand::ExtractTS(params[1]);
 
-	/* Extract the TS value of the object, either User or Channel */
-	time_t ourTS;
-	if (params[0][0] == '#')
-	{
-		Channel* chan = ServerInstance->FindChan(params[0]);
-		if (!chan)
-			/* Oops, channel doesn't exist! */
-			return CMD_FAILURE;
+	Channel* const chan = ServerInstance->FindChan(params[0]);
+	if (!chan)
+		// Channel doesn't exist
+		return CMD_FAILURE;
 
-		ourTS = chan->age;
-	}
-	else
-	{
-		User* user = ServerInstance->FindUUID(params[0]);
-		if (!user)
-			return CMD_FAILURE;
-
-		if (IS_SERVER(user))
-			throw ProtocolException("Invalid target");
-
-		ourTS = user->age;
-	}
+	// Extract the TS of the channel in question
+	time_t ourTS = chan->age;
 
 	/* If the TS is greater than ours, we drop the mode and don't pass it anywhere.
 	 */
 	if (TS > ourTS)
 		return CMD_FAILURE;
 
-	/* TS is equal or less: Merge the mode changes into ours and pass on.
+	/* TS is equal or less: apply the mode change locally and forward the message
 	 */
-	std::vector<std::string> modelist;
-	modelist.reserve(params.size()-1);
-	/* Insert everything into modelist except the TS (params[1]) */
-	modelist.push_back(params[0]);
-	modelist.insert(modelist.end(), params.begin()+2, params.end());
+
+	// Turn modes into a Modes::ChangeList; may have more elements than max modes
+	Modes::ChangeList changelist;
+	ServerInstance->Modes.ModeParamsToChangeList(who, MODETYPE_CHANNEL, params, changelist, 2);
 
 	ModeParser::ModeProcessFlag flags = ModeParser::MODE_LOCALONLY;
 	if ((TS == ourTS) && IS_SERVER(who))
 		flags |= ModeParser::MODE_MERGE;
 
-	ServerInstance->Modes->Process(modelist, who, flags);
+	ServerInstance->Modes->Process(who, chan, NULL, changelist, flags);
 	return CMD_SUCCESS;
 }
