@@ -21,6 +21,9 @@
 #include "inspircd.h"
 #include "swig.h"
 
+/* $CompileFlags: exec("pkg-config --cflags python") */
+/* $LinkerFlags: exec("pkg-config --libs python") */
+
 class PythonImportManager : public ImportManager
 {
 	std::string name;
