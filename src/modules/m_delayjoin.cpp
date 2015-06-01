@@ -41,7 +41,7 @@ class ModuleDelayJoin : public Module
 	LocalIntExt unjoined;
 	ModuleDelayJoin()
 		: djm(this)
-		, unjoined("delayjoin", ExtensionItem::EXT_MEMBERSHIP, this)
+		, unjoined("delayjoin", EXT_MEMBERSHIP, this)
 	{
 	}
 

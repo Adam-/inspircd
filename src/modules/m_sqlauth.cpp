@@ -79,7 +79,7 @@ class ModuleSQLAuth : public Module
 
  public:
 	ModuleSQLAuth()
-		: pendingExt("sqlauth-wait", ExtensionItem::EXT_USER, this)
+		: pendingExt("sqlauth-wait", EXT_USER, this)
 		, SQL(this, "SQL")
 	{
 	}

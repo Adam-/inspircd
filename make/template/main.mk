@@ -58,6 +58,7 @@ INSTMODE_LIB = 0640
 @IFNEQ $(SYSTEM) openbsd
     CORECXXFLAGS += -pedantic -Wformat=2 -Wmissing-format-attribute
 @ENDIF
+@ENDIF
 
 @IFNEQ $(SYSTEM) darwin
   LDLIBS += -pthread

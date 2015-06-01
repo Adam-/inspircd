@@ -23,7 +23,7 @@ ListModeBase::ListModeBase(Module* Creator, const std::string& Name, char modech
 	: ModeHandler(Creator, Name, modechar, PARAM_ALWAYS, MODETYPE_CHANNEL, MC_LIST),
 	listnumeric(lnum), endoflistnumeric(eolnum), endofliststring(eolstr), tidy(autotidy),
 	configtag(ctag)
-	, extItem("listbase_mode_" + name + "_list", ExtensionItem::EXT_CHANNEL, Creator)
+	, extItem("listbase_mode_" + name + "_list", EXT_CHANNEL, Creator)
 {
 	list = true;
 }

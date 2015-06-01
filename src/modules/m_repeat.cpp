@@ -122,7 +122,7 @@ class RepeatMode : public ParamMode<RepeatMode, SimpleExtItem<ChannelSettings> >
 
 	RepeatMode(Module* Creator)
 		: ParamMode<RepeatMode, SimpleExtItem<ChannelSettings> >(Creator, "repeat", 'E')
-		, MemberInfoExt("repeat_memb", ExtensionItem::EXT_MEMBERSHIP, Creator)
+		, MemberInfoExt("repeat_memb", EXT_MEMBERSHIP, Creator)
 	{
 	}
 

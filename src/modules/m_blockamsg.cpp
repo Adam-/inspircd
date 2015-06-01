@@ -54,7 +54,7 @@ class ModuleBlockAmsg : public Module
 
  public:
 	ModuleBlockAmsg()
-		: blockamsg("blockamsg", ExtensionItem::EXT_USER, this)
+		: blockamsg("blockamsg", EXT_USER, this)
 	{
 	}
 

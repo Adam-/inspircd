@@ -33,20 +33,20 @@ enum SerializeFormat
 	FORMAT_PERSIST
 };
 
+/** Extensible subclasses
+ */
+enum ExtensibleType
+{
+	EXT_USER,
+	EXT_CHANNEL,
+	EXT_MEMBERSHIP
+};
+
 /** Class represnting an extension of some object
  */
 class CoreExport ExtensionItem : public ServiceProvider, public usecountbase
 {
  public:
-    /** Extensible subclasses
-     */
-	enum ExtensibleType
-	{
-		EXT_USER,
-		EXT_CHANNEL,
-		EXT_MEMBERSHIP
-	};
-
 	/** Type (subclass) of Extensible that this ExtensionItem is valid for
 	 */
 	const ExtensibleType type;

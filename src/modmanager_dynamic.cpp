@@ -33,17 +33,11 @@ bool ModuleManager::Load(const std::string& modname, ImportManager *imp, bool de
 	if (modname.find('/') != std::string::npos)
 	{
 		LastModuleError = "You can't load modules with a path: " + modname;
+		delete imp;
 		return false;
 	}
 
 	const std::string filename = ExpandModName(modname);
-	const std::string moduleFile = ServerInstance->Config->Paths.PrependModule(filename);
-
-	if (!FileSystem::FileExists(moduleFile))
-	{
-		delete imp;
-		return false;
-	}
 
 	if (Modules.find(filename) != Modules.end())
 	{
