@@ -21,8 +21,8 @@
 #include "inspircd.h"
 #include "swig.h"
 
-/* $CompileFlags: exec("pkg-config --cflags python") */
-/* $LinkerFlags: exec("pkg-config --libs python") */
+/* $CompileFlags: pkgconfincludes("python","/Python.h","") */
+/* $LinkerFlags: rpath("pkg-config --libs python") pkgconflibs("python","/libpython2.7.so","-lpython2.7") */
 
 class PythonImportManager : public ImportManager
 {
@@ -109,8 +109,8 @@ class ModulePython : public Module, public SocketEngine::IONotifier
 	  	for (ModuleManager::ModuleMap::const_iterator i = mods.begin(); i != mods.end(); ++i)
 		{
 			Module* m = i->second;
-			if (dynamic_cast<PythonImportManager *>(m->ModuleDLLManager))
-				ServerInstance->Modules->Unload(m);
+//			if (dynamic_cast<PythonImportManager *>(m->ModuleDLLManager))
+//				ServerInstance->Modules->Unload(m);
 		}
 
 		/* I need my modules to completely unload *now* */
