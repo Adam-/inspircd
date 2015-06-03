@@ -48,7 +48,7 @@ class CoreExport classbase
 	 */
 	virtual CullResult cull();
 	virtual ~classbase();
-#ifndef SWIG
+#ifndef INSPIRCD_SWIG
  private:
 	// uncopyable
 	classbase(const classbase&);
@@ -63,7 +63,7 @@ class CoreExport interfacebase
 {
  public:
 	interfacebase() {}
-#ifndef SWIG
+#ifndef INSPIRCD_SWIG
 	static inline void* operator new(size_t, void* m) { return m; }
  private:
 	interfacebase(const interfacebase&);
@@ -98,7 +98,7 @@ class CoreExport refcountbase
 	static void operator delete(void*);
 	inline void refcount_inc() const { refcount++; }
 	inline bool refcount_dec() const { refcount--; return !refcount; }
-#ifndef SWIG
+#ifndef INSPIRCD_SWIG
  private:
 	// uncopyable
 	refcountbase(const refcountbase&);
@@ -120,7 +120,7 @@ class CoreExport usecountbase
 	inline unsigned int GetUseCount() const { return usecount; }
 	inline void refcount_inc() const { usecount++; }
 	inline bool refcount_dec() const { usecount--; return false; }
-#ifndef SWIG
+#ifndef INSPIRCD_SWIG
  private:
 	// uncopyable
 	usecountbase(const usecountbase&);

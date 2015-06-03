@@ -1,6 +1,7 @@
 %module(directors="1") inspircd
 %{
 
+#define INSPIRCD_SWIG
 /*#include "compat.h"*/
 /*#include "typedefs.h"*/
 #include "inspircd.h"
