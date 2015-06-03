@@ -112,6 +112,7 @@
 #else
 # define ENTRYPOINT int main(int argc, char** argv)
 # ifdef SWIG
+#  error "shouldn't be here"
 #  define DllExport
 #  define CoreExport
 # else

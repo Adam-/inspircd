@@ -16,6 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define SWIG_TYPE_TABLE "inspircd"
+
 #include <Python.h>
 #include "inspircd.h"
 #include "swig.h"
