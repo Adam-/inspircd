@@ -28,7 +28,7 @@
 #include <list>
 
 /** Dummy class to help enforce culls being parent-called up to classbase */
-class CullResult
+class CoreExport CullResult
 {
  public:
 	CullResult();
