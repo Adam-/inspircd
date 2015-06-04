@@ -22,8 +22,8 @@
 #include "inspircd.h"
 #include "swig.h"
 
-/* $CompileFlags: exec("swig -python -c++ -external-runtime ../src/modules/m_python/swig.h") pkgconfincludes("python","/Python.h","") */
-/* $LinkerFlags: rpath("pkg-config --libs python") pkgconflibs("python","/libpython2.7.so","-lpython2.7") */
+/* $CompileFlags: exec("swig -python -c++ -external-runtime ../src/modules/m_python/swig.h") pkgconfincludes("python3","/Python.h","") */
+/* $LinkerFlags: rpath("pkg-config --libs python3") pkgconflibs("python3","/libpython3.so","-lpython3") */
 
 class PythonImportManager : public ImportManager
 {
