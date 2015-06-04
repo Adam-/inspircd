@@ -50,7 +50,11 @@
 %ignore classbase::cull;
 %ignore LocalUser::eh;
 %ignore ListenSocket::iohookprov;
+//%ignore ExtensionItem::ExtensibleType;
+//%ignore ExtensibleType;
 //%ignore ServerLimits
+%ignore CullResult;
+%ignore classbase::cull;
 
 %feature("director");
 

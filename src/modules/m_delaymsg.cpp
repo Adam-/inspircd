@@ -25,7 +25,7 @@ class DelayMsgMode : public ParamMode<DelayMsgMode, LocalIntExt>
 	LocalIntExt jointime;
 	DelayMsgMode(Module* Parent)
 		: ParamMode<DelayMsgMode, LocalIntExt>(Parent, "delaymsg", 'd')
-		, jointime("delaymsg", EXT_MEMBERSHIP, Parent)
+		, jointime("delaymsg", ExtensionItem::EXT_MEMBERSHIP, Parent)
 	{
 		levelrequired = OP_VALUE;
 	}

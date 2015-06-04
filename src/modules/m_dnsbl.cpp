@@ -238,8 +238,8 @@ class ModuleDNSBL : public Module
  public:
 	ModuleDNSBL()
 		: DNS(this, "DNS")
-		, nameExt("dnsbl_match", EXT_USER, this)
-		, countExt("dnsbl_pending", EXT_USER, this)
+		, nameExt("dnsbl_match", ExtensionItem::EXT_USER, this)
+		, countExt("dnsbl_pending", ExtensionItem::EXT_USER, this)
 	{
 	}
 

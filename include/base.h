@@ -30,6 +30,7 @@
 /** Dummy class to help enforce culls being parent-called up to classbase */
 class CullResult
 {
+ public:
 	CullResult();
 	friend class classbase;
 };

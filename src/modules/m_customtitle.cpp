@@ -28,7 +28,7 @@ class CommandTitle : public Command
  public:
 	StringExtItem ctitle;
 	CommandTitle(Module* Creator) : Command(Creator,"TITLE", 2),
-		ctitle("ctitle", EXT_USER, Creator)
+		ctitle("ctitle", ExtensionItem::EXT_USER, Creator)
 	{
 		syntax = "<user> <password>";
 	}

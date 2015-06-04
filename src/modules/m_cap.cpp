@@ -45,7 +45,7 @@ class CommandCAP : public Command
 	LocalIntExt reghold;
 	CommandCAP (Module* mod) : Command(mod, "CAP", 1),
 		capevprov(mod, "event/cap"),
-		reghold("CAP_REGHOLD", EXT_USER, mod)
+		reghold("CAP_REGHOLD", ExtensionItem::EXT_USER, mod)
 	{
 		works_before_reg = true;
 	}

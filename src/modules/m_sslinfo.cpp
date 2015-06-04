@@ -23,7 +23,7 @@
 class SSLCertExt : public ExtensionItem {
  public:
 	SSLCertExt(Module* parent)
-		: ExtensionItem("ssl_cert", EXT_USER, parent)
+		: ExtensionItem("ssl_cert", ExtensionItem::EXT_USER, parent)
 	{
 	}
 

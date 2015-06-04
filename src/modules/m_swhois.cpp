@@ -33,7 +33,7 @@ class CommandSwhois : public Command
 	StringExtItem swhois;
 	CommandSwhois(Module* Creator)
 		: Command(Creator, "SWHOIS", 2, 2)
-		, swhois("swhois", EXT_USER, Creator)
+		, swhois("swhois", ExtensionItem::EXT_USER, Creator)
 	{
 		flags_needed = 'o'; syntax = "<nick> :<swhois>";
 		TRANSLATE2(TR_NICK, TR_TEXT);

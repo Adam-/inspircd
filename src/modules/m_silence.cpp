@@ -107,7 +107,7 @@ class CommandSilence : public Command
 	SimpleExtItem<silencelist> ext;
 	CommandSilence(Module* Creator, unsigned int &max) : Command(Creator, "SILENCE", 0),
 		maxsilence(max)
-		, ext("silence_list", EXT_USER, Creator)
+		, ext("silence_list", ExtensionItem::EXT_USER, Creator)
 	{
 		allow_empty_last_param = false;
 		syntax = "{[+|-]<mask> <p|c|i|n|t|a|x>}";

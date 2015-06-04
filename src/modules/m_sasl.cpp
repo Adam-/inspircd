@@ -254,7 +254,7 @@ class ModuleSASL : public Module
 
  public:
 	ModuleSASL()
-		: authExt("sasl_auth", EXT_USER, this)
+		: authExt("sasl_auth", ExtensionItem::EXT_USER, this)
 		, cap(this, "sasl")
 		, auth(this, authExt, cap)
 		, sasl(this, authExt)

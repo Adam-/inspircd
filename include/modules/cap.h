@@ -50,7 +50,7 @@ class GenericCap : public Events::ModuleEventListener
 	GenericCap(Module* parent, const std::string& Cap)
 		: Events::ModuleEventListener(parent, "event/cap")
 		, active(true)
-		, ext("cap_" + Cap, EXT_USER, parent)
+		, ext("cap_" + Cap, ExtensionItem::EXT_USER, parent)
 		, cap(Cap)
 	{
 	}

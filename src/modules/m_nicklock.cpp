@@ -144,7 +144,7 @@ class ModuleNickLock : public Module
 	CommandNickunlock cmd2;
  public:
 	ModuleNickLock()
-		: locked("nick_locked", EXT_USER, this)
+		: locked("nick_locked", ExtensionItem::EXT_USER, this)
 		, cmd1(this, locked)
 		, cmd2(this, locked)
 	{

@@ -247,7 +247,7 @@ class CommandWatch : public Command
 		return CMD_SUCCESS;
 	}
 
-	CommandWatch(Module* parent, unsigned int &maxwatch) : Command(parent,"WATCH", 0), MAX_WATCH(maxwatch), ext("watchlist", EXT_USER, parent)
+	CommandWatch(Module* parent, unsigned int &maxwatch) : Command(parent,"WATCH", 0), MAX_WATCH(maxwatch), ext("watchlist", ExtensionItem::EXT_USER, parent)
 	{
 		syntax = "[C|L|S]|[+|-<nick>]";
 	}

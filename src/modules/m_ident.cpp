@@ -259,7 +259,7 @@ class ModuleIdent : public Module
 	SimpleExtItem<IdentRequestSocket, stdalgo::culldeleter> ext;
  public:
 	ModuleIdent()
-		: ext("ident_socket", EXT_USER, this)
+		: ext("ident_socket", ExtensionItem::EXT_USER, this)
 	{
 	}
 
