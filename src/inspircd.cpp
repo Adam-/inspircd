@@ -716,7 +716,6 @@ void InspIRCd::SetSignal(int signal)
  */
 DllExport
 ENTRYPOINT
-//int main(int argc, char **argv)
 {
 	new InspIRCd(argc, argv);
 	ServerInstance->Run();

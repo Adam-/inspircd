@@ -55,7 +55,7 @@ class PythonImportManager : public ImportManager
 			}
 			Py_DECREF(utils);
 		}
-		
+
 		if (PyErr_Occurred())
 			PyErr_Print();
 	}
@@ -107,7 +107,7 @@ class ModulePython : public Module, public SocketEngine::IONotifier
 	void Unload()
 	{
 		const ModuleManager::ModuleMap& mods = ServerInstance->Modules->GetModules();
-	  	for (ModuleManager::ModuleMap::const_iterator i = mods.begin(); i != mods.end(); ++i)
+		for (ModuleManager::ModuleMap::const_iterator i = mods.begin(); i != mods.end(); ++i)
 		{
 			Module* m = i->second;
 //			if (dynamic_cast<PythonImportManager *>(m->ModuleDLLManager))
