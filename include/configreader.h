@@ -91,7 +91,7 @@ class CoreExport ConfigTag : public refcountbase
 /** Defines the server's length limits on various length-limited
  * items such as topics, nicknames, channel names etc.
  */
-class ServerLimits
+class CoreExport ServerLimits
 {
  public:
 	/** Maximum nickname length */

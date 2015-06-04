@@ -37,7 +37,7 @@ COMPILER = @COMPILER_NAME@
 SYSTEM = @SYSTEM_NAME@
 BUILDPATH ?= $(PWD)/build
 SOCKETENGINE = @SOCKETENGINE@
-CORECXXFLAGS = -fPIC -pipe -Iinclude -Wall -Wextra -Wfatal-errors -Wno-unused-parameter -Wshadow
+CORECXXFLAGS = -fPIC -fvisibility=hidden -fvisibility-inlines-hidden -pipe -Iinclude -Wall -Wextra -Wfatal-errors -Wno-unused-parameter -Wshadow
 LDLIBS = -lstdc++
 CORELDFLAGS = -rdynamic -L. $(LDFLAGS)
 PICLDFLAGS = -fPIC -shared -rdynamic $(LDFLAGS)
@@ -89,7 +89,7 @@ INSTMODE_LIB = 0640
 
 DBGOK=0
 @IFEQ $(D) 0
-  CORECXXFLAGS +=  -O2
+  CORECXXFLAGS += -fno-rtti -O2
 @IFEQ $(COMPILER) GCC
     CORECXXFLAGS += -g1
 @ENDIF
@@ -102,7 +102,7 @@ DBGOK=0
   DBGOK=1
 @ENDIF
 @IFEQ $(D) 2
-  CORECXXFLAGS +=  -O2 -g3
+  CORECXXFLAGS += -fno-rtti -O2 -g3
   HEADER = debug-header
   DBGOK=1
 @ENDIF

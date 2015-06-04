@@ -22,7 +22,7 @@
 #include "command_parse.h"
 #include "mode.h"
 #include "socketengine.h"
-#include "snomasks.h"
+/*#include "snomasks.h"*/
 #include "filelogger.h"
 #include "modules.h"
 #include "threadengine.h"
@@ -34,7 +34,7 @@
 
 %include "std_string.i"
 %include "std_vector.i"
-%template(Parameters) std::vector<std::string>;
+/*%template(Parameters) std::vector<std::string>;*/
 
 %ignore ServerConfig::errstr;
 %ignore InspIRCd::NICKForced;
@@ -50,6 +50,7 @@
 %ignore classbase::cull;
 %ignore LocalUser::eh;
 %ignore ListenSocket::iohookprov;
+//%ignore ServerLimits
 
 %feature("director");
 
@@ -79,7 +80,7 @@
 %include "command_parse.h"
 %include "mode.h"
 %include "socketengine.h"
-%include "snomasks.h"
+/*%include "snomasks.h"*/
 %include "filelogger.h"
 %include "modules.h"
 %include "threadengine.h"
