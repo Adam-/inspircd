@@ -11,6 +11,10 @@ ifneq (,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
 	MAKEFLAGS += -j$(NUMJOBS)
 endif
 
+# upstream detect FreeBSD platforms and switch to clang++, force CXX to g++ if
+# undefined (possible to rebuild the package whith another compiler)
+CXX ?= g++
+
 # modules selection
 LDAP_MODULES      = m_ldapauth.cpp,m_ldapoper.cpp
 DATABASES_MODULES = $(LDAP_MODULES),m_mysql.cpp,m_pgsql.cpp,m_sqlite3.cpp
@@ -25,6 +29,7 @@ override_dh_auto_configure:
 
 	# Really launch configure
 	./configure --disable-interactive \
+		--with-cc=$(CXX) \
 		--uid=$(shell id --user irc) \
 		--enable-gnutls \
 		--prefix=/usr/lib/inspircd \

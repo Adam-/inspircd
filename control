@@ -13,7 +13,6 @@ Build-Depends: debhelper (>= 9.0.0), perl-modules, libgnutls28-dev, pkg-config,
                libsqlite3-dev, zlib1g-dev, libgeoip-dev,
                libtre-dev, dh-systemd (>= 1.5), dh-apparmor
 Standards-Version: 3.9.6
-XS-Testsuite: autopkgtest
 Homepage: http://www.inspircd.org/
 Vcs-Browser: http://anonscm.debian.org/gitweb/?p=collab-maint/inspircd.git
 Vcs-Git: git://anonscm.debian.org/collab-maint/inspircd.git

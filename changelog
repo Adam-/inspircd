@@ -1,3 +1,14 @@
+inspircd (2.0.20-3) unstable; urgency=medium
+
+  * Fix FTBFS on kfreebsd which looks for clang++ by always defining CXX to
+    g++ (unless already defined, let clang rebuilds) and pass it to configure
+  * Tests:
+    + debian/tests/control: needs root, enable inspircd and start inspircd
+    before testing it
+    + Remove XS-Testsuite control header (Testsuite automatically generated)
+
+ -- Guillaume Delacour <gui@iroqwa.org>  Sun, 07 Jun 2015 12:26:46 +0200
+
 inspircd (2.0.20-2) unstable; urgency=medium
 
   [ Guillaume Delacour ]
