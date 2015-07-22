@@ -30,6 +30,7 @@ use strict;
 use warnings FATAL => qw(all);
 
 use Exporter 'import';
+use File::Temp;
 use Fcntl;
 use File::Path;
 use Getopt::Long;
@@ -345,7 +346,7 @@ sub translate_functions($$)
 			my $tmpfile;
 			do
 			{
-				$tmpfile = tmpnam();
+				$tmpfile = File::Temp::tmpnam();
 			} until sysopen(TF, $tmpfile, O_RDWR|O_CREAT|O_EXCL|O_NOFOLLOW, 0700);
 			print "(Created and executed \e[1;32m$tmpfile\e[0m)\n";
 			print TF $1;
