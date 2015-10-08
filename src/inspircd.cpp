@@ -162,6 +162,21 @@ void InspIRCd::Restart(const std::string &reason)
 	 */
 	this->SendError(reason);
 
+#ifndef _WIN32
+	/* XXX: This hack sets FD_CLOEXEC on all possible file descriptors, so they're closed if the execv() below succeeds.
+	 * Certainly, this is not a nice way to do things and it's slow when the fd limit is high.
+	 *
+	 * A better solution would be to set the close-on-exec flag for each fd we create (or create them with O_CLOEXEC),
+	 * however there is no guarantee that third party libs will do the same.
+	 */
+	for (int i = getdtablesize(); --i > 2;)
+	{
+		int flags = fcntl(i, F_GETFD);
+		if (flags != -1)
+			fcntl(i, F_SETFD, flags | FD_CLOEXEC);
+	}
+#endif
+
 	/* Figure out our filename (if theyve renamed it, we're boned) */
 	std::string me;
 
@@ -175,13 +190,9 @@ void InspIRCd::Restart(const std::string &reason)
 	me = argv[0];
 #endif
 
-	this->Cleanup();
+	//this->Cleanup();
 
-	if (execv(me.c_str(), argv) == -1)
-	{
-		/* Will raise a SIGABRT if not trapped */
-		throw CoreException(std::string("Failed to execv()! error: ") + strerror(errno));
-	}
+	execv(me.c_str(), argv);
 }
 
 void InspIRCd::ResetMaxBans()
