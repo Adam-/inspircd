@@ -447,8 +447,12 @@ namespace GnuTLS
 		}
 	};
 
-	class X509Credentials : public CertCredentials
+	class X509Credentials : public CertCredentials, public refcountbase
 	{
+		/** Server name
+		 */
+		std::string servername;
+
 		/** Private key
 		 */
 		X509Key key;
@@ -503,6 +507,16 @@ namespace GnuTLS
 				trustedca = certlist;
 				crl = CRL;
 			}
+		}
+
+		void SetServerName(const std::string &sname)
+		{
+			this->servername = sname;
+		}
+
+		const std::string& GetServerName()
+		{
+			return this->servername;
 		}
 	};
 
@@ -559,7 +573,7 @@ namespace GnuTLS
 
 		/** X509 certificate(s) and key
 		 */
-		X509Credentials x509cred;
+		std::vector<reference<X509Credentials> > x509creds;
 
 		/** The minimum length in bits for the DH prime to be accepted as a client
 		 */
@@ -577,19 +591,14 @@ namespace GnuTLS
 		 */
 		const unsigned int outrecsize;
 
-		Profile(const std::string& profilename, const std::string& certstr, const std::string& keystr,
-				std::auto_ptr<DHParams>& DH, unsigned int mindh, const std::string& hashstr,
-				const std::string& priostr, std::auto_ptr<X509CertList>& CA, std::auto_ptr<X509CRL>& CRL,
-				unsigned int recsize)
+		Profile(const std::string& profilename, unsigned int mindh, const std::string& hashstr,
+				const std::string& priostr, unsigned int recsize)
 			: name(profilename)
-			, x509cred(certstr, keystr)
 			, min_dh_bits(mindh)
 			, hash(hashstr)
 			, priority(priostr)
 			, outrecsize(recsize)
 		{
-			x509cred.SetDH(DH);
-			x509cred.SetCA(CA, CRL);
 		}
 
 		static std::string ReadFile(const std::string& filename)
@@ -626,30 +635,14 @@ namespace GnuTLS
 			return priostr;
 		}
 
+		static int OnClientHello(gnutls_session_t sess);
+
 	 public:
 		static reference<Profile> Create(const std::string& profilename, ConfigTag* tag)
 		{
-			std::string certstr = ReadFile(tag->getString("certfile", "cert.pem"));
-			std::string keystr = ReadFile(tag->getString("keyfile", "key.pem"));
-
-			std::auto_ptr<DHParams> dh = DHParams::Import(ReadFile(tag->getString("dhfile", "dhparams.pem")));
-
 			std::string priostr = GetPrioStr(profilename, tag);
 			unsigned int mindh = tag->getInt("mindhbits", 1024);
 			std::string hashstr = tag->getString("hash", "md5");
-
-			// Load trusted CA and revocation list, if set
-			std::auto_ptr<X509CertList> ca;
-			std::auto_ptr<X509CRL> crl;
-			std::string filename = tag->getString("cafile");
-			if (!filename.empty())
-			{
-				ca.reset(new X509CertList(ReadFile(filename)));
-
-				filename = tag->getString("crlfile");
-				if (!filename.empty())
-					crl.reset(new X509CRL(ReadFile(filename)));
-			}
 
 #ifdef INSPIRCD_GNUTLS_HAS_CORK
 			// If cork support is available outrecsize represents the (rough) max amount of data we give GnuTLS while corked
@@ -657,7 +650,41 @@ namespace GnuTLS
 #else
 			unsigned int outrecsize = tag->getInt("outrecsize", 2048, 512, 16384);
 #endif
-			return new Profile(profilename, certstr, keystr, dh, mindh, hashstr, priostr, ca, crl, outrecsize);
+			Profile *p = new Profile(profilename, mindh, hashstr, priostr, outrecsize);
+
+			ConfigTagList tags = ServerInstance->Config->ConfTags("sslidentity");
+
+			for (ConfigIter i = tags.first; i != tags.second; ++i)
+			{
+				ConfigTag* t = i->second;
+
+				std::string profile = t->getString("profile");
+				if (profile != profilename)
+					continue;
+
+				std::string servername = t->getString("servername");
+				std::string certstr = ReadFile(t->getString("certfile", "cert.pem"));
+				std::string keystr = ReadFile(t->getString("keyfile", "key.pem"));
+
+				// Load trusted CA and revocation list, if set
+				std::auto_ptr<X509CertList> ca;
+				std::auto_ptr<X509CRL> crl;
+				std::string filename = tag->getString("cafile");
+				if (!filename.empty())
+				{
+					ca.reset(new X509CertList(ReadFile(filename)));
+
+					filename = tag->getString("crlfile");
+					if (!filename.empty())
+						crl.reset(new X509CRL(ReadFile(filename)));
+				}
+
+				std::auto_ptr<DHParams> dh = DHParams::Import(ReadFile(tag->getString("dhfile", "dhparams.pem")));
+
+				p->AddX509Credentials(servername, certstr, keystr, dh, ca, crl);
+			}
+
+			return p;
 		}
 
 		/** Set up the given session with the settings in this profile
@@ -665,15 +692,27 @@ namespace GnuTLS
 		void SetupSession(gnutls_session_t sess)
 		{
 			priority.SetupSession(sess);
-			x509cred.SetupSession(sess);
 			gnutls_dh_set_prime_bits(sess, min_dh_bits);
 
 			// Request client certificate if we are a server, no-op if we're a client
 			gnutls_certificate_server_set_request(sess, GNUTLS_CERT_REQUEST);
+
+			gnutls_handshake_set_post_client_hello_function(sess, OnClientHello);
+		}
+
+		void AddX509Credentials(const std::string &servername, const std::string& certstr, const std::string& keystr,
+				std::auto_ptr<DHParams>& DH, std::auto_ptr<X509CertList>& CA, std::auto_ptr<X509CRL>& CRL)
+		{
+			X509Credentials* x509 = new X509Credentials(certstr, keystr);
+			x509->SetDH(DH);
+			x509->SetCA(CA, CRL);
+			x509->SetServerName(servername);
+
+			x509creds.push_back(x509);
 		}
 
 		const std::string& GetName() const { return name; }
-		X509Credentials& GetX509Credentials() { return x509cred; }
+		std::vector<reference<X509Credentials> >& GetX509Credentials() { return x509creds; }
 		gnutls_digest_algorithm_t GetHash() const { return hash.get(); }
 		unsigned int GetOutgoingRecordSize() const { return outrecsize; }
 	};
@@ -685,6 +724,7 @@ class GnuTLSIOHook : public SSLIOHook
 	gnutls_session_t sess;
 	issl_status status;
 	reference<GnuTLS::Profile> profile;
+	reference<GnuTLS::X509Credentials> creds;
 #ifdef INSPIRCD_GNUTLS_HAS_CORK
 	size_t gbuffersize;
 #endif
@@ -1170,6 +1210,16 @@ info_done_dealloc:
 
 	GnuTLS::Profile* GetProfile() { return profile; }
 	bool IsHandshakeDone() const { return (status == ISSL_HANDSHAKEN); }
+
+	void SetX509Credentials(GnuTLS::X509Credentials* x509)
+	{
+		creds = x509;
+	}
+
+	GnuTLS::X509Credentials* GetX509Credentials()
+	{
+		return creds;
+	}
 };
 
 int GnuTLS::X509Credentials::cert_callback(gnutls_session_t sess, const gnutls_datum_t* req_ca_rdn, int nreqs, const gnutls_pk_algorithm_t* sign_algos, int sign_algos_length, cert_cb_last_param_type* st)
@@ -1181,13 +1231,57 @@ int GnuTLS::X509Credentials::cert_callback(gnutls_session_t sess, const gnutls_d
 	st->key_type = GNUTLS_PRIVKEY_X509;
 #endif
 	StreamSocket* sock = reinterpret_cast<StreamSocket*>(gnutls_transport_get_ptr(sess));
-	GnuTLS::X509Credentials& cred = static_cast<GnuTLSIOHook*>(sock->GetIOHook())->GetProfile()->GetX509Credentials();
+	GnuTLSIOHook* iohook = static_cast<GnuTLSIOHook*>(sock->GetIOHook());
+	X509Credentials *x509 = iohook->GetX509Credentials();
 
-	st->ncerts = cred.certs.size();
-	st->cert.x509 = cred.certs.raw();
-	st->key.x509 = cred.key.get();
+	if (x509 == NULL)
+		return -1;
+
+	st->ncerts = x509->certs.size();
+	st->cert.x509 = x509->certs.raw();
+	st->key.x509 = x509->key.get();
 	st->deinit_all = 0;
 
+	return 0;
+}
+
+int GnuTLS::Profile::OnClientHello(gnutls_session_t sess)
+{
+	StreamSocket* sock = reinterpret_cast<StreamSocket*>(gnutls_transport_get_ptr(sess));
+	GnuTLSIOHook* iohook = static_cast<GnuTLSIOHook*>(sock->GetIOHook());
+	std::vector<reference<GnuTLS::X509Credentials> >& cred = iohook->GetProfile()->GetX509Credentials();
+
+	if (cred.empty())
+		return 0;
+
+	GnuTLS::X509Credentials *def = cred[0];
+
+	char sniName[64];
+	size_t dataLen = sizeof(sniName);
+	unsigned int sniType;
+
+	int rv = gnutls_server_name_get(sess, sniName, &dataLen, &sniType, 0);
+	if (rv != 0)
+	{
+		iohook->SetX509Credentials(def);
+		def->SetupSession(sess);
+		return 0;
+	}
+
+	for (std::vector<reference<GnuTLS::X509Credentials> >::iterator it = cred.begin(); it != cred.end(); ++it)
+	{
+		X509Credentials *x509 = *it;
+
+		if (x509->GetServerName() == sniName)
+		{
+			iohook->SetX509Credentials(x509);
+			x509->SetupSession(sess);
+			return 0;
+		}
+	}
+
+	iohook->SetX509Credentials(def);
+	def->SetupSession(sess);
 	return 0;
 }
 
