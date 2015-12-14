@@ -47,7 +47,7 @@ Description: Modular IRCd written in C++ - debugging symbols
 
 Package: inspircd-dev
 Architecture: any
-Depends: ${misc:Depends}, inspircd (= ${binary:Version})
+Depends: ${misc:Depends}
 Description: Modular IRCd written in C++ - development headers
  InspIRCd is a modular C++ IRC Daemon for several operating systems created
  to provide a stable, modern, lightweight irc server from scratch and provide
