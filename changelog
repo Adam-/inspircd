@@ -1,3 +1,10 @@
+inspircd (2.0.20-5) unstable; urgency=medium
+
+  * Replace deprecated POSIX::tmpnam() call by File::Temp::tmpnam()
+    because perl >= 5.22 deprecated it (Closes: #809008)
+
+ -- Guillaume Delacour <gui@iroqwa.org>  Mon, 28 Dec 2015 16:22:59 +0100
+
 inspircd (2.0.20-4) unstable; urgency=medium
 
   * Generate new inspircd-dev package to provide development headers in
