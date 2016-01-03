@@ -30,7 +30,7 @@ list(SORT INSPIRCD_SOURCES)
 
 set_property(SOURCE "${INSPIRCD_BASE}/src/modules/m_stripcolor.cpp" APPEND PROPERTY COMPILE_DEFINITIONS MODNAME="m_stripcolor")
 
-include_directories("${INSPIRCD_BASE}/include")
+include_directories("${INSPIRCD_BASE}/include" "${INSPIRCD_BASE}/test")
 
 configure_file("${INSPIRCD_BASE}/test/config.h.cmake" "${INSPIRCD_BASE}/include/config.h")
 
