@@ -36,7 +36,7 @@ configure_file("${INSPIRCD_BASE}/make/template/config.h" "${INSPIRCD_BASE}/inclu
 
 enable_testing()
 
-file(GLOB TEST_SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "modules/*.cpp")
+file(GLOB TEST_SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "core/*.cpp" "modules/*.cpp")
 list(SORT TEST_SOURCES)
 
 add_definitions(-DINSPIRCD_TEST -DPURE_STATIC)

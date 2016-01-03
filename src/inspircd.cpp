@@ -297,6 +297,7 @@ InspIRCd::InspIRCd(int argc, char** argv) :
 
 	int c;
 	int index;
+	optind = 1;
 	while ((c = getopt_long(argc, argv, ":c:", longopts, &index)) != -1)
 	{
 		switch (c)

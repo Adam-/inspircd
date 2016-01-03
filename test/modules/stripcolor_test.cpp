@@ -16,6 +16,7 @@ class stripcolor : public testing::Test
 
 	void TearDown() override
 	{
+		inspircd->Cleanup();
 		delete inspircd;
 	}
 };
