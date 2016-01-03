@@ -21,7 +21,7 @@
 
 #include "inspircd_test.h"
 
-class wild : public insp::Test
+class wild : public insptest::Test
 {
 };
 

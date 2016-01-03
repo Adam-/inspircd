@@ -18,12 +18,12 @@
 
 #include "inspircd_test.h"
 
-class stripcolor : public insp::Test
+class stripcolor : public insptest::Test
 {
  public:
 	void SetUp() override
 	{
-		insp::Test::SetUp();
+		insptest::Test::SetUp();
 
 		ASSERT_TRUE(inspircd->Modules->Load("stripcolor"));
 	}
@@ -33,4 +33,21 @@ TEST_F(stripcolor, test1)
 {
 	Module *module = inspircd->Modules->Find("stripcolor");
 	ASSERT_TRUE(module != nullptr);
+
+	User *src = new insptest::User(),
+	     *dst = new insptest::User();
+
+	std::string text = "\00301,02hello\003";
+	CUList exempt_list;
+	module->OnUserPreMessage(src, dst, TYPE_USER, text, 0, exempt_list, MSG_PRIVMSG);
+
+	ASSERT_EQ(text, "\00301,02hello\003");
+
+	ModeHandler* mh = ServerInstance->Modes->FindMode('S', MODETYPE_USER);
+	ASSERT_TRUE(mh != nullptr);
+
+	dst->SetMode(mh, true);
+
+	module->OnUserPreMessage(src, dst, TYPE_USER, text, 0, exempt_list, MSG_PRIVMSG);
+	ASSERT_EQ(text, "hello");
 }

@@ -20,7 +20,7 @@
 
 #include "inspircd_test.h"
 
-class uid : public insp::Test
+class uid : public insptest::Test
 {
 };
 

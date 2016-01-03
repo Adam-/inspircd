@@ -21,7 +21,7 @@
 #include "inspircd.h"
 #include <gtest/gtest.h>
 
-namespace insp
+namespace insptest
 {
 	class Test : public testing::Test
 	{
@@ -39,6 +39,14 @@ namespace insp
 			inspircd->Cleanup();
 			delete inspircd;
 		}
+	};
+
+	class User : public LocalUser
+	{
+		static irc::sockets::sockaddrs zero;
+
+	 public:
+		User() : LocalUser(-1, &zero, &zero) { }
 	};
 }
 
