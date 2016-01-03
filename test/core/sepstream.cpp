@@ -20,8 +20,6 @@
 
 #include "inspircd_test.h"
 
-#define STREQUALTEST(x, y) ASSERT_EQ(x, y)
-
 TEST(sepstream, DoCommaSepStreamTests)
 {
 	irc::commasepstream items("this,is,a,comma,stream");
@@ -35,19 +33,19 @@ TEST(sepstream, DoCommaSepStreamTests)
 		switch (idx)
 		{
 			case 1:
-				STREQUALTEST(item, "this");
+				ASSERT_EQ(item, "this");
 				break;
 			case 2:
-				STREQUALTEST(item, "is");
+				ASSERT_EQ(item, "is");
 				break;
 			case 3:
-				STREQUALTEST(item, "a");
+				ASSERT_EQ(item, "a");
 				break;
 			case 4:
-				STREQUALTEST(item, "comma");
+				ASSERT_EQ(item, "comma");
 				break;
 			case 5:
-				STREQUALTEST(item, "stream");
+				ASSERT_EQ(item, "stream");
 				break;
 			default:
 				std::cout << "COMMASEPSTREAM: FAILURE: Got an index too many! " << idx << " items\n";
@@ -70,19 +68,19 @@ TEST(sepstream, DoSpaceSepStreamTests)
 		switch (idx)
 		{
 			case 1:
-				STREQUALTEST(item, "this");
+				ASSERT_EQ(item, "this");
 				break;
 			case 2:
-				STREQUALTEST(item, "is");
+				ASSERT_EQ(item, "is");
 				break;
 			case 3:
-				STREQUALTEST(item, "a");
+				ASSERT_EQ(item, "a");
 				break;
 			case 4:
-				STREQUALTEST(item, "space");
+				ASSERT_EQ(item, "space");
 				break;
 			case 5:
-				STREQUALTEST(item, "stream");
+				ASSERT_EQ(item, "stream");
 				break;
 			default:
 				FAIL();

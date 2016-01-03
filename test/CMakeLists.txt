@@ -2,6 +2,11 @@ cmake_minimum_required(VERSION 3.0)
 
 project(InspIRCd-Test CXX)
 
+set(CONFIG_DIR "conf" CACHE PATH "Configuration file path")
+set(MODULE_DIR "modules" CACHE PATH "Module path")
+set(DATA_DIR "data" CACHE PATH "Data path")
+set(LOG_DIR "logs" CACHE PATH "Log file path")
+
 set(INSPIRCD_BASE "${CMAKE_CURRENT_SOURCE_DIR}/../")
 
 set(SYSTEM_NAME_VERSION ${CMAKE_SYSTEM})
@@ -16,7 +21,7 @@ string(REGEX REPLACE ".*InspIRCd-[0-9]*\\.[0-9]*\\.([0-9]*).*" "\\1" VERSION_PAT
 enable_testing()
 find_package(GTest REQUIRED)
 
-file(GLOB INSPIRCD_SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
+file(GLOB INSPIRCD_SOURCES
 "${INSPIRCD_BASE}/src/*.cpp"
 "${INSPIRCD_BASE}/src/modes/*.cpp"
 "${INSPIRCD_BASE}/src/socketengines/socketengine_select.cpp"
@@ -41,4 +46,4 @@ target_link_libraries(inspircd_test pthread dl ${GTEST_BOTH_LIBRARIES})
 set_property(TARGET inspircd_test PROPERTY CXX_STANDARD 11)
 set_property(TARGET inspircd_test PROPERTY CXX_STANDARD_REQUIRED ON)
 
-add_test(inspircd-tests inspircd_test)
+GTEST_ADD_TESTS(inspircd_test "" ${TEST_SOURCES})

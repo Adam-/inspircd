@@ -26,79 +26,79 @@ class wild : public insp::Test
 };
 
 /* Test that x matches y with match() */
-#define WCTEST(x, y) ASSERT_TRUE(InspIRCd::Match(x, y, NULL))
+#define WCTEST_TRUE(x, y) ASSERT_TRUE(InspIRCd::Match(x, y, NULL))
 /* Test that x does not match y with match() */
-#define WCTESTNOT(x, y) ASSERT_FALSE(InspIRCd::Match(x, y, NULL))
+#define WCTEST_NOT(x, y) ASSERT_FALSE(InspIRCd::Match(x, y, NULL))
 
 /* Test that x matches y with match() and cidr enabled */
-#define CIDRTEST(x, y) ASSERT_TRUE(InspIRCd::MatchCIDR(x, y, NULL))
+#define CIDRTEST_TRUE(x, y) ASSERT_TRUE(InspIRCd::MatchCIDR(x, y, NULL))
 /* Test that x does not match y with match() and cidr enabled */
-#define CIDRTESTNOT(x, y) ASSERT_FALSE(InspIRCd::MatchCIDR(x, y, NULL))
+#define CIDRTEST_NOT(x, y) ASSERT_FALSE(InspIRCd::MatchCIDR(x, y, NULL))
 
 TEST_F(wild, test1)
 {
-	WCTEST("foobar", "*");
-	WCTEST("foobar", "foo*");
-	WCTEST("foobar", "*bar");
-	WCTEST("foobar", "foo??r");
-	WCTEST("foobar.test", "fo?bar.*t");
-	WCTEST("foobar.test", "fo?bar.t*t");
-	WCTEST("foobar.tttt", "fo?bar.**t");
-	WCTEST("foobar", "foobar");
-	WCTEST("foobar", "foo***bar");
-	WCTEST("foobar", "*foo***bar");
-	WCTEST("foobar", "**foo***bar");
-	WCTEST("foobar", "**foobar*");
-	WCTEST("foobar", "**foobar**");
-	WCTEST("foobar", "**foobar");
-	WCTEST("foobar", "**f?*?ar");
-	WCTEST("foobar", "**f?*b?r");
-	WCTEST("foofar", "**f?*f*r");
-	WCTEST("foofar", "**f?*f*?");
-	WCTEST("r", "*");
-	WCTEST("", "");
-	WCTEST("test@foo.bar.test", "*@*.bar.test");
-	WCTEST("test@foo.bar.test", "*test*@*.bar.test");
-	WCTEST("test@foo.bar.test", "*@*test");
+	WCTEST_TRUE("foobar", "*");
+	WCTEST_TRUE("foobar", "foo*");
+	WCTEST_TRUE("foobar", "*bar");
+	WCTEST_TRUE("foobar", "foo??r");
+	WCTEST_TRUE("foobar.test", "fo?bar.*t");
+	WCTEST_TRUE("foobar.test", "fo?bar.t*t");
+	WCTEST_TRUE("foobar.tttt", "fo?bar.**t");
+	WCTEST_TRUE("foobar", "foobar");
+	WCTEST_TRUE("foobar", "foo***bar");
+	WCTEST_TRUE("foobar", "*foo***bar");
+	WCTEST_TRUE("foobar", "**foo***bar");
+	WCTEST_TRUE("foobar", "**foobar*");
+	WCTEST_TRUE("foobar", "**foobar**");
+	WCTEST_TRUE("foobar", "**foobar");
+	WCTEST_TRUE("foobar", "**f?*?ar");
+	WCTEST_TRUE("foobar", "**f?*b?r");
+	WCTEST_TRUE("foofar", "**f?*f*r");
+	WCTEST_TRUE("foofar", "**f?*f*?");
+	WCTEST_TRUE("r", "*");
+	WCTEST_TRUE("", "");
+	WCTEST_TRUE("test@foo.bar.test", "*@*.bar.test");
+	WCTEST_TRUE("test@foo.bar.test", "*test*@*.bar.test");
+	WCTEST_TRUE("test@foo.bar.test", "*@*test");
 
-	WCTEST("a", "*a");
-	WCTEST("aa", "*a");
-	WCTEST("aaa", "*a");
-	WCTEST("aaaa", "*a");
-	WCTEST("aaaaa", "*a");
-	WCTEST("aaaaaa", "*a");
-	WCTEST("aaaaaaa", "*a");
-	WCTEST("aaaaaaaa", "*a");
-	WCTEST("aaaaaaaaa", "*a");
-	WCTEST("aaaaaaaaaa", "*a");
-	WCTEST("aaaaaaaaaaa", "*a");
+	WCTEST_TRUE("a", "*a");
+	WCTEST_TRUE("aa", "*a");
+	WCTEST_TRUE("aaa", "*a");
+	WCTEST_TRUE("aaaa", "*a");
+	WCTEST_TRUE("aaaaa", "*a");
+	WCTEST_TRUE("aaaaaa", "*a");
+	WCTEST_TRUE("aaaaaaa", "*a");
+	WCTEST_TRUE("aaaaaaaa", "*a");
+	WCTEST_TRUE("aaaaaaaaa", "*a");
+	WCTEST_TRUE("aaaaaaaaaa", "*a");
+	WCTEST_TRUE("aaaaaaaaaaa", "*a");
 
-	WCTESTNOT("foobar", "bazqux");
-	WCTESTNOT("foobar", "*qux");
-	WCTESTNOT("foobar", "foo*x");
-	WCTESTNOT("foobar", "baz*");
-	WCTESTNOT("foobar", "foo???r");
-	WCTESTNOT("foobar", "foobars");
-	WCTESTNOT("foobar", "**foobar**h");
-	WCTESTNOT("foobar", "**foobar**h*");
-	WCTESTNOT("foobar", "**f??*bar?");
-	WCTESTNOT("foobar", "");
-	WCTESTNOT("", "foobar");
-	WCTESTNOT("OperServ", "O");
-	WCTESTNOT("O", "OperServ");
-	WCTESTNOT("foobar.tst", "fo?bar.*g");
-	WCTESTNOT("foobar.test", "fo?bar.*tt");
+	WCTEST_NOT("foobar", "bazqux");
+	WCTEST_NOT("foobar", "*qux");
+	WCTEST_NOT("foobar", "foo*x");
+	WCTEST_NOT("foobar", "baz*");
+	WCTEST_NOT("foobar", "foo???r");
+	WCTEST_NOT("foobar", "foobars");
+	WCTEST_NOT("foobar", "**foobar**h");
+	WCTEST_NOT("foobar", "**foobar**h*");
+	WCTEST_NOT("foobar", "**f??*bar?");
+	WCTEST_NOT("foobar", "");
+	WCTEST_NOT("", "foobar");
+	WCTEST_NOT("OperServ", "O");
+	WCTEST_NOT("O", "OperServ");
+	WCTEST_NOT("foobar.tst", "fo?bar.*g");
+	WCTEST_NOT("foobar.test", "fo?bar.*tt");
 
-	CIDRTEST("brain@1.2.3.4", "*@1.2.0.0/16");
-	CIDRTEST("brain@1.2.3.4", "*@1.2.3.0/24");
-	CIDRTEST("192.168.3.97", "192.168.3.0/24");
+	CIDRTEST_TRUE("brain@1.2.3.4", "*@1.2.0.0/16");
+	CIDRTEST_TRUE("brain@1.2.3.4", "*@1.2.3.0/24");
+	CIDRTEST_TRUE("192.168.3.97", "192.168.3.0/24");
 
-	CIDRTESTNOT("brain@1.2.3.4", "x*@1.2.0.0/16");
-	CIDRTESTNOT("brain@1.2.3.4", "*@1.3.4.0/24");
-	CIDRTESTNOT("1.2.3.4", "1.2.4.0/24");
-	CIDRTESTNOT("brain@1.2.3.4", "*@/24");
-	CIDRTESTNOT("brain@1.2.3.4", "@1.2.3.4/9");
-	CIDRTESTNOT("brain@1.2.3.4", "@");
-	CIDRTESTNOT("brain@1.2.3.4", "");
+	CIDRTEST_NOT("brain@1.2.3.4", "x*@1.2.0.0/16");
+	CIDRTEST_NOT("brain@1.2.3.4", "*@1.3.4.0/24");
+	CIDRTEST_NOT("1.2.3.4", "1.2.4.0/24");
+	CIDRTEST_NOT("brain@1.2.3.4", "*@/24");
+	CIDRTEST_NOT("brain@1.2.3.4", "@1.2.3.4/9");
+	CIDRTEST_NOT("brain@1.2.3.4", "@");
+	CIDRTEST_NOT("brain@1.2.3.4", "");
 }
 
