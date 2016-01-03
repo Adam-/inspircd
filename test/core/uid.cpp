@@ -20,22 +20,8 @@
 
 #include "inspircd_test.h"
 
-class uid : public testing::Test
+class uid : public insp::Test
 {
- protected:
-	InspIRCd *inspircd;
-
-	void SetUp() override
-	{
-		char *argv[] = { "inspircd", "--nofork", "--quiet", NULL };
-		inspircd = new InspIRCd(3, argv);
-	}
-
-	void TearDown() override
-	{
-		inspircd->Cleanup();
-		delete inspircd;
-	}
 };
 
 TEST_F(uid, test1)

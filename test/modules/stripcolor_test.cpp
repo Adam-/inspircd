@@ -18,23 +18,14 @@
 
 #include "inspircd_test.h"
 
-class stripcolor : public testing::Test
+class stripcolor : public insp::Test
 {
- protected:
-	InspIRCd *inspircd;
-
+ public:
 	void SetUp() override
 	{
-		char *argv[] = { "inspircd", "--nofork", "--quiet", NULL };
-		inspircd = new InspIRCd(3, argv);
+		insp::Test::SetUp();
 
 		ASSERT_TRUE(inspircd->Modules->Load("stripcolor"));
-	}
-
-	void TearDown() override
-	{
-		inspircd->Cleanup();
-		delete inspircd;
 	}
 };
 

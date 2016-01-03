@@ -21,22 +21,8 @@
 
 #include "inspircd_test.h"
 
-class wild : public testing::Test
+class wild : public insp::Test
 {
- protected:
-	InspIRCd *inspircd;
-
-	void SetUp() override
-	{
-		char *argv[] = { "inspircd", "--nofork", "--quiet", NULL };
-		inspircd = new InspIRCd(3, argv);
-	}
-
-	void TearDown() override
-	{
-		inspircd->Cleanup();
-		delete inspircd;
-	}
 };
 
 /* Test that x matches y with match() */
