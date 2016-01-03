@@ -31,8 +31,5 @@
 
 #define INSPIRCD_SOCKETENGINE_NAME "@SOCKETENGINE@"
 
-#ifndef _WIN32
- %target include/config.h
- %define HAS_CLOCK_GETTIME
- %define HAS_EVENTFD
-#endif
+#define HAS_CLOCK_GETTIME
+#define HAS_EVENTFD
