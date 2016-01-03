@@ -40,5 +40,5 @@ namespace insp
 			delete inspircd;
 		}
 	};
-};
+}
 
