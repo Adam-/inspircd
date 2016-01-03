@@ -8,8 +8,8 @@ class stripcolor : public testing::Test
 
 	void SetUp() override
 	{
-		char *argv[] = { "inspircd", "--nofork", NULL };
-		inspircd = new InspIRCd(2, argv);
+		char *argv[] = { "inspircd", "--nofork", "--quiet", NULL };
+		inspircd = new InspIRCd(3, argv);
 
 		ASSERT_TRUE(inspircd->Modules->Load("stripcolor"));
 	}

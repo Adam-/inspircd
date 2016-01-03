@@ -152,7 +152,8 @@ static void VoidSignalHandler(int signalreceived)
 bool InspIRCd::DaemonSeed()
 {
 #ifdef _WIN32
-	std::cout << "InspIRCd Process ID: " << con_green << GetCurrentProcessId() << con_reset << std::endl;
+	if (!Config->cmdline.quiet)
+		std::cout << "InspIRCd Process ID: " << con_green << GetCurrentProcessId() << con_reset << std::endl;
 	return true;
 #else
 	// Do not use QuickExit here: It will exit with status SIGTERM which would break e.g. daemon scripts
@@ -175,7 +176,8 @@ bool InspIRCd::DaemonSeed()
 		exit(0);
 	}
 	setsid ();
-	std::cout << "InspIRCd Process ID: " << con_green << getpid() << con_reset << std::endl;
+	if (!Config->cmdline.quiet)
+		std::cout << "InspIRCd Process ID: " << con_green << getpid() << con_reset << std::endl;
 
 	signal(SIGTERM, InspIRCd::SetSignal);
 
@@ -238,7 +240,7 @@ InspIRCd::InspIRCd(int argc, char** argv) :
 	FailedPortList pl;
 	// Flag variables passed to getopt_long() later
 	int do_version = 0, do_nofork = 0, do_debug = 0,
-	    do_nolog = 0, do_root = 0;
+	    do_nolog = 0, do_root = 0, do_quiet = 0;
 
 	// Initialize so that if we exit before proper initialization they're not deleted
 	this->Config = 0;
@@ -286,6 +288,7 @@ InspIRCd::InspIRCd(int argc, char** argv) :
 		{ "nolog",	no_argument,		&do_nolog,	1	},
 		{ "runasroot",	no_argument,		&do_root,	1	},
 		{ "version",	no_argument,		&do_version,	1	},
+		{ "quiet",      no_argument,            &do_quiet,      1       },
 #ifdef INSPIRCD_ENABLE_TESTSUITE
 		{ "testsuite",	no_argument,		&do_testsuite,	1	},
 #endif
@@ -338,6 +341,7 @@ InspIRCd::InspIRCd(int argc, char** argv) :
 	Config->cmdline.nofork = (do_nofork != 0);
 	Config->cmdline.forcedebug = (do_debug != 0);
 	Config->cmdline.writelog = !do_nolog;
+	Config->cmdline.quiet = do_quiet;
 
 	if (do_debug)
 	{
@@ -366,8 +370,11 @@ InspIRCd::InspIRCd(int argc, char** argv) :
 		}
 	}
 
-	std::cout << con_green << "InspIRCd - Internet Relay Chat Daemon" << con_reset << ", compiled on " __DATE__ " at " __TIME__ << std::endl;
-	std::cout << "For contributors & authors: " << con_green << "See /INFO Output" << con_reset << std::endl;
+	if (!Config->cmdline.quiet)
+	{
+		std::cout << con_green << "InspIRCd - Internet Relay Chat Daemon" << con_reset << ", compiled on " __DATE__ " at " __TIME__ << std::endl;
+		std::cout << "For contributors & authors: " << con_green << "See /INFO Output" << con_reset << std::endl;
+	}
 
 #ifndef _WIN32
 	if (!do_root)
@@ -423,7 +430,8 @@ InspIRCd::InspIRCd(int argc, char** argv) :
 
 	int bounditems = BindPorts(pl);
 
-	std::cout << std::endl;
+	if (!Config->cmdline.quiet)
+		std::cout << std::endl;
 
 	this->Modules->LoadAll();
 
@@ -431,7 +439,7 @@ InspIRCd::InspIRCd(int argc, char** argv) :
 	this->ISupport.Build();
 	Config->ApplyDisabledCommands(Config->DisabledCommands);
 
-	if (!pl.empty())
+	if (!pl.empty() && !Config->cmdline.quiet)
 	{
 		std::cout << std::endl << "WARNING: Not all your client ports could be bound -- " << std::endl << "starting anyway with " << bounditems
 			<< " of " << bounditems + (int)pl.size() << " client ports bound." << std::endl << std::endl;
@@ -445,7 +453,8 @@ InspIRCd::InspIRCd(int argc, char** argv) :
 		std::cout << std::endl << "Hint: Try using a public IP instead of blank or *" << std::endl;
 	}
 
-	std::cout << "InspIRCd is now running as '" << Config->ServerName << "'[" << Config->GetSID() << "] with " << SocketEngine::GetMaxFds() << " max open sockets" << std::endl;
+	if (!Config->cmdline.quiet)
+		std::cout << "InspIRCd is now running as '" << Config->ServerName << "'[" << Config->GetSID() << "] with " << SocketEngine::GetMaxFds() << " max open sockets" << std::endl;
 
 #ifndef _WIN32
 	if (!Config->cmdline.nofork)
