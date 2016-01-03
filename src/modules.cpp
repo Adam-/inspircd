@@ -140,10 +140,6 @@ ModResult   Module::OnAcceptConnection(int, ListenSocket*, irc::sockets::sockadd
 void		Module::OnSendWhoLine(User*, const std::vector<std::string>&, User*, Membership*, std::string&) { DetachEvent(I_OnSendWhoLine); }
 void		Module::OnSetUserIP(LocalUser*) { DetachEvent(I_OnSetUserIP); }
 
-#ifdef INSPIRCD_ENABLE_TESTSUITE
-void		Module::OnRunTestSuite() { }
-#endif
-
 ServiceProvider::ServiceProvider(Module* Creator, const std::string& Name, ServiceType Type)
 	: creator(Creator), name(Name), service(Type)
 {

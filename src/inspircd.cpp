@@ -53,7 +53,6 @@
 #include <iostream>
 #include "xline.h"
 #include "exitcodes.h"
-#include "testsuite.h"
 
 InspIRCd* ServerInstance = NULL;
 
@@ -83,13 +82,6 @@ const char* ExitCodes[] =
 		"Couldn't load module on startup",		// 9
 		"Received SIGTERM"						// 10
 };
-
-#ifdef INSPIRCD_ENABLE_TESTSUITE
-/** True if we have been told to run the testsuite from the commandline,
- * rather than entering the mainloop.
- */
-static int do_testsuite = 0;
-#endif
 
 template<typename T> static void DeleteZero(T*&n)
 {
@@ -289,9 +281,6 @@ InspIRCd::InspIRCd(int argc, char** argv) :
 		{ "runasroot",	no_argument,		&do_root,	1	},
 		{ "version",	no_argument,		&do_version,	1	},
 		{ "quiet",      no_argument,            &do_quiet,      1       },
-#ifdef INSPIRCD_ENABLE_TESTSUITE
-		{ "testsuite",	no_argument,		&do_testsuite,	1	},
-#endif
 		{ 0, 0, 0, 0 }
 	};
 
@@ -320,11 +309,6 @@ InspIRCd::InspIRCd(int argc, char** argv) :
 			break;
 		}
 	}
-
-#ifdef INSPIRCD_ENABLE_TESTSUITE
-	if (do_testsuite)
-		do_nofork = do_debug = true;
-#endif
 
 	if (do_version)
 	{
@@ -598,16 +582,6 @@ void InspIRCd::UpdateTime()
 
 void InspIRCd::Run()
 {
-#ifdef INSPIRCD_ENABLE_TESTSUITE
-	/* See if we're supposed to be running the test suite rather than entering the mainloop */
-	if (do_testsuite)
-	{
-		TestSuite* ts = new TestSuite;
-		delete ts;
-		return;
-	}
-#endif
-
 	UpdateTime();
 	time_t OLDTIME = TIME.tv_sec;
 

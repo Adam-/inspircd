@@ -16,8 +16,8 @@ class TestSuiteThread : public Thread
 	{
 		while (GetExitFlag() == false)
 		{
-			std::cout << "Test suite thread run...\n";
-			sleep(5);
+			//std::cout << "Test suite thread run...\n";
+			usleep(50);
 		}
 	}
 };
@@ -27,22 +27,22 @@ TEST(threads, test1)
 	std::string anything;
 	ThreadEngine* te = NULL;
 
-	std::cout << "Creating new ThreadEngine class...\n";
+	//std::cout << "Creating new ThreadEngine class...\n";
 	try
 	{
 		te = new ThreadEngine;
 	}
 	catch (...)
 	{
-		std::cout << "Creation failed, test failure.\n";
+		//std::cout << "Creation failed, test failure.\n";
 		FAIL();
 	}
 	//std::cout << "Creation success, type " << te->GetName() << "\n";
 
-	std::cout << "Allocate: new TestSuiteThread...\n";
+	//std::cout << "Allocate: new TestSuiteThread...\n";
 	TestSuiteThread* tst = new TestSuiteThread();
 
-	std::cout << "ThreadEngine::Create on TestSuiteThread...\n";
+	//std::cout << "ThreadEngine::Create on TestSuiteThread...\n";
 	try
 	{
 		try
@@ -52,22 +52,24 @@ TEST(threads, test1)
 		catch (CoreException &ce)
 		{
 			std::cout << "Failure: " << ce.GetReason() << std::endl;
+			FAIL();
 		}
 	}
 	catch (...)
 	{
 		std::cout << "Failure, unhandled exception\n";
+		FAIL();
 	}
 
-	sleep(1);
+	usleep(25);
 
 	/* Thread engine auto frees thread on delete */
-	std::cout << "Waiting for thread to exit... " << std::flush;
+	//std::cout << "Waiting for thread to exit... " << std::flush;
 	delete tst;
-	std::cout << "Done!\n";
+	//std::cout << "Done!\n";
 
-	std::cout << "Delete ThreadEngine... ";
+	//std::cout << "Delete ThreadEngine... ";
 	delete te;
-	std::cout << "Done!\n";
+	//std::cout << "Done!\n";
 }
 
