@@ -30,8 +30,8 @@ namespace insp
 
 		void SetUp() override
 		{
-			char *argv[] = { "inspircd", "--nofork", "--quiet", NULL };
-			inspircd = new InspIRCd(3, argv);
+			const char *argv[] = { "inspircd", "--nofork", "--quiet", NULL };
+			inspircd = new InspIRCd(3, (char**) argv);
 		}
 
 		void TearDown() override
