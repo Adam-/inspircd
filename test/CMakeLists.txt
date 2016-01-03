@@ -32,7 +32,7 @@ set_property(SOURCE "${INSPIRCD_BASE}/src/modules/m_stripcolor.cpp" APPEND PROPE
 
 include_directories("${INSPIRCD_BASE}/include")
 
-configure_file("${INSPIRCD_BASE}/make/template/config.h" "${INSPIRCD_BASE}/include/config.h")
+configure_file("${INSPIRCD_BASE}/test/config.h.cmake" "${INSPIRCD_BASE}/include/config.h")
 
 enable_testing()
 
