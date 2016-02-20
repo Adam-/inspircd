@@ -1,3 +1,9 @@
+inspircd (2.0.21-1) unstable; urgency=medium
+
+  * New upstream release, drop origin upstream 05_posix-tmpnam.diff
+
+ -- Guillaume Delacour <gui@iroqwa.org>  Sat, 20 Feb 2016 17:13:24 +0100
+
 inspircd (2.0.20-5) unstable; urgency=medium
 
   * Replace deprecated POSIX::tmpnam() call by File::Temp::tmpnam()
