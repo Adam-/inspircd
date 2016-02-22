@@ -1,9 +1,10 @@
 inspircd (2.0.21-1) unstable; urgency=medium
 
-  * New upstream release, drop origin upstream 05_posix-tmpnam.diff
+  * New upstream release, drop picked 05_posix-tmpnam.diff
   * Bump standards version, no changes needed
+  * Change Vcs-{Browser,Git} to use https instead of http/git
 
- -- Guillaume Delacour <gui@iroqwa.org>  Sat, 20 Feb 2016 17:39:56 +0100
+ -- Guillaume Delacour <gui@iroqwa.org>  Mon, 22 Feb 2016 23:17:47 +0100
 
 inspircd (2.0.20-5) unstable; urgency=medium
 

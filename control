@@ -14,8 +14,8 @@ Build-Depends: debhelper (>= 9.0.0), perl-modules, libgnutls28-dev, pkg-config,
                libtre-dev, dh-systemd (>= 1.5), dh-apparmor
 Standards-Version: 3.9.7
 Homepage: http://www.inspircd.org/
-Vcs-Browser: http://anonscm.debian.org/gitweb/?p=collab-maint/inspircd.git
-Vcs-Git: git://anonscm.debian.org/collab-maint/inspircd.git
+Vcs-Browser: https://anonscm.debian.org/cgit/collab-maint/inspircd.git
+Vcs-Git: https://anonscm.debian.org/git/collab-maint/inspircd.git
 
 Package: inspircd
 Architecture: any
