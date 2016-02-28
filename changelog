@@ -3,8 +3,11 @@ inspircd (2.0.21-1) unstable; urgency=medium
   * New upstream release, drop picked 05_posix-tmpnam.diff
   * Bump standards version, no changes needed
   * Change Vcs-{Browser,Git} to use https instead of http/git
+  * Fix spelling-error-in-binary in m_spanningtree.so
+  * Override lintian hardening fortify for cmd_time.so does not use
+    fortify functions
 
- -- Guillaume Delacour <gui@iroqwa.org>  Mon, 22 Feb 2016 23:17:47 +0100
+ -- Guillaume Delacour <gui@iroqwa.org>  Sun, 28 Feb 2016 10:43:21 +0100
 
 inspircd (2.0.20-5) unstable; urgency=medium
 

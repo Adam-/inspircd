@@ -1,0 +1,32 @@
+From: Guillaume Delacour <gui@iroqwa.org>
+Description: Fix minor spelling errors in printed messages
+ Fix spelling-error-in-binary reported by lintian
+Forwarded: https://github.com/inspircd/inspircd/pull/1148
+Last-Update: 2016-02-26
+
+Index: inspircd/src/modules/m_spanningtree/fjoin.cpp
+===================================================================
+--- inspircd.orig/src/modules/m_spanningtree/fjoin.cpp
++++ inspircd/src/modules/m_spanningtree/fjoin.cpp
+@@ -201,7 +201,7 @@ CmdResult CommandFJoin::Handle(const std
+ 			}
+ 			else
+ 			{
+-				ServerInstance->Logs->Log("m_spanningtree",SPARSE, "Ignored nonexistant user %s in fjoin to %s (probably quit?)", usr, channel.c_str());
++				ServerInstance->Logs->Log("m_spanningtree",SPARSE, "Ignored nonexistent user %s in fjoin to %s (probably quit?)", usr, channel.c_str());
+ 				continue;
+ 			}
+ 		}
+Index: inspircd/src/modules/m_spanningtree/postcommand.cpp
+===================================================================
+--- inspircd.orig/src/modules/m_spanningtree/postcommand.cpp
++++ inspircd/src/modules/m_spanningtree/postcommand.cpp
+@@ -73,7 +73,7 @@ void SpanningTreeUtilities::RouteCommand
+ 		TreeServer* sdest = FindServer(routing.serverdest);
+ 		if (!sdest)
+ 		{
+-			ServerInstance->Logs->Log("m_spanningtree",DEFAULT,"Trying to route ENCAP to nonexistant server %s",
++			ServerInstance->Logs->Log("m_spanningtree",DEFAULT,"Trying to route ENCAP to nonexistent server %s",
+ 				routing.serverdest.c_str());
+ 			return;
+ 		}
