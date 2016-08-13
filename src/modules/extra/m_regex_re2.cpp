@@ -32,7 +32,7 @@
 
 #include <re2/re2.h>
 
-/* $LinkerFlags: -lre2 */
+/* Libraries: RE2 */
 
 class RE2Regex : public Regex
 {

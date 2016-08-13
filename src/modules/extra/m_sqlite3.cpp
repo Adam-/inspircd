@@ -36,8 +36,7 @@
 # pragma comment(lib, "sqlite3.lib")
 #endif
 
-/* $CompileFlags: pkgconfversion("sqlite3","3.3") pkgconfincludes("sqlite3","/sqlite3.h","") */
-/* $LinkerFlags: pkgconflibs("sqlite3","/libsqlite3.so","-lsqlite3") */
+/* Libraries: SQLite3 */
 
 class SQLConn;
 typedef insp::flat_map<std::string, SQLConn*> ConnMap;

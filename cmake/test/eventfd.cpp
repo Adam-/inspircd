@@ -1,7 +1,6 @@
 /*
  * InspIRCd -- Internet Relay Chat Daemon
  *
- *   Copyright (C) 2014 Peter Powell <petpow@saberuk.com>
  *
  * This file is part of InspIRCd.  InspIRCd is free software: you can
  * redistribute it and/or modify it under the terms of the GNU General Public
@@ -17,22 +16,14 @@
  */
 
 
-#pragma once
+#include <sys/eventfd.h>
 
-#define INSPIRCD_BRANCH   "InspIRCd-@VERSION_MAJOR@.@VERSION_MINOR@"
-#define INSPIRCD_VERSION  "InspIRCd-@VERSION_MAJOR@.@VERSION_MINOR@.@VERSION_PATCH@"
-#define INSPIRCD_REVISION "@VERSION_LABEL@"
-#define INSPIRCD_SYSTEM   "@SYSTEM_NAME_VERSION@"
+int main() {
+	eventfd_t efd_data;
+	int fd;
 
-#define INSPIRCD_CONFIG_PATH "@CONFIG_DIR@"
-#define INSPIRCD_DATA_PATH   "@DATA_DIR@"
-#define INSPIRCD_LOG_PATH    "@LOG_DIR@"
-#define INSPIRCD_MODULE_PATH "@MODULE_DIR@"
+	fd = eventfd(0, EFD_NONBLOCK);
+	eventfd_read(fd, &efd_data);
 
-#define INSPIRCD_SOCKETENGINE_NAME "@SOCKETENGINE@"
-
-#ifndef _WIN32
- %target include/config.h
- %define HAS_CLOCK_GETTIME
- %define HAS_EVENTFD
-#endif
+	return (fd < 0);
+}

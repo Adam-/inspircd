@@ -31,10 +31,9 @@
 # pragma comment(lib, "libmysql.lib")
 #endif
 
-/* VERSION 3 API: With nonblocking (threaded) requests */
+/* Libraries: MySQL */
 
-/* $CompileFlags: exec("mysql_config --include") */
-/* $LinkerFlags: exec("mysql_config --libs_r") rpath("mysql_config --libs_r") */
+/* VERSION 3 API: With nonblocking (threaded) requests */
 
 /* THE NONBLOCKING MYSQL API!
  *

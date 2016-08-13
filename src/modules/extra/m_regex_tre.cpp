@@ -23,8 +23,7 @@
 #include <sys/types.h>
 #include <tre/regex.h>
 
-/* $CompileFlags: pkgconfincludes("tre","tre/regex.h","") */
-/* $LinkerFlags: pkgconflibs("tre","/libtre.so","-ltre") rpath("pkg-config --libs tre") */
+/* Libraries: TRE */
 
 class TRERegex : public Regex
 {

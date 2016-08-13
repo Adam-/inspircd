@@ -22,8 +22,7 @@
 #include <pcre.h>
 #include "modules/regex.h"
 
-/* $CompileFlags: exec("pcre-config --cflags") */
-/* $LinkerFlags: exec("pcre-config --libs") rpath("pcre-config --libs") -lpcre */
+/* Libraries: PCRE */
 
 #ifdef _WIN32
 # pragma comment(lib, "libpcre.lib")

@@ -48,25 +48,9 @@ our @EXPORT = qw(CONFIGURE_CACHE_FILE
                  CONFIGURE_CACHE_VERSION
                  cmd_clean
                  cmd_help
-                 cmd_update
-                 run_test
-                 test_file
-                 test_header
                  read_configure_cache
                  write_configure_cache
-                 get_compiler_info
-                 find_compiler
-                 get_property
-                 parse_templates);
-
-sub __get_socketengines {
-	my @socketengines;
-	foreach (<src/socketengines/socketengine_*.cpp>) {
-		s/src\/socketengines\/socketengine_(\w+)\.cpp/$1/;
-		push @socketengines, $1;
-	}
-	return @socketengines;
-}
+                 get_property );
 
 # TODO: when buildtool is done this can be mostly removed with
 #       the remainder being merged into parse_templates.
@@ -97,20 +81,12 @@ sub __get_template_settings($$$) {
 	return %settings;
 }
 
-sub __test_compiler($) {
-	my $compiler = shift;
-	return 0 unless run_test("`$compiler`", !system "$compiler -v >/dev/null 2>&1");
-	return 0 unless run_test("`$compiler`", test_file($compiler, 'compiler.cpp', '-fno-rtti'), 'compatible');
-	return 1;
-}
-
 sub cmd_clean {
 	unlink CONFIGURE_CACHE_FILE;
 }
 
 sub cmd_help {
 	my $PWD = getcwd();
-	my $SELIST = join ', ', __get_socketengines();
 	print <<EOH;
 Usage: $0 [options]
 
@@ -158,8 +134,6 @@ MISC OPTIONS
                                 the build configuration.
   --gid=[id|name]               Sets the group to run InspIRCd as.
   --help                        Show this message and exit.
-  --socketengine=[name]         Sets the socket engine to be used. Possible
-                                values are $SELIST.
   --uid=[id|name]               Sets the user to run InspIRCd as.
   --update                      Updates the build environment.
 
@@ -175,44 +149,6 @@ at irc.inspircd.org #InspIRCd for support.
 
 EOH
 	exit 0;
-}
-
-sub cmd_update {
-	print_error "You have not run $0 before. Please do this before trying to update the generated files." unless -f CONFIGURE_CACHE_FILE;
-	say 'Updating...';
-	my %config = read_configure_cache();
-	my %compiler = get_compiler_info($config{CXX});
-	my %version = get_version();
-	parse_templates(\%config, \%compiler, \%version);
-	say 'Update complete!';
-	exit 0;
-}
-
-sub run_test($$;$) {
-	my ($what, $result, $adjective) = @_;
-	$adjective //= 'available';
-	print_format "Checking whether <|GREEN $what|> is $adjective ... ";
-	print_format $result ? "<|GREEN yes|>\n" : "<|RED no|>\n";
-	return $result;
-}
-
-sub test_file($$;$) {
-	my ($compiler, $file, $args) = @_;
-	my $status = 0;
-	$args //= '';
-	$status ||= system "$compiler -o __test_$file make/test/$file $args >/dev/null 2>&1";
-	$status ||= system "./__test_$file >/dev/null 2>&1";
-	unlink "./__test_$file";
-	return !$status;
-}
-
-sub test_header($$;$) {
-	my ($compiler, $header, $args) = @_;
-	$args //= '';
-	open(COMPILER, "| $compiler -E - $args >/dev/null 2>&1") or return 0;
-	print COMPILER "#include <$header>";
-	close(COMPILER);
-	return !$?;
 }
 
 sub read_configure_cache {
@@ -243,31 +179,6 @@ sub write_configure_cache(%) {
 	close(CACHE);
 }
 
-sub get_compiler_info($) {
-	my $binary = shift;
-	my $version = `$binary -v 2>&1`;
-	if ($version =~ /Apple\sLLVM\sversion\s(\d+\.\d+)/i) {
-		# Apple version their LLVM releases slightly differently to the mainline LLVM.
-		# See https://trac.macports.org/wiki/XcodeVersionInfo for more information.
-		return (NAME => 'AppleClang', VERSION => $1);
-	} elsif ($version =~ /clang\sversion\s(\d+\.\d+)/i) {
-		return (NAME => 'Clang', VERSION => $1);
-	} elsif ($version =~ /gcc\sversion\s(\d+\.\d+)/i) {
-		return (NAME => 'GCC', VERSION => $1);
-	} elsif ($version =~ /(?:icc|icpc)\sversion\s(\d+\.\d+).\d+\s\(gcc\sversion\s(\d+\.\d+).\d+/i) {
-		return (NAME => 'ICC', VERSION => $1);
-	}
-	return (NAME => $binary, VERSION => '0.0');
-}
-
-sub find_compiler {
-	my @compilers = qw(c++ g++ clang++ icpc);
-	foreach my $compiler (shift // @compilers) {
-		return $compiler if __test_compiler $compiler;
-		return "xcrun $compiler" if $^O eq 'darwin' && __test_compiler "xcrun $compiler";
-	}
-}
-
 sub get_property($$;$)
 {
 	my ($file, $property, $default) = @_;
@@ -283,170 +194,3 @@ sub get_property($$;$)
 	return $default // '';
 }
 
-sub parse_templates($$$) {
-
-	# These are actually hash references
-	my ($config, $compiler, $version) = @_;
-
-	# Collect settings to be used when generating files
-	my %settings = __get_template_settings($config, $compiler, $version);
-
-	# Iterate through files in make/template.
-	foreach (<make/template/*>) {
-		print_format "Parsing <|GREEN $_|> ...\n";
-		open(TEMPLATE, $_) or print_error "unable to read $_: $!";
-		my (@lines, $mode, @platforms, %targets);
-
-		# First pass: parse template variables and directives.
-		while (my $line = <TEMPLATE>) {
-			chomp $line;
-
-			# Does this line match a variable?
-			while ($line =~ /(@(\w+?)@)/) {
-				my ($variable, $name) = ($1, $2);
-				if (defined $settings{$name}) {
-					$line =~ s/\Q$variable\E/$settings{$name}/;
-				} else {
-					print_warning "unknown template variable '$name' in $_!";
-					last;
-				}
-			}
-
-			# Does this line match a directive?
-			if ($line =~ /^\s*%(\w+)\s+(.+)$/) {
-				if ($1 eq 'define') {
-					if ($settings{$2}) {
-						push @lines, "#define $2";
-					} else {
-						push @lines, "#undef $2";
-					}
-				} elsif ($1 eq 'mode') {
-					$mode = oct $2;
-				} elsif ($1 eq 'platform') {
-					push @platforms, $2;
-				} elsif ($1 eq 'target') {
-					if ($2 =~ /(\w+)\s(.+)/) {
-						$targets{$1} = $2;
-					} else {
-						$targets{DEFAULT} = $2;
-					}
-				} else {
-					print_warning "unknown template command '$1' in $_!";
-					push @lines, $line;
-				}
-				next;
-			}
-			push @lines, $line;
-		}
-		close(TEMPLATE);
-
-		# Only proceed if this file should be templated on this platform.
-		if ($#platforms < 0 || grep { $_ eq $^O } @platforms) {
-
-			# Add a default target if the template has not defined one.
-			unless (scalar keys %targets) {
-				$targets{DEFAULT} = catfile(CONFIGURE_DIRECTORY, basename $_);
-			}
-
-			# Second pass: parse makefile junk and write files.
-			while (my ($name, $target) = each %targets) {
-
-				# TODO: when buildtool is done this mess can be removed completely.
-				my @final_lines;
-				foreach my $line (@lines) {
-
-					# Are we parsing a makefile and does this line match a statement?
-					if ($name =~ /(?:BSD|GNU)_MAKE/ && $line =~ /^\s*\@(\w+)(?:\s+(.+))?$/) {
-						my @tokens = split /\s/, $2 if defined $2;
-						if ($1 eq 'DO_EXPORT' && defined $2) {
-							if ($name eq 'BSD_MAKE') {
-								foreach my $variable (@tokens) {
-									push @final_lines, "MAKEENV += $variable='\${$variable}'";
-								}
-							} elsif ($name eq 'GNU_MAKE') {
-								push @final_lines, "export $2";
-							}
-						} elsif ($1 eq 'ELSE') {
-							if ($name eq 'BSD_MAKE') {
-								push @final_lines, ".else";
-							} elsif ($name eq 'GNU_MAKE') {
-								push @final_lines, "else";
-							}
-						} elsif ($1 eq 'ENDIF') {
-							if ($name eq 'BSD_MAKE') {
-								push @final_lines, ".endif";
-							} elsif ($name eq 'GNU_MAKE') {
-								push @final_lines, "endif";
-							}
-						} elsif ($1 eq 'ELSIFEQ' && defined $2) {
-							if ($name eq 'BSD_MAKE') {
-								push @final_lines, ".elif $tokens[0] == $tokens[1]";
-							} elsif ($name eq 'GNU_MAKE') {
-								push @final_lines, "else ifeq ($tokens[0], $tokens[1])";
-							}
-						} elsif ($1 eq 'IFDEF' && defined $2) {
-							if ($name eq 'BSD_MAKE') {
-								push @final_lines, ".if defined($2)";
-							} elsif ($name eq 'GNU_MAKE') {
-								push @final_lines, "ifdef $2";
-							}
-						} elsif ($1 eq 'IFEQ' && defined $2) {
-							if ($name eq 'BSD_MAKE') {
-								push @final_lines, ".if $tokens[0] == $tokens[1]";
-							} elsif ($name eq 'GNU_MAKE') {
-								push @final_lines, "ifeq ($tokens[0],$tokens[1])";
-							}
-						} elsif ($1 eq 'IFNEQ' && defined $2) {
-							if ($name eq 'BSD_MAKE') {
-								push @final_lines, ".if $tokens[0] != $tokens[1]";
-							} elsif ($name eq 'GNU_MAKE') {
-								push @final_lines, "ifneq ($tokens[0],$tokens[1])";
-							}
-						} elsif ($1 eq 'IFNDEF' && defined $2) {
-							if ($name eq 'BSD_MAKE') {
-								push @final_lines, ".if !defined($2)";
-							} elsif ($name eq 'GNU_MAKE') {
-								push @final_lines, "ifndef $2";
-							}
-						} elsif ($1 eq 'TARGET' && defined $2) {
-							if ($tokens[0] eq $name) {
-								push @final_lines, substr($2, length($tokens[0]) + 1);
-							}
-						} elsif ($1 !~ /[A-Z]/) {
-							# HACK: silently ignore if lower case as these are probably make commands.
-							push @final_lines, $line;
-						} else {
-							print_warning "unknown template command '$1' in $_!";
-							push @final_lines, $line;
-						}
-						next;
-					}
-
-					push @final_lines, $line;
-				}
-
-				# Create the directory if it doesn't already exist.
-				my $directory = dirname $target;
-				unless (-e $directory) {
-					print_format "Creating <|GREEN $directory|> ...\n";
-					create_directory $directory, 0750 or print_error "unable to create $directory: $!";
-				};
-
-				# Write the template file.
-				print_format "Writing <|GREEN $target|> ...\n";
-				open(TARGET, '>', $target) or print_error "unable to write $target: $!";
-				foreach (@final_lines) {
-					say TARGET $_;
-				}
-				close(TARGET);
-
-				# Set file permissions.
-				if (defined $mode) {
-					chmod $mode, $target;
-				}
-			}
-		}
-	}
-}
-
-1;

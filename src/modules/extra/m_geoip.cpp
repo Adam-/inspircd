@@ -27,7 +27,7 @@
 # pragma comment(lib, "GeoIP.lib")
 #endif
 
-/* $LinkerFlags: -lGeoIP */
+/* Libraries: LibGeoIP */
 
 class ModuleGeoIP : public Module
 {

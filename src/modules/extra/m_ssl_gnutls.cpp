@@ -62,8 +62,7 @@
 # pragma comment(lib, "libgnutls-30.lib")
 #endif
 
-/* $CompileFlags: pkgconfincludes("gnutls","/gnutls/gnutls.h","") eval("print `libgcrypt-config --cflags | tr -d \r` if `pkg-config --modversion gnutls 2>/dev/null | tr -d \r` lt '2.12'") */
-/* $LinkerFlags: rpath("pkg-config --libs gnutls") pkgconflibs("gnutls","/libgnutls.so","-lgnutls") eval("print `libgcrypt-config --libs | tr -d \r` if `pkg-config --modversion gnutls 2>/dev/null | tr -d \r` lt '2.12'") */
+/* Libraries: GnuTLS */
 
 // These don't exist in older GnuTLS versions
 #if INSPIRCD_GNUTLS_HAS_VERSION(2, 1, 7)

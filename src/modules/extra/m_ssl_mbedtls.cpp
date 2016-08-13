@@ -17,7 +17,7 @@
  */
 
 
-/* $LinkerFlags: -lmbedtls */
+/* Libraries: MbedTLS */
 
 #include "inspircd.h"
 #include "modules/ssl.h"
@@ -29,6 +29,7 @@
 #include <mbedtls/error.h>
 #include <mbedtls/md.h>
 #include <mbedtls/pk.h>
+#include <mbedtls/platform.h>
 #include <mbedtls/ssl.h>
 #include <mbedtls/ssl_ciphersuites.h>
 #include <mbedtls/version.h>
