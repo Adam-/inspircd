@@ -1,0 +1,4 @@
+version=3
+opts=uversionmangle=s/^(2\.1(?:fork|b[123]|a[12]))$/0.0.$1/ \
+https://github.com/inspircd/inspircd/releases \
+.*/archive/v(\d\S*)\.tar\.gz

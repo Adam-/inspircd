@@ -1,0 +1,58 @@
+Source: inspircd
+Section: net
+Priority: optional
+Maintainer: Debian IRC Team <pkg-irc-maintainers@lists.alioth.debian.org>
+Uploaders: Darren Blaber <dmbtech@gmail.com>,
+  Mario Iseli <mario@debian.org>,
+  Matt Arnold <adeodatus@sdf.org>,
+  Giacomo Catenazzi <cate@debian.org>,
+  Bradley Smith <bradsmith@debian.org>,
+  Guillaume Delacour <gui@iroqwa.org>
+Build-Depends: debhelper (>= 9.0.0), perl-modules, libgnutls28-dev, pkg-config,
+               libldap2-dev, libpcre3-dev, libmysqlclient-dev, libpq-dev,
+               libsqlite3-dev, zlib1g-dev, libgeoip-dev,
+               libtre-dev, dh-systemd (>= 1.5), dh-apparmor
+Standards-Version: 3.9.7
+Homepage: http://www.inspircd.org/
+Vcs-Browser: https://anonscm.debian.org/cgit/collab-maint/inspircd.git
+Vcs-Git: https://anonscm.debian.org/git/collab-maint/inspircd.git
+
+Package: inspircd
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, lsb-base
+Suggests: sqlite3, mysql-server, ldap-server, postgresql, gnutls-bin
+Provides: ircd
+Description: Modular IRCd written in C++
+ InspIRCd is a modular C++ IRC Daemon for several operating systems created
+ to provide a stable, modern, lightweight irc server from scratch and provide
+ a vast number of features in a modularised form using an advanced module API.
+ By keeping the functionality of the main core to a minimum, the server is very
+ stable, fast and customizable.
+ .
+ This package contains the daemon.
+
+Package: inspircd-dbg
+Architecture: any
+Section: debug
+Depends: ${misc:Depends}, inspircd (= ${binary:Version})
+Priority: extra
+Description: Modular IRCd written in C++ - debugging symbols
+ InspIRCd is a modular C++ IRC Daemon for several operating systems created
+ to provide a stable, modern, lightweight irc server from scratch and provide
+ a vast number of features in a modularised form using an advanced module API.
+ By keeping the functionality of the main core to a minimum, the server is very
+ stable, fast and customizable.
+ .
+ This package contains the debugging symbols.
+
+Package: inspircd-dev
+Architecture: any
+Depends: ${misc:Depends}
+Description: Modular IRCd written in C++ - development headers
+ InspIRCd is a modular C++ IRC Daemon for several operating systems created
+ to provide a stable, modern, lightweight irc server from scratch and provide
+ a vast number of features in a modularised form using an advanced module API.
+ By keeping the functionality of the main core to a minimum, the server is very
+ stable, fast and customizable.
+ .
+ This package contains the development headers for developing modules.

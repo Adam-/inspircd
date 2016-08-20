@@ -1,0 +1,4 @@
+etc/default
+etc/apparmor.d
+usr/sbin
+usr/lib/inspircd

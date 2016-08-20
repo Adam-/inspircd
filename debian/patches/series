@@ -1,0 +1,4 @@
+01_dpkg-buildflags_support.diff
+02_disable_rpath_for_extra_modules.diff
+04_reproducible_builds.diff
+05_spelling_errors.diff

@@ -1,0 +1,3 @@
+Tests: start.sh client.pl
+Depends: inspircd
+Restrictions: needs-root
