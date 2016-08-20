@@ -1,3 +1,9 @@
+inspircd (2.0.22-1) UNRELEASED; urgency=medium
+
+  * Release 2.0.22
+
+ -- adam <adam@anope.org>  Fri, 19 Aug 2016 21:06:41 -0400
+
 inspircd (2.0.21-1) unstable; urgency=medium
 
   * New upstream release, drop picked 05_posix-tmpnam.diff
