@@ -68,6 +68,16 @@ CoreExport extern unsigned const char ascii_case_insensitive_map[256];
  */
 CoreExport extern unsigned const char rfc_case_sensitive_map[256];
 
+class HashCompare
+{
+ public:
+	virtual int compare(const std::string& s1, const std::string& s2) = 0;
+	virtual size_t hash(const std::string &s) = 0;
+};
+
+extern HashCompare *hashcmp;
+
+
 /** The irc namespace contains a number of helper classes.
  */
 namespace irc
@@ -91,6 +101,8 @@ namespace irc
 		 */
 		bool operator()(const std::string& s1, const std::string& s2) const
 		{
+			if (hashcmp)
+				return hashcmp->compare(s1, s2) == 0;
 			return equals(s1, s2);
 		}
 	};

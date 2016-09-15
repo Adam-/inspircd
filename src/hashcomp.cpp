@@ -151,6 +151,8 @@ unsigned const char rfc_case_sensitive_map[256] = {
 	250, 251, 252, 253, 254, 255,                     // 250-255
 };
 
+HashCompare *hashcmp = NULL;
+
 bool irc::equals(const std::string& s1, const std::string& s2)
 {
 	const unsigned char* n1 = (const unsigned char*)s1.c_str();
@@ -182,6 +184,8 @@ bool irc::insensitive_swo::operator()(const std::string& a, const std::string& b
 
 size_t irc::insensitive::operator()(const std::string &s) const
 {
+	if (hashcmp)
+		return hashcmp->hash(s);
 	/* XXX: NO DATA COPIES! :)
 	 * The hash function here is practically
 	 * a copy of the one in STL's hash_fun.h,
