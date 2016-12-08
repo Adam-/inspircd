@@ -386,37 +386,6 @@ void ModuleSpanningTree::OnPostTopicChange(User* user, Channel* chan, const std:
 	CommandFTopic::Builder(user, chan).Broadcast();
 }
 
-void ModuleSpanningTree::OnUserMessage(User* user, void* dest, int target_type, const std::string& text, char status, const CUList& exempt_list, MessageType msgtype)
-{
-	if (!IS_LOCAL(user))
-		return;
-
-	const char* message_type = (msgtype == MSG_PRIVMSG ? "PRIVMSG" : "NOTICE");
-	if (target_type == TYPE_USER)
-	{
-		User* d = (User*) dest;
-		if (!IS_LOCAL(d))
-		{
-			CmdBuilder params(user, message_type);
-			params.push_back(d->uuid);
-			params.push_last(text);
-			params.Unicast(d);
-		}
-	}
-	else if (target_type == TYPE_CHANNEL)
-	{
-		Utils->SendChannelMessage(user->uuid, (Channel*)dest, text, status, exempt_list, message_type);
-	}
-	else if (target_type == TYPE_SERVER)
-	{
-		char* target = (char*) dest;
-		CmdBuilder par(user, message_type);
-		par.push_back(target);
-		par.push_last(text);
-		par.Broadcast();
-	}
-}
-
 void ModuleSpanningTree::OnBackgroundTimer(time_t curtime)
 {
 	AutoConnectServers(curtime);

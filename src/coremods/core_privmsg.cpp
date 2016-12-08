@@ -56,11 +56,7 @@ class MessageCommandBase : public Command
 
 	RouteDescriptor GetRouting(User* user, const std::vector<std::string>& parameters)
 	{
-		if (IS_LOCAL(user))
-			// This is handled by the OnUserMessage hook to split the LoopCall pieces
-			return ROUTE_LOCALONLY;
-		else
-			return ROUTE_MESSAGE(parameters[0]);
+		return ROUTE_MESSAGE(parameters[0]);
 	}
 };
 
@@ -86,7 +82,7 @@ CmdResult MessageCommandBase::HandleMessage(const std::vector<std::string>& para
 		localuser->idle_lastmsg = ServerInstance->Time();
 
 	if (CommandParser::LoopCall(user, this, parameters, 0))
-		return CMD_SUCCESS;
+		return CMD_FAILURE; // This is routed by the looping call
 
 	if (parameters[0][0] == '$')
 	{
