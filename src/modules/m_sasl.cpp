@@ -31,12 +31,15 @@ enum SaslResult { SASL_OK, SASL_FAIL, SASL_ABORT };
 
 static std::string sasl_target = "*";
 
-static void SendSASL(const parameterlist& params)
+static bool SendSASL(const parameterlist& params)
 {
 	if (!ServerInstance->PI->SendEncapsulatedData(params))
 	{
 		SASLFallback(NULL, params);
+		return false;
 	}
+
+	return true;
 }
 
 /**
@@ -52,27 +55,9 @@ class SaslAuthenticator
 	bool state_announced;
 
  public:
-	SaslAuthenticator(User* user_, const std::string& method)
+	SaslAuthenticator(User* user_)
 		: user(user_), state(SASL_INIT), state_announced(false)
 	{
-		parameterlist params;
-		params.push_back(sasl_target);
-		params.push_back("SASL");
-		params.push_back(user->uuid);
-		params.push_back("*");
-		params.push_back("S");
-		params.push_back(method);
-
-		if (method == "EXTERNAL" && IS_LOCAL(user_))
-		{
-			SocketCertificateRequest req(&((LocalUser*)user_)->eh, ServerInstance->Modules->Find("m_sasl.so"));
-			std::string fp = req.GetFingerprint();
-
-			if (fp.size())
-				params.push_back(fp);
-		}
-
-		SendSASL(params);
 	}
 
 	SaslResult GetSaslResult(const std::string &result_)
@@ -145,7 +130,8 @@ class SaslAuthenticator
 
 		params.insert(params.end(), parameters.begin(), parameters.end());
 
-		SendSASL(params);
+		if (!SendSASL(params))
+			return false;
 
 		if (parameters[0].c_str()[0] == '*')
 		{
@@ -205,7 +191,35 @@ class CommandAuthenticate : public Command
 
 			SaslAuthenticator *sasl = authExt.get(user);
 			if (!sasl)
-				authExt.set(user, new SaslAuthenticator(user, parameters[0]));
+			{
+				sasl = new SaslAuthenticator(user);
+
+				parameterlist params;
+				params.push_back(sasl_target);
+				params.push_back("SASL");
+				params.push_back(user->uuid);
+				params.push_back("*");
+				params.push_back("S");
+				params.push_back(parameters[0]);
+
+				if (parameters[0] == "EXTERNAL" && IS_LOCAL(user))
+				{
+					SocketCertificateRequest req(&((LocalUser*)user)->eh, ServerInstance->Modules->Find("m_sasl.so"));
+					std::string fp = req.GetFingerprint();
+
+					if (fp.size())
+						params.push_back(fp);
+				}
+
+				authExt.set(user, sasl);
+
+				if (!SendSASL(params))
+				{
+					sasl->Abort();
+					sasl->AnnounceState();
+					authExt.unset(user);
+				}
+			}
 			else if (sasl->SendClientMessage(parameters) == false)	// IAL abort extension --nenolod
 			{
 				sasl->AnnounceState();
