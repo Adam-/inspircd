@@ -1,3 +1,9 @@
+inspircd (2.0.24-1) UNRELEASED; urgency=medium
+
+  * Release 2.0.24
+
+ -- adam <adam@anope.org>  Thu, 18 May 2017 09:56:47 -0400
+
 inspircd (2.0.23-1) unstable; urgency=medium
 
   * Release 2.0.23
