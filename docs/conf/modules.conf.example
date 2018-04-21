@@ -383,7 +383,8 @@
 # This is the hard limit for 'X'.
 # If notice is set to yes, joining users will get a NOTICE before playback
 # telling them about the following lines being the pre-join history.
-#<chanhistory maxlines="20" notice="yes">
+# If bots is set to yes, it will also send to users marked with +B
+#<chanhistory maxlines="20" notice="yes" bots="yes">
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # Channel logging module: Used to send snotice output to channels, to
@@ -402,14 +403,14 @@
 # that looks like the name of another channel on the network.
 #<module name="m_channames.so">
 
-<channames
+#<channames
 	# denyrange: characters or range of characters to deny in channel
 	# names.
-	denyrange="2,3"
+	#denyrange="2,3"
 
 	# allowrange: characters or range of characters to specifically allow
 	# in channel names.
-	allowrange="">
+	#allowrange="">
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # Channelban: Implements extended ban j:, which stops anyone already
@@ -426,26 +427,26 @@
 # InspIRCd. You should use m_customprefix instead.
 #<module name="m_chanprotect.so">
 
-<chanprotect
+#<chanprotect
 	# noservices: With this set to yes, when a user joins an empty channel,
 	# the server will set +q on them. If set to no, it will only set +o
 	# on them until they register the channel.
-	noservices="no"
+	#noservices="no"
 
 	# qprefix: Prefix (symbol) to use for +q users.
-	qprefix="~"
+	#qprefix="~"
 
 	# aprefix: Prefix (symbol) to use for +a users.
-	aprefix="&amp;"
+	#aprefix="&amp;"
 
 	# deprotectself: If this value is set (true, yes or 1), it will allow
 	# +a and +q users to remove the +a and +q from themselves, otherwise,
 	# the status will have to be removed by services.
-	deprotectself="yes"
+	#deprotectself="yes"
 
 	# deprotectothers: If this value is set to yes, true, or 1, then any
 	# user with +q or +a may remove the +q or +a from other users.
-	deprotectothers="yes">
+	#deprotectothers="yes">
 
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
@@ -749,9 +750,13 @@
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # Exempt channel operators module: Provides support for allowing      #
-# channel operators to be exempt from some channel modes.  Supported  #
-# modes are blockcaps, noctcp, blockcolor, nickflood, flood, censor,  #
-# filter, regmoderated, nonick, nonotice, and stripcolor.             #
+# users of a specified channel status to be exempt from some channel  #
+# restriction modes. Supported restrictions are                       #
+# blockcaps, blockcolor, censor, filter, flood, nickflood, noctcp,    #
+# nonick, nonotice, regmoderated, stripcolor, and topiclock.          #
+# See <options:exemptchanops> in inspircd.conf.example for a more     #
+# detailed list of the restriction modes that can be exempted.        #
+# These are settable using /mode #chan +X <restriction>:<status>      #
 #<module name="m_exemptchanops.so">                                   #
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
@@ -844,7 +849,7 @@
 #                                                                     #
 # If you specify to use the m_helpop.so module, then specify below    #
 # the path to the helpop.conf file.                                   #
-#<include file="conf/examples/inspircd.helpop-full.example">
+#<include file="conf/examples/helpop-full.conf.example">
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # Hide chans module: Allows users to hide their channels list from non-
@@ -1781,9 +1786,6 @@
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # SQL authentication module: Allows IRCd connections to be tied into
 # a database table (for example a forum).
-# This module is in extras. Re-run configure with:
-# ./configure --enable-extras=m_sqlauth.cpp
-# and run make install, then uncomment this module to enable it.
 #
 #<module name="m_sqlauth.so">
 #
@@ -1794,9 +1796,6 @@
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # SQL oper module: Allows you to store oper credentials in an SQL table
-# This module is in extras. Re-run configure with:
-# ./configure --enable-extras=m_sqloper.cpp
-# and run make install, then uncomment this module to enable it.
 #
 #<module name="m_sqloper.so">
 #
