@@ -9,8 +9,8 @@ Uploaders: Darren Blaber <dmbtech@gmail.com>,
   Bradley Smith <bradsmith@debian.org>,
   Guillaume Delacour <gui@iroqwa.org>
 Build-Depends: debhelper (>= 9.0.0), perl-modules, libgnutls28-dev, pkg-config,
-               libldap2-dev, libpcre3-dev, libmysqlclient-dev, libpq-dev,
-               libsqlite3-dev, zlib1g-dev, libgeoip-dev,
+               libldap2-dev, libpcre3-dev, libmariadbclient-dev, libpq-dev,
+               libsqlite3-dev, zlib1g-dev, libmaxminddb-dev,
                libtre-dev, dh-systemd (>= 1.5), dh-apparmor
 Standards-Version: 3.9.7
 Homepage: http://www.inspircd.org/

@@ -1,6 +1,3 @@
 docs/conf/*.example
-docs/conf/aliases
-docs/conf/modules
-extras/m_sqloper.mysql.sql
-extras/m_sqloper.postgresql.sql  
-extras/m_sqloper.sqlite3.sql
+docs/conf/services
+docs/sql/*.sql

@@ -16,10 +16,10 @@ endif
 CXX ?= g++
 
 # modules selection
-LDAP_MODULES      = m_ldapauth.cpp,m_ldapoper.cpp
+LDAP_MODULES      = m_ldap.cpp
 DATABASES_MODULES = $(LDAP_MODULES),m_mysql.cpp,m_pgsql.cpp,m_sqlite3.cpp
 REGEX_MODULES     = m_regex_pcre.cpp,m_regex_posix.cpp,m_regex_tre.cpp,m_regex_stdlib.cpp
-OTHER_MODULES     = $(REGEX_MODULES),m_geoip.cpp
+OTHER_MODULES     = $(REGEX_MODULES),m_geo_maxmind.cpp
 SSL_MODULE        = m_ssl_gnutls.cpp
 INSPIRCD_MODULES  = $(SSL_MODULE),$(DATABASES_MODULES),$(OTHER_MODULES)
 
@@ -35,7 +35,8 @@ override_dh_auto_configure:
 		--prefix=/usr/lib/inspircd \
 		--config-dir=/etc/inspircd \
 		--module-dir=/usr/lib/inspircd/modules \
-		--binary-dir=/usr/sbin
+		--binary-dir=/usr/sbin \
+		--development
 
 # allow parallel build
 override_dh_auto_build:
