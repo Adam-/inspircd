@@ -1,0 +1,18 @@
+From: Guillaume Delacour <gui@iroqwa.org>
+Subject: Disable rpath build option in modules
+Last-Update: 2014-09-24
+Forwarded: not-needed
+
+Index: inspircd-2.0.17/src/modules/extra/m_mysql.cpp
+===================================================================
+--- inspircd-2.0.17.orig/src/modules/extra/m_mysql.cpp
++++ inspircd-2.0.17/src/modules/extra/m_mysql.cpp
+@@ -35,7 +35,7 @@
+ 
+ /* $ModDesc: SQL Service Provider module for all other m_sql* modules */
+ /* $CompileFlags: exec("mysql_config --include") */
+-/* $LinkerFlags: exec("mysql_config --libs_r") rpath("mysql_config --libs_r") */
++/* $LinkerFlags: exec("mysql_config --libs_r") */
+ 
+ /* THE NONBLOCKING MYSQL API!
+  *

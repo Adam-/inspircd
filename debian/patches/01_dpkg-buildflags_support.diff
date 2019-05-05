@@ -1,0 +1,53 @@
+From: Guillaume Delacour <gui@iroqwa.org>
+Subject: Enable dpkg-buildflags in upstream MakeFile
+Last-Update: 2014-07-20
+
+Index: inspircd-2.0.16/make/template/main.mk
+===================================================================
+--- inspircd-2.0.16.orig/make/template/main.mk
++++ inspircd-2.0.16/make/template/main.mk
+@@ -34,9 +34,10 @@ CC = @CC@
+ SYSTEM = @SYSTEM@
+ BUILDPATH = @BUILD_DIR@
+ SOCKETENGINE = @SOCKETENGINE@
+-CXXFLAGS = -pipe -fPIC -DPIC
++CXXFLAGS += -pipe -fPIC -DPIC
++CPPFLAGS +=
+ LDLIBS = -pthread -lstdc++
+-LDFLAGS = 
++LDFLAGS +=
+ CORELDFLAGS = -rdynamic -L. $(LDFLAGS)
+ PICLDFLAGS = -fPIC -shared -rdynamic $(LDFLAGS)
+ BASE = "$(DESTDIR)@BASE_DIR@"
+@@ -132,7 +133,7 @@ CXXFLAGS += -Iinclude
+ @ENDIF
+ 
+ @DO_EXPORT RUNCC RUNLD CXXFLAGS LDLIBS PICLDFLAGS VERBOSE SOCKETENGINE CORELDFLAGS
+-@DO_EXPORT SOURCEPATH BUILDPATH PURE_STATIC SPLIT_CC
++@DO_EXPORT SOURCEPATH BUILDPATH PURE_STATIC SPLIT_CC CPPFLAGS
+ 
+ # Default target
+ TARGET = all
+Index: inspircd-2.0.16/make/unit-cc.pl
+===================================================================
+--- inspircd-2.0.16.orig/make/unit-cc.pl
++++ inspircd-2.0.16/make/unit-cc.pl
+@@ -79,6 +79,10 @@ sub do_static_link {
+ }
+ 
+ sub do_core_link {
++	# enable PIE for inspircd binary (already enabled on libs with -fPIC)
++    if ($out =~ m#bin/inspircd#) {
++		$ENV{CORELDFLAGS} .= ' -fPIE -pie ';
++    }
+ 	my $execstr = "$ENV{RUNLD} -o $out $ENV{CORELDFLAGS} @_ $ENV{LDLIBS}";
+ 	print "$execstr\n" if $verbose;
+ 	exec $execstr;
+@@ -98,6 +102,7 @@ sub do_compile {
+ 	my $binary = $ENV{RUNCC};
+ 	if ($do_compile) {
+ 		$flags = $ENV{CXXFLAGS};
++		$flags .= ' '.$ENV{CPPFLAGS};
+ 		$flags =~ s/ -pedantic// if nopedantic($file);
+ 		$flags .= ' ' . getcompilerflags($file);
+ 

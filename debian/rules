@@ -1,0 +1,81 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+
+# hardening options at build time, without PIE enabled globally
+# enable PIE on inspircd binary only in upstream build system
+export DEB_BUILD_MAINT_OPTIONS=hardening=+all,-pie
+
+# use DEB_BUILD_OPTIONS="parallel=n" to parallelize the build
+ifneq (,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
+	NUMJOBS = $(patsubst parallel=%,%,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
+	MAKEFLAGS += -j$(NUMJOBS)
+endif
+
+# upstream detect FreeBSD platforms and switch to clang++, force CXX to g++ if
+# undefined (possible to rebuild the package whith another compiler)
+CXX ?= g++
+
+# modules selection
+LDAP_MODULES      = m_ldapauth.cpp,m_ldapoper.cpp
+DATABASES_MODULES = $(LDAP_MODULES),m_mysql.cpp,m_pgsql.cpp,m_sqlite3.cpp
+REGEX_MODULES     = m_regex_pcre.cpp,m_regex_posix.cpp,m_regex_tre.cpp,m_regex_stdlib.cpp
+OTHER_MODULES     = $(REGEX_MODULES),m_geoip.cpp
+SSL_MODULE        = m_ssl_gnutls.cpp
+INSPIRCD_MODULES  = $(SSL_MODULE),$(DATABASES_MODULES),$(OTHER_MODULES)
+
+override_dh_auto_configure:
+	# Enable extra modules
+	DISABLE_RPATH=yes ./configure --enable-extras=$(INSPIRCD_MODULES)
+
+	# Really launch configure
+	./configure --disable-interactive \
+		--with-cc=$(CXX) \
+		--uid=$(shell id --user irc) \
+		--enable-gnutls \
+		--prefix=/usr/lib/inspircd \
+		--config-dir=/etc/inspircd \
+		--module-dir=/usr/lib/inspircd/modules \
+		--binary-dir=/usr/sbin
+
+# allow parallel build
+override_dh_auto_build:
+	# compile binary with debuginfo and optimization (make D=2 all) as upstream
+	# don't generate symbols by default. dh_strip generate a -dbg package
+	# (see below)
+	# show compiler commandline when building,
+	# ccache can use it to speed the build (V=1)
+	dh_auto_build --parallel -- D=2 V=1 all
+
+# install
+override_dh_auto_install:
+	dh_auto_install -- install DESTDIR=$(CURDIR)/debian/inspircd
+
+	# Delete example files (already in /usr/share/doc/inspircd/examples)
+	rm -rf $(CURDIR)/debian/inspircd/etc/inspircd/examples
+
+	# delete empty data and log dir
+	rmdir $(CURDIR)/debian/inspircd/usr/lib/inspircd/data \
+	$(CURDIR)/debian/inspircd/usr/lib/inspircd/logs
+	
+	# Add AppArmor profile
+	cp $(CURDIR)/debian/apparmor-profile \
+		$(CURDIR)/debian/inspircd/etc/apparmor.d/usr.sbin.inspircd
+	dh_apparmor --profile-name=usr.sbin.inspircd -pinspircd
+
+
+# debugging symbols package
+override_dh_strip:
+	dh_strip --dbg-package=inspircd-dbg
+
+override_dh_auto_clean:
+	# call distclean instead of clean
+	dh_auto_clean -- distclean
+
+	# Delete symlinks to extra modules
+	find $(CURDIR)/src/modules/ -type l -exec rm '{}' \;
+
+	# Remove generated binary
+	rm -f $(CURDIR)/inspircd
+
+%:
+	dh $@ --with systemd

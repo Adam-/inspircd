@@ -1,0 +1,61 @@
+From: Guillaume Delacour <gui@iroqwa.org>
+Description: Remove __{DATE,TIME}__ usage to do reproducible builds + fix version
+ Don't use git to fix a revision (as the packaging also use git + tags)
+ Don't depend on hostname and kernel release, just kernel name
+ Suggestions come from upstream via irc
+Forwarded: not-needed
+Last-Update: 2015-05-28
+
+Index: inspircd/src/inspircd.cpp
+===================================================================
+--- inspircd.orig/src/inspircd.cpp
++++ inspircd/src/inspircd.cpp
+@@ -511,7 +511,7 @@ InspIRCd::InspIRCd(int argc, char** argv
+ 		}
+ 	}
+ 
+-	std::cout << con_green << "Inspire Internet Relay Chat Server" << con_reset << ", compiled on " __DATE__ " at " __TIME__ << std::endl;
++	std::cout << con_green << "Inspire Internet Relay Chat Server" << con_reset << std::endl;
+ 	std::cout << con_green << "(C) InspIRCd Development Team." << con_reset << std::endl << std::endl;
+ 	std::cout << "Developers:" << std::endl;
+ 	std::cout << con_green << "\tBrain, FrostyCoolSlug, w00t, Om, Special, peavey" << std::endl;
+Index: inspircd/src/users.cpp
+===================================================================
+--- inspircd.orig/src/users.cpp
++++ inspircd/src/users.cpp
+@@ -785,7 +785,8 @@ void LocalUser::FullConnect()
+ 		this->WriteServ("NOTICE Auth :Welcome to \002%s\002!",ServerInstance->Config->Network.c_str());
+ 	this->WriteNumeric(RPL_WELCOME, "%s :Welcome to the %s IRC Network %s",this->nick.c_str(), ServerInstance->Config->Network.c_str(), GetFullRealHost().c_str());
+ 	this->WriteNumeric(RPL_YOURHOSTIS, "%s :Your host is %s, running version %s",this->nick.c_str(),ServerInstance->Config->ServerName.c_str(),BRANCH);
+-	this->WriteNumeric(RPL_SERVERCREATED, "%s :This server was created %s %s", this->nick.c_str(), __TIME__, __DATE__);
++	// this->WriteNumeric(RPL_SERVERCREATED, ":This server was started %s", startup_timestr.c_str());
++	this->WriteNumeric(RPL_SERVERCREATED, "%s :This server was created on Debian", this->nick.c_str());
+ 
+ 	std::string umlist = ServerInstance->Modes->UserModeList();
+ 	std::string cmlist = ServerInstance->Modes->ChannelModeList();
+Index: inspircd/make/configure.pm
+===================================================================
+--- inspircd.orig/make/configure.pm
++++ inspircd/make/configure.pm
+@@ -33,7 +33,7 @@ use POSIX;
+ use make::utilities;
+ our @EXPORT = qw(promptnumeric dumphash is_dir getmodules getrevision getcompilerflags getlinkerflags getdependencies nopedantic resolve_directory yesno showhelp promptstring_s module_installed);
+ 
+-my $no_git = 0;
++my $no_git = 1;
+ 
+ sub yesno {
+ 	my ($flag,$prompt) = @_;
+Index: inspircd/configure
+===================================================================
+--- inspircd.orig/configure
++++ inspircd/configure
+@@ -859,7 +859,7 @@ my ($mliflags, $mfrules, $mobjs, $mfcoun
+ sub writefiles {
+ 	my($writeheader) = @_;
+ 	# First File.. inspircd_config.h
+-	chomp(my $incos = `uname -n -s -r`);
++	chomp(my $incos = `uname --kernel-name`);
+ 	chomp(my $version = `sh src/version.sh`);
+ 	chomp(my $revision2 = getrevision());
+ 	my $branch = "InspIRCd-0.0";
