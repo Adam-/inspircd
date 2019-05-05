@@ -1,0 +1,37 @@
+#
+# InspIRCd -- Internet Relay Chat Daemon
+#
+#   Copyright (C) 2014-2015 Peter Powell <petpow@saberuk.com>
+#
+# This file is part of InspIRCd.  InspIRCd is free software: you can
+# redistribute it and/or modify it under the terms of the GNU General Public
+# License as published by the Free Software Foundation, version 2.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+# details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+
+# Do not make any changes to this file! It has been taken from the master branch
+# for use in pre-master packages. You should update the file in master instead!
+
+[Unit]
+After=network.target
+Description=InspIRCd - Internet Relay Chat Daemon
+Requires=network.target
+
+[Service]
+ExecReload=/usr/sbin/inspircd rehash
+ExecStart=/usr/sbin/inspircd start
+ExecStop=/usr/sbin/inspircd stop
+PIDFile=/var/inspircd/inspircd.pid
+Restart=on-failure
+Type=forking
+
+[Install]
+WantedBy=multi-user.target
