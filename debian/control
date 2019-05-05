@@ -9,7 +9,7 @@ Uploaders: Darren Blaber <dmbtech@gmail.com>,
   Bradley Smith <bradsmith@debian.org>,
   Guillaume Delacour <gui@iroqwa.org>
 Build-Depends: debhelper (>= 9.0.0), perl-modules, libgnutls28-dev, pkg-config,
-               libldap2-dev, libpcre3-dev, libmysqlclient-dev, libpq-dev,
+               libldap2-dev, libpcre3-dev, libmariadbclient-dev, libpq-dev,
                libsqlite3-dev, zlib1g-dev, libgeoip-dev,
                libtre-dev, dh-systemd (>= 1.5), dh-apparmor
 Standards-Version: 3.9.7
@@ -20,7 +20,7 @@ Vcs-Git: https://anonscm.debian.org/git/collab-maint/inspircd.git
 Package: inspircd
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, lsb-base
-Suggests: sqlite3, mysql-server, ldap-server, postgresql, gnutls-bin
+Suggests: sqlite3, mariadb-server, ldap-server, postgresql, gnutls-bin
 Provides: ircd
 Description: Modular IRCd written in C++
  InspIRCd is a modular C++ IRC Daemon for several operating systems created
