@@ -333,7 +333,7 @@ void TreeSocket::ProcessConnectedLine(std::string& taglist, std::string& prefix,
 	}
 
 	// Translate commands coming from servers using an older protocol
-	if (proto_version < ProtocolVersion)
+	if (proto_version < PROTO_NEWEST)
 	{
 		if (!PreProcessOldProtocolMessage(who, command, params))
 			return;
@@ -422,7 +422,7 @@ void TreeSocket::Close()
 	time_t server_uptime = ServerInstance->Time() - this->age;
 	if (server_uptime)
 	{
-		std::string timestr = ModuleSpanningTree::TimeToStr(server_uptime);
+		std::string timestr = InspIRCd::DurationString(server_uptime);
 		ServerInstance->SNO->WriteGlobalSno('l', "Connection to '\002%s\002' was established for %s", linkID.c_str(), timestr.c_str());
 	}
 }

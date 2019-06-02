@@ -269,7 +269,7 @@
          # a user if they do not do anything on connect.
          # (Note, this is a client-side thing, if the client does not
          # send /NICK, /USER or /PASS)
-         timeout="10"
+         timeout="20"
 
          # localmax: Maximum local connections per IP (or CIDR mask, see below).
          localmax="3"
@@ -290,6 +290,10 @@
 
          # useident: Defines if users in this class MUST respond to a ident query or not.
          useident="no"
+
+         # usests: Whether a STS policy should be advertised to users in this class.
+         # This setting only has effect when the ircv3_sts module is loaded.
+         #usests="no"
 
          # webirc: Restricts usage of this class to the specified WebIRC gateway.
          # This setting only has effect when the cgiirc module is loaded.
@@ -363,7 +367,7 @@
          # a user if they do not do anything on connect.
          # (Note, this is a client-side thing, if the client does not
          # send /NICK, /USER or /PASS)
-         timeout="10"
+         timeout="20"
 
          # pingfreq: How often the server tries to ping connecting clients.
          pingfreq="2m"
@@ -419,6 +423,10 @@
          # useident: Defines if users in this class must respond to a ident query or not.
          useident="no"
 
+         # usests: Whether a STS policy should be advertised to users in this class.
+         # This setting only has effect when the ircv3_sts module is loaded.
+         #usests="no"
+
          # limit: How many users are allowed in this class
          limit="5000"
 
@@ -457,11 +465,11 @@
 
 # This file has all the information about oper classes, types and o:lines.
 # You *MUST* edit it.
-<include file="examples/opers.conf.example">
+#<include file="examples/opers.conf.example">
 
 # This file has all the information about server links and ulined servers.
 # You *MUST* edit it if you intend to link servers.
-<include file="examples/links.conf.example">
+#<include file="examples/links.conf.example">
 
 #-#-#-#-#-#-#-#-#-#-  MISCELLANEOUS CONFIGURATION  -#-#-#-#-#-#-#-#-#-#
 #                                                                     #
@@ -626,6 +634,8 @@
 
          # exemptchanops: Allows users with with a status mode to be exempt
          # from various channel restrictions. Possible restrictions are:
+         #  - anticaps        Channel mode +B - blocks messages with too many capital
+         #                    letters (requires the anticaps module).
          #  - auditorium-see  Permission required to see the full user list of
          #                    a +u channel (requires the auditorium module).
          #  - auditorium-vis  Permission required to be visible in a +u channel
@@ -1002,7 +1012,7 @@
 # provide almost all the features of InspIRCd. :)                     #
 #                                                                     #
 # The default does nothing -- we include it for simplicity for you.   #
-<include file="examples/modules.conf.example">
+#<include file="examples/modules.conf.example">
 
 #-#-#-#-#-#-#-#-#-#-#-# SERVICES CONFIGURATION  #-#-#-#-#-#-#-#-#-#-#-#
 #                                                                     #

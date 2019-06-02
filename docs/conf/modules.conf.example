@@ -828,9 +828,10 @@
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # Exempt channel operators module: Provides support for allowing      #
 # users of a specified channel status to be exempt from some channel  #
-# restriction modes. Supported restrictions are                       #
-# blockcaps, blockcolor, censor, filter, flood, nickflood, noctcp,    #
-# nonick, nonotice, regmoderated, stripcolor, and topiclock.          #
+# restriction modes. Supported restrictions are:                      #
+# anticaps, auditorium-see, auditorium-vis, blockcaps, blockcolor,    #
+# censor, filter, flood, nickflood, noctcp, nonick, nonotice,         #
+# regmoderated, stripcolor, and topiclock.                            #
 # See <options:exemptchanops> in inspircd.conf.example for a more     #
 # detailed list of the restriction modes that can be exempted.        #
 # These are settable using: /MODE #chan +X <restriction>:<status>     #
@@ -1165,6 +1166,13 @@
 # extension which notifies supporting clients when a user invites
 # another user into a channel. This respects <options:announceinvites>.
 #<module name="ircv3_invitenotify">
+
+#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
+# IRCv3 message id module: Provides the msgid IRCv3 extension which
+# adds a unique identifier to each message when the message-tags cap
+# has been requested. This enables support for modern features such as
+# reactions and replies.
+#<module name="ircv3_msgid">
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # IRCv3 server-time module. Adds the 'time' tag which adds a timestamp
@@ -2286,7 +2294,7 @@
 # which are allowed to connect to the server. You should set this as
 # strict as possible to prevent malicious webpages from connecting to
 # your server.
-# <wsorigin allow="https://*.example.com/">
+# <wsorigin allow="https://*.example.com">
 
 #-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#
 # X-line database: Stores all *-lines (G/Z/K/R/any added by other modules)
