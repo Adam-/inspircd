@@ -28,10 +28,17 @@
 #include "iohook.h"
 #include "modules/httpd.h"
 
-// Fix warnings about the use of commas at end of enumerator lists on C++03.
+#ifdef __GNUC__
+# pragma GCC diagnostic push
+#endif
+
+// Fix warnings about the use of commas at end of enumerator lists and long long
+// on C++03.
 #if defined __clang__
 # pragma clang diagnostic ignored "-Wc++11-extensions"
+# pragma clang diagnostic ignored "-Wc++11-long-long"
 #elif defined __GNUC__
+# pragma GCC diagnostic ignored "-Wlong-long"
 # if (__GNUC__ > 4) || ((__GNUC__ == 4) && (__GNUC_MINOR__ >= 8))
 #  pragma GCC diagnostic ignored "-Wpedantic"
 # else
@@ -46,6 +53,10 @@
 
 #include <http_parser.c>
 
+#ifdef __GNUC__
+# pragma GCC diagnostic pop
+#endif
+
 class ModuleHttpServer;
 
 static ModuleHttpServer* HttpModule;
@@ -58,7 +69,8 @@ static http_parser_settings parser_settings;
  */
 class HttpServerSocket : public BufferedSocket, public Timer, public insp::intrusive_list_node<HttpServerSocket>
 {
-	friend ModuleHttpServer;
+ private:
+	friend class ModuleHttpServer;
 
 	http_parser parser;
 	http_parser_url url;
@@ -72,11 +84,17 @@ class HttpServerSocket : public BufferedSocket, public Timer, public insp::intru
 	/** True if this object is in the cull list
 	 */
 	bool waitingcull;
+	bool messagecomplete;
 
 	bool Tick(time_t currtime) CXX11_OVERRIDE
 	{
-		AddToCull();
-		return false;
+		if (!messagecomplete)
+		{
+			AddToCull();
+			return false;
+		}
+
+		return true;
 	}
 
 	template<int (HttpServerSocket::*f)()>
@@ -186,6 +204,7 @@ class HttpServerSocket : public BufferedSocket, public Timer, public insp::intru
 
 	int OnMessageComplete()
 	{
+		messagecomplete = true;
 		ServeData();
 		return 0;
 	}
@@ -197,6 +216,7 @@ class HttpServerSocket : public BufferedSocket, public Timer, public insp::intru
 		, ip(IP)
 		, status_code(0)
 		, waitingcull(false)
+		, messagecomplete(false)
 	{
 		if ((!via->iohookprovs.empty()) && (via->iohookprovs.back()))
 		{
@@ -231,9 +251,7 @@ class HttpServerSocket : public BufferedSocket, public Timer, public insp::intru
 			"<html><head></head><body>Server error %u: %s<br>"
 			"<small>Powered by <a href='https://www.inspircd.org'>InspIRCd</a></small></body></html>", response, http_status_str((http_status)response));
 
-		SendHeaders(data.length(), response, empty);
-		WriteData(data);
-		Close();
+		Page(data, response, &empty);
 	}
 
 	void SendHeaders(unsigned long size, unsigned int response, HTTPHeaders &rheaders)
@@ -277,8 +295,8 @@ class HttpServerSocket : public BufferedSocket, public Timer, public insp::intru
 		FIRST_MOD_RESULT_CUSTOM(*aclevprov, HTTPACLEventListener, OnHTTPACLCheck, MOD_RESULT, (acl));
 		if (MOD_RESULT != MOD_RES_DENY)
 		{
-			HTTPRequest url(method, parsed, &headers, this, ip, body);
-			FIRST_MOD_RESULT_CUSTOM(*reqevprov, HTTPRequestEventListener, OnHTTPRequest, MOD_RESULT, (url));
+			HTTPRequest request(method, parsed, &headers, this, ip, body);
+			FIRST_MOD_RESULT_CUSTOM(*reqevprov, HTTPRequestEventListener, OnHTTPRequest, MOD_RESULT, (request));
 			if (MOD_RESULT == MOD_RES_PASSTHRU)
 			{
 				SendHTTPError(404);
@@ -286,11 +304,16 @@ class HttpServerSocket : public BufferedSocket, public Timer, public insp::intru
 		}
 	}
 
+	void Page(const std::string& s, unsigned int response, HTTPHeaders* hheaders)
+	{
+		SendHeaders(s.length(), response, *hheaders);
+		WriteData(s);
+		Close(true);
+	}
+
 	void Page(std::stringstream* n, unsigned int response, HTTPHeaders* hheaders)
 	{
-		SendHeaders(n->str().length(), response, *hheaders);
-		WriteData(n->str());
-		Close();
+		Page(n->str(), response, hheaders);
 	}
 
 	void AddToCull()
@@ -303,10 +326,10 @@ class HttpServerSocket : public BufferedSocket, public Timer, public insp::intru
 		ServerInstance->GlobalCulls.AddItem(this);
 	}
 
-	bool ParseURI(const std::string& uri, HTTPRequestURI& out)
+	bool ParseURI(const std::string& uristr, HTTPRequestURI& out)
 	{
 		http_parser_url_init(&url);
-		if (http_parser_parse_url(uri.c_str(), uri.size(), 0, &url) != 0)
+		if (http_parser_parse_url(uristr.c_str(), uristr.size(), 0, &url) != 0)
 			return false;
 
 		if (url.field_set & (1 << UF_PATH))
