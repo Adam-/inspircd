@@ -1,5 +1,5 @@
 Name:           inspircd
-Version:        3.1.0
+Version:        3.2.0
 Release:        1%{?dist}
 Summary:        InspIRCd is a modular Internet Relay Chat (IRC) server
 
