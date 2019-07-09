@@ -49,8 +49,8 @@ systemctl reset-failed
 %setup -q
 
 %build
-%configure --system --uid=root --gid=root
-%configure --enable-extras=m_ssl_gnutls.cpp
+./configure --system --uid=root --gid=root
+./configure --enable-extras=m_ssl_gnutls.cpp
 make %{?_smp_mflags}
 
 
@@ -68,7 +68,11 @@ install %{SOURCE1} $RPM_BUILD_ROOT%{_unitdir}/
 %doc
 /usr/lib/inspircd/*.so
 /usr/sbin/inspircd
-/etc/inspircd/examples
+/usr/sbin/inspircd-genssl
+/usr/share/doc/inspircd
+/usr/share/inspircd
+/usr/share/man/man1/inspircd-genssl.1.gz
+/usr/share/man/man1/inspircd.1.gz
 %dir %attr(755, ircd, ircd) /var/log/inspircd
 %dir %attr(755, ircd, ircd) /var/inspircd
 %{_unitdir}/inspircd.service
