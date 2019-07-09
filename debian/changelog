@@ -1,3 +1,9 @@
+inspircd (3.2.0-1) unstable; urgency=medium
+
+  * Release 3.2.0
+
+ -- adam <adam@anope.org>  Tue, 09 Jul 2019 00:29:24 +0000
+
 inspircd (3.1.0-1) unstable; urgency=medium
 
   * Release 3.1.0
