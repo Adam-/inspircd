@@ -324,6 +324,15 @@ class LDAPService : public LDAPProvider, public SocketThread
 	void Connect()
 	{
 		std::string server = config->getString("server");
+
+		const std::string cafile = config->getString("cafile");
+		if (!cafile.empty())
+		{
+			int ret = ldap_set_option(NULL, LDAP_OPT_X_TLS_CACERTFILE, cafile.c_str());
+			if (ret != LDAP_SUCCESS)
+				throw LDAPException("Unable to set CA file for " + this->name + ": " + ldap_err2string(ret));
+		}
+
 		int i = ldap_initialize(&this->con, server.c_str());
 		if (i != LDAP_SUCCESS)
 			throw LDAPException("Unable to connect to LDAP service " + this->name + ": " + ldap_err2string(i));
