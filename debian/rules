@@ -30,6 +30,7 @@ override_dh_auto_configure:
 	# Really launch configure
 	./configure --disable-interactive \
 		--uid=$(shell id --user irc) \
+		--gid=$(shell id --user irc) \
 		--prefix=/usr/lib/inspircd \
 		--config-dir=/etc/inspircd \
 		--module-dir=/usr/lib/inspircd/modules \
