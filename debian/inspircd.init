@@ -15,9 +15,8 @@
 NAME="inspircd"
 IRCD="/usr/sbin/inspircd"
 IRCDPID="/var/run/inspircd.pid"
-IRCDLOG="/var/log/inspircd.log"
 IRCDCONF="/etc/inspircd/inspircd.conf"
-IRCDARGS="--logfile $IRCDLOG --config $IRCDCONF"
+IRCDARGS="--config $IRCDCONF"
 USER="irc"
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
@@ -37,7 +36,6 @@ fi
 start_ircd()
 {
 	[ -f "$IRCDPID" ] || ( touch "$IRCDPID" ; chown "$USER" "$IRCDPID" )
-	[ -f "$IRCDLOG" ] || ( touch "$IRCDLOG" ; chown "$USER:adm" "$IRCDLOG" ; chmod 0640 "$IRCDLOG" )
         export LD_LIBRARY_PATH=/usr/lib/inspircd
 	start-stop-daemon --start --quiet --oknodo --chuid "$USER" --pidfile "$IRCDPID" --exec "$IRCD" -- $IRCDARGS start > /dev/null
 }

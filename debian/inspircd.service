@@ -3,7 +3,7 @@ Description=IRC server
 
 [Service]
 User=irc
-ExecStart=/usr/sbin/inspircd --logfile /var/log/inspircd.log --config /etc/inspircd/inspircd.conf --nofork
+ExecStart=/usr/sbin/inspircd --config /etc/inspircd/inspircd.conf --nofork
 
 [Install]
 WantedBy=multi-user.target
