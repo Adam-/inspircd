@@ -1,3 +1,9 @@
+inspircd (3.6.0-1) unstable; urgency=medium
+
+  * Release 3.6.0
+
+ -- Sadie <sadie@witchery.services>  Thu, 28 May 2020 00:15:00 +0000
+
 inspircd (3.4.0-1) unstable; urgency=medium
 
   * Release 3.4.0
@@ -228,14 +234,14 @@ inspircd (2.0.5-0.1) unstable; urgency=low
   * debian/control:
     + Bump to Standards-Version 3.9.2 (no changes needed)
     + Switch to dpkg-source 3.0 (quilt) format and drop dpatch Build-Depends
-    + Build-Depend on extra modules libraries: libldap2-dev, libpcre3-dev, 
-      libmysqlclient-dev, libpq-dev, libsqlite3-dev, libssl-dev, zlib1g-dev, 
+    + Build-Depend on extra modules libraries: libldap2-dev, libpcre3-dev,
+      libmysqlclient-dev, libpq-dev, libsqlite3-dev, libssl-dev, zlib1g-dev,
       libgeoip-dev, libtre-dev and split to 80 columns
     + Build-Depends on hardening-wrapper
     + Build-Depends on debhelper >= 8.0.0
     + Depends on lsb-base (debian/inspircd.init)
     + Suggests sqlite3, mysql-server, ldap-server, postgresql, gnutls-bin
-    + Remove ${shlibs:Depends} and add (= ${binary:Version}) for debugging 
+    + Remove ${shlibs:Depends} and add (= ${binary:Version}) for debugging
       symbols package
     + Change Vcs-{Svn,Browser}, point to inspircd2 repository
   * debian/patches:
@@ -268,7 +274,7 @@ inspircd (2.0.5-0.1) unstable; urgency=low
 
   [ Jonathan Wiltshire ]
   * Non-maintainer upload.
-    This is really sponsorship with an added patch, but technically still 
+    This is really sponsorship with an added patch, but technically still
     an NMU.
   * Patch 03_CVE-2012-1836: protect against buffer overflow vulnerability
     in src/dns.cpp (merge from upstream)
